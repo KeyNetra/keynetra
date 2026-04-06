@@ -1,0 +1,12 @@
+model:
+  type: document
+  relations:
+    owner: user
+    editor: user
+    viewer: user
+    approver: user
+  permissions:
+    read: owner or editor or viewer
+    write: owner or editor
+    delete: owner
+    approve: approver or owner

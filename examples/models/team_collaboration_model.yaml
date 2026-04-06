@@ -1,0 +1,10 @@
+model:
+  type: team_asset
+  relations:
+    maintainer: user
+    contributor: user
+    commenter: user
+  permissions:
+    read: maintainer or contributor or commenter
+    comment: maintainer or contributor or commenter
+    merge: maintainer

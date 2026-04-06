@@ -1,0 +1,9 @@
+[
+  {"name": "document_admin", "permissions": ["read", "write", "delete", "share"]},
+  {"name": "contributor", "permissions": ["read", "write", "comment"]},
+  {"name": "viewer", "permissions": ["read"]},
+  {"name": "manager", "permissions": ["approve_payment", "reject_payment", "read"]},
+  {"name": "finance_admin", "permissions": ["approve_payment", "export_payment", "read"]},
+  {"name": "external", "permissions": ["read", "comment"]},
+  {"name": "admin", "permissions": ["grant", "revoke", "update_policy", "read"]}
+]

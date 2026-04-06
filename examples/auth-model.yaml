@@ -1,0 +1,9 @@
+model:
+  schema_version: 1
+  type: document
+  relations:
+    owner: user
+    editor: user
+  permissions:
+    read: owner or editor
+    write: owner

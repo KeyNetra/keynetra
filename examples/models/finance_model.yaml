@@ -1,0 +1,10 @@
+model:
+  type: payment
+  relations:
+    owner: user
+    reviewer: user
+    finance_admin: user
+  permissions:
+    submit: owner
+    approve: reviewer or finance_admin
+    reject: reviewer or finance_admin

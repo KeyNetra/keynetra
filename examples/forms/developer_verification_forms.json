@@ -1,0 +1,84 @@
+[
+  {
+    "scenario": "document_management",
+    "subject": "user:alice",
+    "resource": "document:doc-001",
+    "action": "read",
+    "roles": ["document_admin"],
+    "relationships": ["owner"],
+    "attributes": {
+      "department": "engineering",
+      "tenant": "acme",
+      "classification": "internal"
+    },
+    "expected": {
+      "decision": "allow",
+      "policy_id": "document-read-admin"
+    }
+  },
+  {
+    "scenario": "saas_multi_tenant",
+    "subject": "user:tenant-a-analyst",
+    "resource": "dashboard:dash-1",
+    "action": "export",
+    "roles": ["tenant_analyst"],
+    "relationships": ["member"],
+    "attributes": {
+      "tenant": "acme",
+      "resource_tenant": "acme"
+    },
+    "expected": {
+      "decision": "deny",
+      "policy_id": "acl:export-deny"
+    }
+  },
+  {
+    "scenario": "financial_approval",
+    "subject": "user:manager-1",
+    "resource": "payment:pay-900",
+    "action": "approve_payment",
+    "roles": ["manager"],
+    "relationships": ["reviewer"],
+    "attributes": {
+      "amount": 45000,
+      "owner_id": "approver-1",
+      "department": "finance"
+    },
+    "expected": {
+      "decision": "allow",
+      "policy_id": "finance-approve-manager-under-limit"
+    }
+  },
+  {
+    "scenario": "team_collaboration",
+    "subject": "user:contractor",
+    "resource": "repo:platform-core",
+    "action": "merge",
+    "roles": ["external"],
+    "relationships": ["commenter"],
+    "attributes": {
+      "tenant": "acme",
+      "resource_tenant": "acme"
+    },
+    "expected": {
+      "decision": "deny",
+      "policy_id": "team-external-no-merge"
+    }
+  },
+  {
+    "scenario": "admin_delegation",
+    "subject": "user:ops-admin",
+    "resource": "tenant:acme",
+    "action": "grant",
+    "roles": ["developer"],
+    "relationships": ["delegate"],
+    "attributes": {
+      "delegated_by_admin": true,
+      "tenant": "acme"
+    },
+    "expected": {
+      "decision": "allow",
+      "policy_id": "delegated-ops-limited"
+    }
+  }
+]

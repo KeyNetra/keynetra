@@ -1,0 +1,10 @@
+model:
+  type: tenant_resource
+  relations:
+    tenant_admin: user
+    tenant_member: user
+    support_viewer: user
+  permissions:
+    read: tenant_admin or tenant_member or support_viewer
+    manage: tenant_admin
+    export: tenant_admin or tenant_member

@@ -1,0 +1,11 @@
+model:
+  type: tenant_admin
+  relations:
+    owner: user
+    delegate: user
+    auditor: user
+  permissions:
+    read: owner or delegate or auditor
+    grant: owner or delegate
+    revoke: owner
+    update_policy: owner
