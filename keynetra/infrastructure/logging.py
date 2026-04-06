@@ -53,9 +53,7 @@ def configure_rich_logging() -> None:
         return
 
     force_color = os.getenv("KEYNETRA_FORCE_COLOR", "1").strip().lower() not in {"0", "false", "no"}
-    console = Console(
-        force_terminal=force_color, color_system="truecolor" if force_color else "auto"
-    )
+    console = Console(force_terminal=force_color, color_system="truecolor" if force_color else "auto")
     handler = RichHandler(
         rich_tracebacks=True,
         markup=True,

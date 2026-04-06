@@ -1,8 +1,6 @@
 <div align="center">
   <img src="https://capsule-render.vercel.app/api?type=waving&height=180&text=KeyNetra&fontSize=56&fontAlign=50&fontAlignY=35&color=0:1f6feb,100:0ea5e9&desc=Policy-driven%20Authorization%20Engine&descAlign=50&descAlignY=58&fontColor=ffffff" alt="KeyNetra banner" />
 
-  <img src="./data/imgs/logo.png" style="max-width:280px;" alt="KeyNetra banner" />
-
   <p>
     <a href="./.github/workflows/ci.yml"><img src="https://img.shields.io/badge/CI-GitHub%20Actions-informational" alt="CI" /></a>
     <a href="./pyproject.toml"><img src="https://img.shields.io/badge/python-3.11%2B-blue.svg" alt="Python" /></a>

@@ -5,9 +5,38 @@ policies:
     policy_id: document-read-admin
     conditions:
       role: admin
+      resource_type: document
+
   - action: read
     effect: allow
     priority: 20
-    policy_id: document-read-owner
+    policy_id: document-read-editor
     conditions:
+      relation: editor
+      resource_type: document
+      same_tenant: true
+
+  - action: write
+    effect: allow
+    priority: 30
+    policy_id: document-write-owner
+    conditions:
+      relation: owner
+      resource_type: document
       owner_only: true
+
+  - action: delete
+    effect: deny
+    priority: 40
+    policy_id: document-delete-protected
+    conditions:
+      resource_type: document
+      resource_attr: { classification: legal_hold }
+
+  - action: share
+    effect: deny
+    priority: 50
+    policy_id: document-share-external
+    conditions:
+      role: external
+      resource_type: document

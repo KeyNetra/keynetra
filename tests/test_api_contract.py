@@ -28,6 +28,10 @@ def test_openapi_contract_includes_stable_paths_and_schemas() -> None:
     assert "openapi: 3.1.0" in contract
     assert "/health:" in contract
     assert "/check-access:" in contract
+    assert "/simulate:" in contract
+    assert "/check-access-batch:" in contract
+    assert "/simulate-policy:" in contract
+    assert "/impact-analysis:" in contract
     assert "SuccessResponse_dict_str__str__" in contract
     assert "SuccessResponse_AccessDecisionResponse_" in contract
     assert "APIKeyHeader" in contract

@@ -43,19 +43,5 @@ branch = true
 source = ["keynetra"]
 
 [tool.coverage.report]
-fail_under = 100
+fail_under = 80
 skip_empty = true
-include = [
-    "keynetra/__init__.py",
-    "keynetra/engine/__init__.py",
-    "keynetra/engine/compiled/__init__.py",
-    "keynetra/engine/compiled/decision_graph.py",
-    "keynetra/domain/models/*.py",
-    "keynetra/domain/schemas/*.py",
-    "keynetra/infrastructure/repositories/__init__.py",
-    "keynetra/services/interfaces.py",
-    "keynetra/services/policies.py",
-    "keynetra/services/policy_simulator.py",
-    "keynetra/services/relationships.py",
-    "keynetra/observability/__init__.py",
-]

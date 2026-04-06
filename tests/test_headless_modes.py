@@ -192,7 +192,9 @@ def test_cli_serve_with_config_uses_server_settings(tmp_path: Path, monkeypatch)
     assert captured["port"] == 9099
 
 
-def test_cli_check_with_config_builds_url_from_server_settings(tmp_path: Path, monkeypatch) -> None:
+def test_cli_check_with_config_builds_url_from_server_settings(
+    tmp_path: Path, monkeypatch
+) -> None:
     called: dict[str, object] = {}
 
     class _Response:

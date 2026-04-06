@@ -245,3 +245,112 @@ def test_health_is_not_rate_limited() -> None:
 
     assert first.status_code == 200
     assert second.status_code == 200
+
+
+def test_check_access_batch_supports_mixed_authorization_results() -> None:
+    import os
+
+    os.environ["KEYNETRA_API_KEYS"] = "testkey"
+    reset_settings_cache()
+    client = TestClient(create_app())
+    payload = {
+        "user": {"id": 1, "role": "employee", "permissions": ["approve_payment"]},
+        "items": [
+            {"action": "approve_payment", "resource": {"amount": 100}},
+            {"action": "unknown_action", "resource": {}},
+        ],
+    }
+
+    response = client.post("/check-access-batch", json=payload, headers={"X-API-Key": "testkey"})
+
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert data["results"] == [
+        {"action": "approve_payment", "allowed": True, "revision": 1},
+        {"action": "unknown_action", "allowed": False, "revision": 1},
+    ]
+    assert data["revision"] == 1
+
+
+def test_simulate_endpoint_returns_trace_and_failed_conditions_shape() -> None:
+    import os
+
+    os.environ["KEYNETRA_API_KEYS"] = "testkey"
+    reset_settings_cache()
+    client = TestClient(create_app())
+    payload = {
+        "user": {"id": 1, "role": "employee"},
+        "action": "approve_payment",
+        "resource": {"amount": 999999, "owner_id": 2},
+        "context": {},
+    }
+
+    response = client.post("/simulate", json=payload, headers={"X-API-Key": "testkey"})
+
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert data["decision"] in {"allow", "deny"}
+    assert isinstance(data["matched_policies"], list)
+    assert isinstance(data["explain_trace"], list)
+    assert isinstance(data["failed_conditions"], list)
+    assert isinstance(data["revision"], int)
+    assert data["revision"] >= 1
+
+
+def test_simulate_policy_and_impact_analysis_endpoints_work_for_admin_api_key() -> None:
+    import os
+
+    os.environ["KEYNETRA_API_KEYS"] = "testkey"
+    os.environ["KEYNETRA_RATE_LIMIT_PER_MINUTE"] = "1000"
+    os.environ["KEYNETRA_RATE_LIMIT_BURST"] = "1000"
+    os.environ["KEYNETRA_RATE_LIMIT_WINDOW_SECONDS"] = "60"
+    reset_settings_cache()
+    client = TestClient(create_app())
+    headers = {"X-API-Key": "testkey"}
+
+    simulation = client.post(
+        "/simulate-policy",
+        json={
+            "simulate": {
+                "policy_change": """
+allow:
+  action: share_document
+  priority: 1
+  policy_key: share-admin
+  when:
+    role: admin
+"""
+            },
+            "request": {
+                "user": {"id": 1, "role": "admin", "roles": ["admin"]},
+                "action": "share_document",
+                "resource": {"resource_type": "document", "resource_id": "doc-1"},
+                "context": {},
+            },
+        },
+        headers=headers,
+    )
+    assert simulation.status_code == 200
+    sim_data = simulation.json()["data"]
+    assert sim_data["decision_before"]["decision"] == "deny"
+    assert sim_data["decision_after"]["decision"] == "allow"
+    assert sim_data["decision_after"]["allowed"] is True
+
+    impact = client.post(
+        "/impact-analysis",
+        json={
+            "policy_change": """
+allow:
+  action: share_document
+  priority: 1
+  policy_key: share-admin
+  when:
+    role: admin
+"""
+        },
+        headers=headers,
+    )
+    assert impact.status_code == 200
+    impact_data = impact.json()["data"]
+    assert isinstance(impact_data["gained_access"], list)
+    assert isinstance(impact_data["lost_access"], list)

@@ -1,61 +1,68 @@
 # Contributing to KeyNetra
 
-KeyNetra targets Python 3.11 and keeps the core release workflow intentionally simple:
+Thanks for contributing.
+This guide is optimized for first-time contributors.
 
-- `make install`
-- `make test`
-- `make lint`
-- `make format`
-- `make migrate`
-- `make run`
-
-## Development Setup
-
-1. Create and activate a virtual environment.
-2. Install dependencies with `make install`.
-3. Set any required environment variables in `.env`.
-4. Start the API with `make run` or `uvicorn keynetra.api.main:app`.
-
-## Running Tests
-
-Run the full test suite with:
+## Development setup
 
 ```bash
-make test
+python3.11 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt -r requirements-dev.txt
+export KEYNETRA_API_KEYS=devkey
 ```
 
-Run coverage checks with:
+Start the API locally:
 
 ```bash
-pytest -q --cov=keynetra --cov-fail-under=80
+python -m keynetra.cli serve
 ```
 
-## Migration Workflow
+## Run tests
 
-Use the local migration command when schema changes are needed:
+Run all tests:
 
 ```bash
-make migrate
+PYTHONPATH=. python3.11 -m pytest -q
 ```
 
-If you are applying a destructive migration on purpose, pass the confirmation flag through the CLI:
+Run targeted tests:
 
 ```bash
-python -m keynetra.cli migrate --confirm-destructive
+PYTHONPATH=. python3.11 -m pytest -q tests/test_api.py
 ```
 
-## Coding Standards
+## Coding guidelines
 
-- Format Python with `black`
-- Sort imports with `isort`
-- Keep lint clean with `ruff`
-- Prefer small, focused changes with tests
-- Avoid coupling the `keynetra/` package to `infra/`
+- Keep changes small and focused
+- Add tests for behavior changes
+- Keep documentation in sync with code
+- Prefer clear names over clever shortcuts
+- Do not add unrelated refactors in the same PR
 
-## Pull Request Process
+Formatting/linting tools used in this project:
 
-1. Open a feature branch.
-2. Add or update tests for behavioral changes.
-3. Run `make lint` and `make test` locally.
-4. Update docs or migrations when relevant.
-5. Use the pull request template and complete the checklist.
+- `black`
+- `isort`
+- `ruff`
+
+## Pull request checklist
+
+1. Create a feature branch
+2. Implement change with tests
+3. Run test suite locally
+4. Update docs when behavior changes
+5. Open PR with clear summary:
+   - problem
+   - approach
+   - test evidence
+
+## Reporting bugs
+
+When opening an issue, include:
+
+- expected behavior
+- actual behavior
+- minimal reproducible request/payload
+- logs/error output
+- runtime info (Python version, OS)
