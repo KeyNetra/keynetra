@@ -1,4 +1,4 @@
-name: Release
+name: 🚀 Release
 
 on:
   push:
@@ -7,36 +7,67 @@ on:
 
 permissions:
   contents: write
+  packages: write
 
 jobs:
   release:
+    name: 📦 Python Release
     runs-on: ubuntu-latest
     env:
       KEYNETRA_DATABASE_URL: sqlite+pysqlite:///./.keynetra-release.db
       KEYNETRA_API_KEYS: testkey
       PYTHONUNBUFFERED: "1"
     steps:
-      - name: Checkout repository
+      - name: 📥 Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: Set up Python 3.11
+      - name: 🐍 Set up Python 3.11
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+          cache: "pip"
 
-      - name: Install dependencies
+      - name: 📦 Install dependencies
         run: |
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt
           python -m pip install -r requirements-dev.txt
+          python -m pip install build twine
 
-      - name: Build Python package
-        run: python -m build
+      - name: 🔍 Lint & Security
+        run: |
+          ruff check .
+          black --check .
+          pip-audit
+          safety check
 
-      - name: Run tests
-        run: pytest -q --cov=keynetra --cov-fail-under=80
+      - name: ✅ Run tests & coverage
+        run: |
+          pytest -q \
+            --cov=keynetra \
+            --cov-fail-under=85 \
+            --cov-report=term \
+            --cov-report=json:coverage.json
 
-      - name: Attach release artifacts
+      - name: 📊 Coverage Summary
+        if: always()
+        run: |
+          echo "## 📈 Test Coverage" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ -f coverage.json ]; then
+            cat coverage.json >> $GITHUB_STEP_SUMMARY
+          else
+            echo "No coverage.json found" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: 🏗️ Build Python package
+        run: |
+          python -m build
+          twine check dist/*
+
+      - name: 📤 Upload release artifacts
         uses: actions/upload-artifact@v4
         with:
           name: keynetra-release-artifacts
@@ -44,56 +75,101 @@ jobs:
             dist/*.tar.gz
             dist/*.whl
 
-      - name: Publish GitHub release
+      - name: 🎉 Publish GitHub release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         uses: softprops/action-gh-release@v2
         with:
           name: KeyNetra ${{ github.ref_name }}
           body: |
-            Initial public release of the KeyNetra authorization engine.
+            # KeyNetra ${{ github.ref_name }}
 
-            Includes support for RBAC, ABAC, ACL, and ReBAC with a compiled authorization engine, distributed caching, policy simulation, impact analysis, and observability.
+            🚀 **New release of the KeyNetra authorization engine!**
+
+            ## ✨ Features
+            - RBAC, ABAC, ACL, ReBAC support
+            - Compiled authorization engine
+            - Distributed caching
+            - Policy simulation & impact analysis
+            - Full observability
+
+            ## 📦 Artifacts
+            - Python wheel & sdist
+            - Docker images (below)
+
+            **Changelog:** [See commits](https://github.com/keynetra/keynetra/compare/${{ github.ref_previous }}...${{ github.ref }})
           files: |
             dist/*.tar.gz
             dist/*.whl
+          generate_release_notes: true
 
   docker:
-    needs: release
+    name: 🐳 Docker Multi-Platform
     runs-on: ubuntu-latest
+    needs: release
     permissions:
       contents: read
       packages: write
+    strategy:
+      matrix:
+        platform: [linux/amd64, linux/arm64]
     steps:
-      - name: Checkout repo
+      - name: 📥 Checkout repo
         uses: actions/checkout@v4
 
-      - name: Setup Docker Buildx
+      - name: 🐍 Set up Python (for build)
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 📦 Install build deps
+        run: |
+          python -m pip install -r requirements.txt
+
+      - name: ⚙️ Setup Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Login Docker Hub
+      - name: 🔐 Login to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Login GHCR
+      - name: 🔐 Login to GHCR
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract metadata
+      - name: 📋 Extract metadata
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: |
             keynetra/keynetra
-            ghcr.io/keynetra/keynetra
+            ghcr.io/${{ github.repository }}/keynetra
+          tags: |
+            type=ref,event=tag
+            type=sha,prefix={{branch}}-
 
-      - name: Build and Push
+      - name: 🐳 Build & Push Multi-Platform
         uses: docker/build-push-action@v6
         with:
           context: .
+          platforms: ${{ matrix.platform }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: 📊 Docker Summary
+        if: always()
+        run: |
+          echo "## 🐳 Docker Images Published" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Registry | Tags | Platforms |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|------|-----------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Docker Hub | \`${{ steps.meta.outputs.tags }}\` | ${{ matrix.platform }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| GHCR | \`${{ steps.meta.outputs.tags }}\` | ${{ matrix.platform }} |" >> $GITHUB_STEP_SUMMARY
