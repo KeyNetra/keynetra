@@ -189,7 +189,9 @@ def _render_startup_screen(
         return
 
     force_color = os.getenv("KEYNETRA_FORCE_COLOR", "1").strip().lower() not in {"0", "false", "no"}
-    console = Console(force_terminal=force_color, color_system="truecolor" if force_color else "auto")
+    console = Console(
+        force_terminal=force_color, color_system="truecolor" if force_color else "auto"
+    )
     banner = Text("KEYNETRA", style="bold magenta")
     try:
         import pyfiglet
@@ -345,9 +347,9 @@ def help_cli() -> None:
                 "  keynetra admin-login --username admin --password admin123 [--config ...]",
                 "  keynetra migrate [--config ...]",
                 "  keynetra seed-data [--reset] [--config ...]",
-                "  keynetra check --api-key devkey --action read --user '{\"id\":\"u1\"}' --resource '{\"resource_type\":\"document\",\"resource_id\":\"doc-1\"}' [--config ...]",
-                "  keynetra simulate --api-key devkey --policy-change '{\"action\":\"read\",\"effect\":\"allow\",\"priority\":10,\"conditions\":{\"role\":\"admin\"}}' --action read [--config ...]",
-                "  keynetra impact --api-key devkey --policy-change '{\"action\":\"read\",\"effect\":\"deny\",\"priority\":1,\"conditions\":{}}' [--config ...]",
+                '  keynetra check --api-key devkey --action read --user \'{"id":"u1"}\' --resource \'{"resource_type":"document","resource_id":"doc-1"}\' [--config ...]',
+                '  keynetra simulate --api-key devkey --policy-change \'{"action":"read","effect":"allow","priority":10,"conditions":{"role":"admin"}}\' --action read [--config ...]',
+                '  keynetra impact --api-key devkey --policy-change \'{"action":"read","effect":"deny","priority":1,"conditions":{}}\' [--config ...]',
                 "  keynetra explain --user u1 --resource doc-1 --action read [--config ...]",
                 "  keynetra test-policy examples/policy_tests.yaml",
                 "  keynetra compile-policies --config examples/keynetra.yaml",

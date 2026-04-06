@@ -11,7 +11,11 @@ from keynetra.config.file_loaders import (
     load_policies_from_paths,
 )
 from keynetra.config.policies import DEFAULT_POLICIES
-from keynetra.engine.keynetra_engine import AuthorizationDecision, AuthorizationInput, KeyNetraEngine
+from keynetra.engine.keynetra_engine import (
+    AuthorizationDecision,
+    AuthorizationInput,
+    KeyNetraEngine,
+)
 from keynetra.engine.model_graph.permission_graph import CompiledPermissionGraph
 from keynetra.modeling.permission_compiler import compile_authorization_schema
 

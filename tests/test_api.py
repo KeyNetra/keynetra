@@ -311,16 +311,14 @@ def test_simulate_policy_and_impact_analysis_endpoints_work_for_admin_api_key() 
     simulation = client.post(
         "/simulate-policy",
         json={
-            "simulate": {
-                "policy_change": """
+            "simulate": {"policy_change": """
 allow:
   action: share_document
   priority: 1
   policy_key: share-admin
   when:
     role: admin
-"""
-            },
+"""},
             "request": {
                 "user": {"id": 1, "role": "admin", "roles": ["admin"]},
                 "action": "share_document",
@@ -338,16 +336,14 @@ allow:
 
     impact = client.post(
         "/impact-analysis",
-        json={
-            "policy_change": """
+        json={"policy_change": """
 allow:
   action: share_document
   priority: 1
   policy_key: share-admin
   when:
     role: admin
-"""
-        },
+"""},
         headers=headers,
     )
     assert impact.status_code == 200

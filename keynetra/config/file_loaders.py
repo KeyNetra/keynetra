@@ -20,7 +20,8 @@ def load_policies_from_paths(paths: list[str]) -> list[dict[str, Any]]:
                 [
                     child
                     for child in policy_path.rglob("*")
-                    if child.is_file() and child.suffix.lower() in {".yaml", ".yml", ".json", ".polar"}
+                    if child.is_file()
+                    and child.suffix.lower() in {".yaml", ".yml", ".json", ".polar"}
                 ]
             )
             for file_path in files:
@@ -125,9 +126,7 @@ def _normalize_policy_payload(payload: Any) -> list[dict[str, Any]]:
                     "priority": int(payload.get("priority", 100)),
                     "conditions": dict(payload.get("conditions") or {}),
                     "policy_id": (
-                        None
-                        if payload.get("policy_id") is None
-                        else str(payload.get("policy_id"))
+                        None if payload.get("policy_id") is None else str(payload.get("policy_id"))
                     ),
                 }
             ]

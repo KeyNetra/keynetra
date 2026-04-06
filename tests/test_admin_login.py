@@ -59,7 +59,15 @@ def test_cli_admin_login_command_calls_login_endpoint(monkeypatch) -> None:
     runner = CliRunner()
     result = runner.invoke(
         app,
-        ["admin-login", "--username", "admin", "--password", "secret", "--url", "http://localhost:8000/admin/login"],
+        [
+            "admin-login",
+            "--username",
+            "admin",
+            "--password",
+            "secret",
+            "--url",
+            "http://localhost:8000/admin/login",
+        ],
     )
     assert result.exit_code == 0
     assert called["json"] == {"username": "admin", "password": "secret"}
