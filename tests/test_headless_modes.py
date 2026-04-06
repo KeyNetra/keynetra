@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from typer.testing import CliRunner
+
 from keynetra import KeyNetra
 from keynetra.cli import app
 from keynetra.config.config_loader import load_config_file
@@ -12,7 +14,6 @@ from keynetra.config.file_loaders import (
     load_policies_from_paths,
 )
 from keynetra.engine import KeyNetraEngine
-from typer.testing import CliRunner
 
 
 def test_config_loader_supports_yaml_json_and_toml(tmp_path: Path) -> None:

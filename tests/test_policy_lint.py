@@ -3,13 +3,14 @@ from __future__ import annotations
 import os
 
 from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session
+
 from keynetra.config.settings import reset_settings_cache
 from keynetra.domain.models.base import Base
 from keynetra.domain.models.rbac import Role
 from keynetra.infrastructure.storage.session import initialize_database
 from keynetra.main import create_app
-from sqlalchemy import create_engine
-from sqlalchemy.orm import Session
 
 
 def _setup_database(database_url: str) -> None:

@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 from jose import jwt
+from typer.testing import CliRunner
+
 from keynetra.cli import app
 from keynetra.config.settings import reset_settings_cache
 from keynetra.main import create_app
-from typer.testing import CliRunner
 
 
 def test_admin_login_with_username_password_issues_admin_jwt(monkeypatch) -> None:

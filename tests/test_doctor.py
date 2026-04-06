@@ -6,10 +6,11 @@ import pytest
 from sqlalchemy import create_engine, text
 
 pytest.importorskip("typer")
+from typer.testing import CliRunner
+
 from keynetra.cli import app
 from keynetra.config.settings import Settings, reset_settings_cache
 from keynetra.services.doctor import run_core_doctor
-from typer.testing import CliRunner
 
 
 class _FakeRedis:

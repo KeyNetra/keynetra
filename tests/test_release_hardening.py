@@ -9,6 +9,10 @@ from fastapi import HTTPException
 from fastapi.security import HTTPAuthorizationCredentials
 from fastapi.testclient import TestClient
 from jose import jwt
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session
+from typer.testing import CliRunner
+
 from keynetra.api.errors import ApiError
 from keynetra.api.routes.access import (
     AccessRequest,
@@ -17,11 +21,7 @@ from keynetra.api.routes.access import (
     check_access_batch,
 )
 from keynetra.api.routes.access import simulate as access_simulate
-from keynetra.api.routes.dev import (
-    _require_local_dev,
-    get_sample_data,
-    seed_sample_data,
-)
+from keynetra.api.routes.dev import _require_local_dev, get_sample_data, seed_sample_data
 from keynetra.api.routes.simulation import (
     ImpactAnalysisRequest,
     PolicySimulationRequest,
@@ -31,10 +31,7 @@ from keynetra.api.routes.simulation import (
 )
 from keynetra.cli import app
 from keynetra.config.admin_auth import AdminAccess, _resolve_tenant_role, require_management_role
-from keynetra.config.security import (
-    _matches_api_key,
-    get_principal,
-)
+from keynetra.config.security import _matches_api_key, get_principal
 from keynetra.config.settings import Settings, reset_settings_cache
 from keynetra.domain.models.base import Base
 from keynetra.domain.models.rbac import Permission, Role
@@ -56,9 +53,6 @@ from keynetra.services.interfaces import (
 )
 from keynetra.services.policies import PolicyService
 from keynetra.services.relationships import RelationshipService
-from sqlalchemy import create_engine
-from sqlalchemy.orm import Session
-from typer.testing import CliRunner
 
 
 class DummyRequest:

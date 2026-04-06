@@ -5,8 +5,9 @@ import asyncio
 import pytest
 
 pytest.importorskip("typer")
-from keynetra.cli import app
 from typer.testing import CliRunner
+
+from keynetra.cli import app
 
 
 class _FakeResponse:

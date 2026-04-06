@@ -22,10 +22,7 @@ from keynetra.engine.model_graph.permission_graph import MODEL_GRAPH_STORE, Comp
 from keynetra.infrastructure.cache.policy_cache import build_policy_cache
 from keynetra.infrastructure.errors import BootstrapError
 from keynetra.infrastructure.logging import configure_json_logging, log_event
-from keynetra.infrastructure.storage.session import (
-    create_session_factory,
-    initialize_database,
-)
+from keynetra.infrastructure.storage.session import create_session_factory, initialize_database
 from keynetra.modeling.permission_compiler import compile_authorization_schema
 from keynetra.observability.metrics import record_bootstrap_failure
 from keynetra.services.seeding import seed_demo_data

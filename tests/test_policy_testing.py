@@ -5,10 +5,11 @@ from pathlib import Path
 import pytest
 
 pytest.importorskip("typer")
+from typer.testing import CliRunner
+
 from keynetra.cli import app
 from keynetra.config.settings import get_settings, reset_settings_cache
 from keynetra.services.policy_testing import parse_policy_test_suite, validate_policy_test_suite
-from typer.testing import CliRunner
 
 
 def test_parse_policy_test_suite_supports_embedded_policy_dsl() -> None:
