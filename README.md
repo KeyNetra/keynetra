@@ -2,7 +2,7 @@
   <img src="./data/imgs/logo.png" alt="KeyNetra Logo" width="220" />
 </p>
 <p align="center">
-  <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&size=18&pause=1100&center=true&vCenter=true&width=900&lines=Deterministic+Authorization+Control+Plane;RBAC+%2B+ACL+%2B+ReBAC+for+modern+apps;FastAPI+API%2C+CLI%2C+Caching%2C+Observability" alt="KeyNetra animated typing banner" />
+  <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&size=25&pause=1100&center=true&vCenter=true&width=900&lines=Deterministic+Authorization+Control+Plane;RBAC+%2B+ACL+%2B+ReBAC+for+modern+apps;FastAPI+API%2C+CLI%2C+Caching%2C+Observability" alt="KeyNetra animated typing banner" />
 </p>
 <div align="center">
 
@@ -12,8 +12,6 @@
 [![Python](https://img.shields.io/badge/python-3.11%2B-blue)](./pyproject.toml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-green)](./LICENSE)
 [![OpenAPI](https://img.shields.io/badge/OpenAPI-3.1-orange)](./contracts/openapi/openapi.json)
-[![Deploy](https://img.shields.io/badge/deploy-docker%20%7C%20k8s%20%7C%20helm-059669)](./DEPLOYMENT.md)
-[![Security](https://img.shields.io/badge/security-policy-blue)](./SECURITY.md)
 
 </div>
 
@@ -226,8 +224,6 @@ Contributions are welcome. Start with [`CONTRIBUTING.md`](./CONTRIBUTING.md) and
 
 Apache-2.0. See [`LICENSE`](./LICENSE).
 
-Made with love ❤️ for KeyNetra Community.
-
 ## Citation
 
 ```bibtex
@@ -239,3 +235,4 @@ Made with love ❤️ for KeyNetra Community.
   url     = {https://github.com/keynetra/keynetra}
 }
 ```
+<p align="center">Made with love ❤️ for KeyNetra Community. </p>
