@@ -12,6 +12,8 @@ env:
   PYTHONUNBUFFERED: "1"
   KEYNETRA_DATABASE_URL: sqlite+pysqlite:///./.keynetra-ci.db
   KEYNETRA_API_KEYS: testkey
+  KEYNETRA_RATE_LIMIT_PER_MINUTE: "5000"
+  KEYNETRA_RATE_LIMIT_BURST: "5000"
 
 jobs:
 

@@ -7,7 +7,7 @@ class KeyNetraUser(HttpUser):
     wait_time = between(0.0, 0.1)
 
     def on_start(self) -> None:
-        self.headers = {"X-API-Key": "devkey"}
+        self.headers = {"X-API-Key": "devkey", "X-Tenant-Id": "acme"}
 
     @task
     def check_access(self) -> None:
