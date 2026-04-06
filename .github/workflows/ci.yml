@@ -166,7 +166,7 @@ jobs:
   load-test:
     name: 🚦 Load Smoke Test
     runs-on: ubuntu-latest
-    needs: test
+    # needs: test
 
     steps:
       - name: 📥 Checkout repository
