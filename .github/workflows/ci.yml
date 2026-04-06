@@ -27,6 +27,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Secret scanning (gitleaks)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
@@ -45,6 +50,18 @@ jobs:
           ruff check .
           black --check .
           isort --check-only .
+          mypy keynetra
+
+      - name: Security dependency scans
+        run: |
+          pip-audit
+          safety check --full-report
+
+      - name: OpenAPI contract drift check
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+        run: |
+          python -m keynetra.cli check-openapi
 
       - name: Migration check
         env:
@@ -55,4 +72,15 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}
         run: |
-          python -m pytest -q --cov=keynetra --cov-fail-under=80
+          python -m pytest -q --cov=keynetra --cov-fail-under=80 --cov-report=json --cov-report=term
+          python scripts/check_coverage.py
+
+      - name: Load smoke budgets (locust)
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+          KEYNETRA_API_KEYS: devkey
+        run: |
+          python -m uvicorn keynetra.api.main:app --host 127.0.0.1 --port 8000 &
+          sleep 3
+          locust -f locustfile.py --host http://127.0.0.1:8000 --headless -u 10 -r 2 -t 20s --csv /tmp/locust --only-summary
+          python scripts/check_load_budget.py

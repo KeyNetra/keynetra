@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import logging
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 
@@ -16,7 +16,7 @@ class JsonLogFormatter(logging.Formatter):
             payload = dict(record.msg)
         else:
             payload = {"message": record.getMessage()}
-        payload.setdefault("timestamp", datetime.now(timezone.utc).isoformat())
+        payload.setdefault("timestamp", datetime.now(UTC).isoformat())
         payload.setdefault("level", record.levelname)
         payload.setdefault("logger", record.name)
         return json.dumps(payload, default=str)

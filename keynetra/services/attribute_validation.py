@@ -19,9 +19,8 @@ def _validate_dict(obj: Any, *, name: str, max_keys: int, max_depth: int, depth:
             raise AttributeValidationError(f"{name} keys must be strings")
         if isinstance(v, dict):
             _validate_dict(v, name=name, max_keys=max_keys, max_depth=max_depth, depth=depth + 1)
-        elif isinstance(v, list):
-            if len(v) > max_keys:
-                raise AttributeValidationError(f"{name} list too large")
+        elif isinstance(v, list) and len(v) > max_keys:
+            raise AttributeValidationError(f"{name} list too large")
 
 
 def validate_user(user: dict[str, Any]) -> None:

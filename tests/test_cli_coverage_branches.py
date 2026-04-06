@@ -3,10 +3,9 @@ from __future__ import annotations
 import json
 import os
 
-from typer.testing import CliRunner
-
 from keynetra.cli import app
 from keynetra.config.settings import get_settings, reset_settings_cache
+from typer.testing import CliRunner
 
 
 def test_compile_policies_reports_missing_paths(monkeypatch) -> None:

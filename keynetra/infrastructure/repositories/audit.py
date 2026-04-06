@@ -27,11 +27,13 @@ class SqlAuditRepository:
         principal_id: str,
         authorization_input: AuthorizationInput,
         decision: AuthorizationDecision,
+        correlation_id: str | None = None,
     ) -> None:
         row = AuditLog(
             tenant_id=tenant_id,
             principal_type=principal_type,
             principal_id=principal_id,
+            correlation_id=correlation_id,
             user=authorization_input.user,
             action=authorization_input.action,
             resource=authorization_input.resource,
@@ -110,6 +112,7 @@ class SqlAuditRepository:
             id=row.id,
             principal_type=row.principal_type,
             principal_id=row.principal_id,
+            correlation_id=row.correlation_id,
             user=row.user,
             action=row.action,
             resource=row.resource,

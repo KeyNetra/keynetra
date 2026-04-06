@@ -16,6 +16,7 @@ class AuditLog(Base):
 
     principal_type: Mapped[str] = mapped_column(String(32), nullable=False)
     principal_id: Mapped[str] = mapped_column(String(128), nullable=False)
+    correlation_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
 
     user: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
     action: Mapped[str] = mapped_column(String(128), nullable=False)

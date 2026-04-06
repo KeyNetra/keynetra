@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Iterable
 
 DROP_PATTERN = re.compile(r"\bdrop_(?:table|column)\b")
 REVISION_PATTERN = re.compile(r"^revision\s*=\s*['\"](?P<revision>[^'\"]+)['\"]", re.MULTILINE)

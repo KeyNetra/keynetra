@@ -72,6 +72,7 @@ class AuthorizationService:
         acl_cache: ACLCache | None = None,
         access_index_cache: AccessIndexCache | None = None,
         auth_model_repository: AuthModelRepository | None = None,
+        request_id: str | None = None,
     ) -> None:
         self._settings = settings
         self._tenants = tenants
@@ -86,6 +87,7 @@ class AuthorizationService:
         self._acl_cache = acl_cache
         self._access_index_cache = access_index_cache
         self._auth_model_repository = auth_model_repository
+        self._request_id = request_id
         self._revisions = RevisionService(tenants)
         self._access_indexer = (
             AccessIndexer(
@@ -113,6 +115,7 @@ class AuthorizationService:
         consistency: str = "eventual",
         revision: int | None = None,
         audit: bool = True,
+        policy_set: str = "active",
     ) -> AuthorizationResult:
         started_at = time.perf_counter()
         fallback_input = AuthorizationInput(
@@ -139,9 +142,14 @@ class AuthorizationService:
 
         try:
             cache_key = None
+            cache_namespace = (
+                tenant.tenant_key
+                if policy_set.strip().lower() == "active"
+                else f"{tenant.tenant_key}:{policy_set.strip().lower()}"
+            )
             if consistency.strip().lower() != "fully_consistent":
                 cache_key = self._decision_cache.make_key(
-                    tenant_key=tenant.tenant_key,
+                    tenant_key=cache_namespace,
                     policy_version=tenant.policy_version,
                     authorization_input=authorization_input,
                     revision=tenant.revision if revision is None else revision,
@@ -161,6 +169,7 @@ class AuthorizationService:
                 tenant_key=tenant.tenant_key,
                 tenant_id=tenant.id,
                 policy_version=tenant.policy_version,
+                policy_set=policy_set,
             )
             decision = engine.decide(authorization_input)
             if cache_key is not None:
@@ -172,6 +181,7 @@ class AuthorizationService:
                     principal_id=str(principal.get("id")),
                     authorization_input=authorization_input,
                     decision=decision,
+                    correlation_id=self._request_id,
                 )
             return AuthorizationResult(decision=decision, cached=False, revision=tenant.revision)
         except Exception as exc:
@@ -180,6 +190,7 @@ class AuthorizationService:
                 event="authorization_fallback",
                 tenant_id=tenant.tenant_key,
                 principal_type=str(principal.get("type")),
+                correlation_id=self._request_id,
                 resilience_mode=self._settings.resilience_mode,
                 fallback_behavior=self._settings.resilience_fallback_behavior,
                 reason=repr(exc),
@@ -204,6 +215,7 @@ class AuthorizationService:
         context: dict[str, Any] | None = None,
         consistency: str = "eventual",
         revision: int | None = None,
+        policy_set: str = "active",
     ) -> list[AuthorizationResult]:
         validate_user(user)
         fallback_context = dict(context or {})
@@ -217,8 +229,15 @@ class AuthorizationService:
                 tenant_key=tenant.tenant_key,
                 tenant_id=tenant.id,
                 policy_version=tenant.policy_version,
+                policy_set=policy_set,
             )
-        except Exception:
+        except (RuntimeError, TimeoutError, ValueError) as exc:
+            log_event(
+                self._logger,
+                event="authorization_batch_fallback",
+                reason=repr(exc),
+                correlation_id=self._request_id,
+            )
             return [
                 AuthorizationResult(
                     decision=self._fallback_decision(
@@ -249,9 +268,14 @@ class AuthorizationService:
                 context=dict(context or {}),
             )
             cache_key = None
+            cache_namespace = (
+                tenant.tenant_key
+                if policy_set.strip().lower() == "active"
+                else f"{tenant.tenant_key}:{policy_set.strip().lower()}"
+            )
             if consistency.strip().lower() != "fully_consistent":
                 cache_key = self._decision_cache.make_key(
-                    tenant_key=tenant.tenant_key,
+                    tenant_key=cache_namespace,
                     policy_version=tenant.policy_version,
                     authorization_input=authorization_input,
                     revision=tenant.revision if revision is None else revision,
@@ -272,6 +296,7 @@ class AuthorizationService:
                 principal_id=str(principal.get("id")),
                 authorization_input=authorization_input,
                 decision=decision,
+                correlation_id=self._request_id,
             )
             return AuthorizationResult(decision=decision, cached=False, revision=tenant.revision)
 
@@ -301,6 +326,24 @@ class AuthorizationService:
 
     def get_revision(self, *, tenant_key: str) -> int:
         return self._revisions.get_revision(tenant_key=tenant_key)
+
+    def build_input(
+        self,
+        *,
+        tenant_key: str,
+        user: dict[str, Any],
+        action: str,
+        resource: dict[str, Any],
+        context: dict[str, Any] | None = None,
+    ) -> AuthorizationInput:
+        authorization_input, _ = self._build_input(
+            tenant_key=tenant_key,
+            user=user,
+            action=action,
+            resource=resource,
+            context=dict(context or {}),
+        )
+        return authorization_input
 
     def _build_input(
         self,
@@ -417,23 +460,37 @@ class AuthorizationService:
         return enriched_user
 
     def _build_engine(
-        self, *, tenant_key: str, tenant_id: int, policy_version: int
+        self, *, tenant_key: str, tenant_id: int, policy_version: int, policy_set: str = "active"
     ) -> KeyNetraEngine:
-        cached = self._safe_policy_cache_get(tenant_key, policy_version)
+        policy_set_key = policy_set.strip().lower() or "active"
+        graph_tenant_key = tenant_key if policy_set_key == "active" else f"{tenant_key}:{policy_set_key}"
+        cached_graph = COMPILED_POLICY_STORE.get(graph_tenant_key, policy_version)
+        cached = (
+            self._safe_policy_cache_get(tenant_key, policy_version)
+            if policy_set_key == "active"
+            else None
+        )
         if cached is None:
             cached = with_timeout(
-                lambda: self._policies.list_current_policies(tenant_id=tenant_id),
+                lambda: self._policies.list_current_policies(
+                    tenant_id=tenant_id, policy_set=policy_set_key
+                ),
                 timeout_seconds=self._settings.service_timeout_seconds,
             )
             if not cached:
                 policies = self._settings.load_policies()
-                engine = KeyNetraEngine(policies, strategy="first_match")
-                COMPILED_POLICY_STORE.set(tenant_key, policy_version, engine._compiled_graph)
+                engine = KeyNetraEngine(
+                    policies, strategy="first_match", compiled_graph=cached_graph
+                )
+                if cached_graph is None:
+                    COMPILED_POLICY_STORE.set(graph_tenant_key, policy_version, engine._compiled_graph)
                 return engine
-            self._safe_policy_cache_set(tenant_key, policy_version, cached)
+            if policy_set_key == "active":
+                self._safe_policy_cache_set(tenant_key, policy_version, cached)
         policies = [policy.definition for policy in cached]
-        engine = KeyNetraEngine(policies, strategy="first_match")
-        COMPILED_POLICY_STORE.set(tenant_key, policy_version, engine._compiled_graph)
+        engine = KeyNetraEngine(policies, strategy="first_match", compiled_graph=cached_graph)
+        if cached_graph is None:
+            COMPILED_POLICY_STORE.set(graph_tenant_key, policy_version, engine._compiled_graph)
         return engine
 
     def _decision_from_cache(self, cached: CachedDecision) -> AuthorizationDecision:
@@ -531,7 +588,11 @@ class AuthorizationService:
         except Exception as exc:
             record_cache_event(cache_name="decision", outcome="fallback")
             log_event(
-                self._logger, event="cache_get_failed", cache_name="decision", reason=repr(exc)
+                self._logger,
+                event="cache_get_failed",
+                cache_name="decision",
+                reason=repr(exc),
+                correlation_id=self._request_id,
             )
             return None
         record_cache_event(cache_name="decision", outcome="hit" if cached is not None else "miss")
@@ -550,7 +611,11 @@ class AuthorizationService:
             )
         except Exception as exc:
             log_event(
-                self._logger, event="cache_set_failed", cache_name="decision", reason=repr(exc)
+                self._logger,
+                event="cache_set_failed",
+                cache_name="decision",
+                reason=repr(exc),
+                correlation_id=self._request_id,
             )
 
     def _safe_policy_cache_get(self, tenant_key: str, policy_version: int):
@@ -561,7 +626,13 @@ class AuthorizationService:
             )
         except Exception as exc:
             record_cache_event(cache_name="policy", outcome="fallback")
-            log_event(self._logger, event="cache_get_failed", cache_name="policy", reason=repr(exc))
+            log_event(
+                self._logger,
+                event="cache_get_failed",
+                cache_name="policy",
+                reason=repr(exc),
+                correlation_id=self._request_id,
+            )
             return None
         record_cache_event(cache_name="policy", outcome="hit" if cached is not None else "miss")
         return cached
@@ -578,7 +649,13 @@ class AuthorizationService:
                 attempts=self._settings.critical_retry_attempts,
             )
         except Exception as exc:
-            log_event(self._logger, event="cache_set_failed", cache_name="policy", reason=repr(exc))
+            log_event(
+                self._logger,
+                event="cache_set_failed",
+                cache_name="policy",
+                reason=repr(exc),
+                correlation_id=self._request_id,
+            )
 
     def _safe_relationship_cache_get(self, *, tenant_id: int, subject_type: str, subject_id: str):
         try:
@@ -591,7 +668,11 @@ class AuthorizationService:
         except Exception as exc:
             record_cache_event(cache_name="relationship", outcome="fallback")
             log_event(
-                self._logger, event="cache_get_failed", cache_name="relationship", reason=repr(exc)
+                self._logger,
+                event="cache_get_failed",
+                cache_name="relationship",
+                reason=repr(exc),
+                correlation_id=self._request_id,
             )
             return None
         record_cache_event(
@@ -617,7 +698,11 @@ class AuthorizationService:
             )
         except Exception as exc:
             log_event(
-                self._logger, event="cache_set_failed", cache_name="relationship", reason=repr(exc)
+                self._logger,
+                event="cache_set_failed",
+                cache_name="relationship",
+                reason=repr(exc),
+                correlation_id=self._request_id,
             )
 
     def _resource_identity(self, resource: dict[str, Any]) -> tuple[str, str]:
@@ -641,4 +726,9 @@ class AuthorizationService:
                 attempts=self._settings.critical_retry_attempts,
             )
         except Exception as exc:
-            log_event(self._logger, event="audit_write_failed", reason=repr(exc))
+            log_event(
+                self._logger,
+                event="audit_write_failed",
+                reason=repr(exc),
+                correlation_id=self._request_id,
+            )

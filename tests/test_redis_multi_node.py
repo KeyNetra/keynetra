@@ -7,7 +7,6 @@ import pytest
 pytest.importorskip("redis")
 
 import redis
-
 from keynetra.engine.keynetra_engine import AuthorizationInput, PolicyDefinition
 from keynetra.infrastructure.cache.access_index_cache import RedisBackedAccessIndexCache
 from keynetra.infrastructure.cache.acl_cache import RedisBackedACLCache

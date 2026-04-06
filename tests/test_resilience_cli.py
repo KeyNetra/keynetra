@@ -3,12 +3,11 @@ from __future__ import annotations
 import json
 import os
 
-from typer.testing import CliRunner
-
 from keynetra.cli import app
 from keynetra.config.settings import Settings
 from keynetra.services.authorization import AuthorizationService
 from keynetra.version import __version__
+from typer.testing import CliRunner
 
 
 class _BrokenTenantRepo:

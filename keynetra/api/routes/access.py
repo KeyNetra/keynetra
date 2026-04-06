@@ -10,13 +10,11 @@ import logging
 
 from fastapi import APIRouter, Depends, Request, status
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.orm import Session
 
+from keynetra.api.dependencies import ServiceContainer, build_services
 from keynetra.api.errors import ApiError, ApiErrorCode
 from keynetra.api.responses import request_id_from_state, success_response
-from keynetra.config.redis_client import get_redis
 from keynetra.config.security import get_principal
-from keynetra.config.settings import Settings, get_settings
 from keynetra.config.tenancy import DEFAULT_TENANT_KEY
 from keynetra.domain.schemas.access import (
     AccessDecisionResponse,
@@ -27,19 +25,6 @@ from keynetra.domain.schemas.access import (
     SimulationResponse,
 )
 from keynetra.domain.schemas.api import SuccessResponse
-from keynetra.infrastructure.cache.access_index_cache import build_access_index_cache
-from keynetra.infrastructure.cache.acl_cache import build_acl_cache
-from keynetra.infrastructure.cache.decision_cache import build_decision_cache
-from keynetra.infrastructure.cache.policy_cache import build_policy_cache
-from keynetra.infrastructure.cache.relationship_cache import build_relationship_cache
-from keynetra.infrastructure.repositories.acl import SqlACLRepository
-from keynetra.infrastructure.repositories.audit import SqlAuditRepository
-from keynetra.infrastructure.repositories.auth_models import SqlAuthModelRepository
-from keynetra.infrastructure.repositories.policies import SqlPolicyRepository
-from keynetra.infrastructure.repositories.relationships import SqlRelationshipRepository
-from keynetra.infrastructure.repositories.tenants import SqlTenantRepository
-from keynetra.infrastructure.repositories.users import SqlUserRepository
-from keynetra.infrastructure.storage.session import get_db
 from keynetra.services.attribute_validation import AttributeValidationError
 from keynetra.services.authorization import AuthorizationService
 
@@ -47,28 +32,8 @@ router = APIRouter()
 logger = logging.getLogger("keynetra.access")
 
 
-def get_authorization_service(
-    settings: Settings = Depends(get_settings),
-    db: Session = Depends(get_db),
-) -> AuthorizationService:
-    """Create the request-scoped authorization service."""
-
-    redis_client = get_redis()
-    return AuthorizationService(
-        settings=settings,
-        tenants=SqlTenantRepository(db),
-        policies=SqlPolicyRepository(db),
-        users=SqlUserRepository(db),
-        relationships=SqlRelationshipRepository(db),
-        audit=SqlAuditRepository(db),
-        policy_cache=build_policy_cache(redis_client),
-        relationship_cache=build_relationship_cache(redis_client),
-        decision_cache=build_decision_cache(redis_client),
-        acl_repository=SqlACLRepository(db),
-        acl_cache=build_acl_cache(redis_client),
-        access_index_cache=build_access_index_cache(redis_client),
-        auth_model_repository=SqlAuthModelRepository(db),
-    )
+def _legacy_service_override() -> AuthorizationService | None:
+    return None
 
 
 @router.post(
@@ -79,11 +44,21 @@ def get_authorization_service(
 def check_access(
     payload: AccessRequest,
     request: Request,
-    service: AuthorizationService = Depends(get_authorization_service),
+    service: AuthorizationService | None = Depends(_legacy_service_override),
+    services: ServiceContainer = Depends(build_services),
     principal: dict[str, str] = Depends(get_principal),
+    policy_set: str = "active",
 ) -> dict[str, object]:
+    effective_service = service or services.authorization_service
+    normalized_policy_set = policy_set.strip().lower()
+    if normalized_policy_set not in {"active", "draft", "archived"}:
+        raise ApiError(
+            status_code=422,
+            code=ApiErrorCode.VALIDATION_ERROR,
+            message="policy_set must be one of active, draft, archived",
+        )
     try:
-        result = service.authorize(
+        result = effective_service.authorize(
             tenant_key=DEFAULT_TENANT_KEY,
             principal=principal,
             user=payload.user,
@@ -92,6 +67,7 @@ def check_access(
             context=payload.context,
             consistency=payload.consistency,
             revision=payload.revision,
+            policy_set=normalized_policy_set,
         )
     except AttributeValidationError as error:
         raise ApiError(
@@ -134,11 +110,13 @@ def check_access(
 def simulate(
     payload: AccessRequest,
     request: Request,
-    service: AuthorizationService = Depends(get_authorization_service),
+    service: AuthorizationService | None = Depends(_legacy_service_override),
+    services: ServiceContainer = Depends(build_services),
     principal: dict[str, str] = Depends(get_principal),
 ) -> dict[str, object]:
+    effective_service = service or services.authorization_service
     try:
-        decision = service.simulate(
+        decision = effective_service.simulate(
             tenant_key=DEFAULT_TENANT_KEY,
             principal=principal,
             user=payload.user,
@@ -172,7 +150,7 @@ def simulate(
             policy_id=decision.policy_id,
             explain_trace=[step.to_dict() for step in decision.explain_trace],
             failed_conditions=list(decision.failed_conditions),
-            revision=service.get_revision(tenant_key=DEFAULT_TENANT_KEY),
+            revision=effective_service.get_revision(tenant_key=DEFAULT_TENANT_KEY),
         ).model_dump(),
         request_id=request_id_from_state(request.state),
     )
@@ -186,17 +164,28 @@ def simulate(
 def check_access_batch(
     payload: BatchAccessRequest,
     request: Request,
-    service: AuthorizationService = Depends(get_authorization_service),
+    service: AuthorizationService | None = Depends(_legacy_service_override),
+    services: ServiceContainer = Depends(build_services),
     principal: dict[str, str] = Depends(get_principal),
+    policy_set: str = "active",
 ) -> dict[str, object]:
+    effective_service = service or services.authorization_service
+    normalized_policy_set = policy_set.strip().lower()
+    if normalized_policy_set not in {"active", "draft", "archived"}:
+        raise ApiError(
+            status_code=422,
+            code=ApiErrorCode.VALIDATION_ERROR,
+            message="policy_set must be one of active, draft, archived",
+        )
     try:
-        results = service.authorize_batch(
+        results = effective_service.authorize_batch(
             tenant_key=DEFAULT_TENANT_KEY,
             principal=principal,
             user=payload.user,
             items=[item.model_dump() for item in payload.items],
             consistency=payload.consistency,
             revision=payload.revision,
+            policy_set=normalized_policy_set,
         )
     except AttributeValidationError as error:
         raise ApiError(

@@ -1,11 +1,10 @@
 from __future__ import annotations
 
 import os
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from fastapi.testclient import TestClient
 from jose import jwt
-
 from keynetra.config.settings import reset_settings_cache
 from keynetra.infrastructure.storage.session import initialize_database
 from keynetra.main import create_app
@@ -129,8 +128,8 @@ def test_audit_endpoints_support_filters_time_range_and_pagination(tmp_path) -> 
         == 200
     )
 
-    start_time = (datetime.now(timezone.utc) - timedelta(minutes=5)).isoformat()
-    end_time = (datetime.now(timezone.utc) + timedelta(minutes=5)).isoformat()
+    start_time = (datetime.now(UTC) - timedelta(minutes=5)).isoformat()
+    end_time = (datetime.now(UTC) + timedelta(minutes=5)).isoformat()
 
     page_one = client.get(
         "/audit",

@@ -94,7 +94,8 @@ class PolicyMutationResult:
     action: str
     effect: str
     priority: int
-    conditions: dict[str, Any]
+    conditions: dict[str, Any] = field(default_factory=dict)
+    state: str = "active"
 
 
 @dataclass(frozen=True)
@@ -105,7 +106,8 @@ class PolicyListItem:
     action: str
     effect: str
     priority: int
-    conditions: dict[str, Any]
+    conditions: dict[str, Any] = field(default_factory=dict)
+    state: str = "active"
 
 
 @dataclass(frozen=True)
@@ -113,6 +115,7 @@ class AuditListItem:
     id: int
     principal_type: str
     principal_id: str
+    correlation_id: str | None
     user: dict[str, Any]
     action: str
     resource: dict[str, Any]
@@ -150,7 +153,7 @@ class CachedDecision:
     failed_conditions: list[str] = field(default_factory=list)
 
     @classmethod
-    def from_decision(cls, decision: AuthorizationDecision) -> "CachedDecision":
+    def from_decision(cls, decision: AuthorizationDecision) -> CachedDecision:
         return cls(
             allowed=decision.allowed,
             decision=decision.decision,
@@ -177,7 +180,9 @@ class TenantRepository(Protocol):
 class PolicyRepository(Protocol):
     """Persistence boundary for policy storage."""
 
-    def list_current_policies(self, *, tenant_id: int) -> list[PolicyRecord]: ...
+    def list_current_policies(
+        self, *, tenant_id: int, policy_set: str = "active"
+    ) -> list[PolicyRecord]: ...
 
     def list_current_policy_views(self, *, tenant_id: int) -> list[PolicyListItem]: ...
 
@@ -199,6 +204,7 @@ class PolicyRepository(Protocol):
         priority: int,
         conditions: dict[str, Any],
         created_by: str | None,
+        state: str = "active",
     ) -> PolicyMutationResult: ...
 
     def rollback_policy(
@@ -279,6 +285,7 @@ class AuditRepository(Protocol):
         principal_id: str,
         authorization_input: AuthorizationInput,
         decision: AuthorizationDecision,
+        correlation_id: str | None = None,
     ) -> None: ...
 
     def list_page(

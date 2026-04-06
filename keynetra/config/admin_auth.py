@@ -55,6 +55,11 @@ def require_management_role(minimum_role: str):
 
 def _resolve_tenant_role(principal: dict[str, Any]) -> str | None:
     if principal.get("type") == "api_key":
+        scopes = principal.get("scopes")
+        if isinstance(scopes, dict):
+            role = scopes.get("role")
+            if isinstance(role, str) and role in _ROLE_ORDER:
+                return role
         return "admin"
 
     claims = principal.get("claims")

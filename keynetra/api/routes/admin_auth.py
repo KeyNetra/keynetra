@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import hmac
 from datetime import UTC, datetime, timedelta
 
@@ -24,8 +25,9 @@ def admin_login(
 ) -> dict[str, object]:
     username = settings.admin_username
     password = settings.admin_password
+    password_hash = settings.admin_password_hash
 
-    if not username or not password:
+    if not username or (not password and not password_hash):
         raise ApiError(
             status_code=status.HTTP_403_FORBIDDEN,
             code=ApiErrorCode.FORBIDDEN,
@@ -33,7 +35,12 @@ def admin_login(
         )
 
     valid_username = hmac.compare_digest(payload.username, username)
-    valid_password = hmac.compare_digest(payload.password, password)
+    valid_password = False
+    if password_hash:
+        candidate_hash = hashlib.sha256(payload.password.encode("utf-8")).hexdigest()
+        valid_password = hmac.compare_digest(candidate_hash, password_hash)
+    elif password:
+        valid_password = hmac.compare_digest(payload.password, password)
     if not (valid_username and valid_password):
         raise ApiError(
             status_code=status.HTTP_401_UNAUTHORIZED,

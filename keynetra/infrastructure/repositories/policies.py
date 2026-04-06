@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import json
 from typing import Any
 
-from sqlalchemy import and_, delete, or_, select
+from sqlalchemy import and_, delete, or_, select, text
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
 
 from keynetra.api.pagination import encode_cursor
@@ -19,35 +21,79 @@ class SqlPolicyRepository:
     def __init__(self, session: Session) -> None:
         self._session = session
 
-    def list_current_policies(self, *, tenant_id: int) -> list[PolicyRecord]:
-        rows = self._current_policy_rows(tenant_id=tenant_id)
-        return [
-            PolicyRecord(
-                id=version.id,
-                definition=PolicyDefinition(
-                    action=version.action,
-                    effect="allow" if version.effect == "allow" else "deny",
-                    priority=version.priority,
-                    conditions=dict(version.conditions or {}),
-                    policy_id=f"{policy.policy_key}:v{version.version}",
-                ),
+    def list_current_policies(
+        self, *, tenant_id: int, policy_set: str = "active"
+    ) -> list[PolicyRecord]:
+        try:
+            rows = self._current_policy_rows(tenant_id=tenant_id, policy_set=policy_set)
+        except OperationalError:
+            rows = self._legacy_current_policy_rows(tenant_id=tenant_id)
+        records: list[PolicyRecord] = []
+        for row in rows:
+            if isinstance(row, dict):
+                records.append(
+                    PolicyRecord(
+                        id=int(row["id"]),
+                        definition=PolicyDefinition(
+                            action=str(row["action"]),
+                            effect="allow" if str(row["effect"]) == "allow" else "deny",
+                            priority=int(row["priority"]),
+                            conditions=dict(row["conditions"] or {}),
+                            policy_id=f'{row["policy_key"]}:v{row["version"]}',
+                        ),
+                    )
+                )
+                continue
+            version, policy = row
+            records.append(
+                PolicyRecord(
+                    id=version.id,
+                    definition=PolicyDefinition(
+                        action=version.action,
+                        effect="allow" if version.effect == "allow" else "deny",
+                        priority=version.priority,
+                        conditions=dict(version.conditions or {}),
+                        policy_id=f"{policy.policy_key}:v{version.version}",
+                    ),
+                )
             )
-            for version, policy in rows
-        ]
+        return records
 
-    def list_current_policy_views(self, *, tenant_id: int) -> list[PolicyListItem]:
-        rows = self._current_policy_rows(tenant_id=tenant_id)
-        return [
-            PolicyListItem(
-                id=version.id,
-                action=version.action,
-                effect=version.effect,
-                priority=version.priority,
-                conditions=(version.conditions or {})
-                | {"policy_key": policy.policy_key, "version": version.version},
+    def list_current_policy_views(
+        self, *, tenant_id: int, policy_set: str = "active"
+    ) -> list[PolicyListItem]:
+        try:
+            rows = self._current_policy_rows(tenant_id=tenant_id, policy_set=policy_set)
+        except OperationalError:
+            rows = self._legacy_current_policy_rows(tenant_id=tenant_id)
+        items: list[PolicyListItem] = []
+        for row in rows:
+            if isinstance(row, dict):
+                items.append(
+                    PolicyListItem(
+                        id=int(row["id"]),
+                        action=str(row["action"]),
+                        effect=str(row["effect"]),
+                        priority=int(row["priority"]),
+                        state=str(row["state"]),
+                        conditions=dict(row["conditions"] or {})
+                        | {"policy_key": row["policy_key"], "version": row["version"]},
+                    )
+                )
+                continue
+            version, policy = row
+            items.append(
+                PolicyListItem(
+                    id=version.id,
+                    action=version.action,
+                    effect=version.effect,
+                    priority=version.priority,
+                    state=version.state,
+                    conditions=(version.conditions or {})
+                    | {"policy_key": policy.policy_key, "version": version.version},
+                )
             )
-            for version, policy in rows
-        ]
+        return items
 
     def list_current_policy_page(
         self,
@@ -84,6 +130,7 @@ class SqlPolicyRepository:
                 action=version.action,
                 effect=version.effect,
                 priority=version.priority,
+                state=version.state,
                 conditions=(version.conditions or {})
                 | {"policy_key": policy.policy_key, "version": version.version},
             )
@@ -105,6 +152,7 @@ class SqlPolicyRepository:
         priority: int,
         conditions: dict[str, Any],
         created_by: str | None,
+        state: str = "active",
     ) -> PolicyMutationResult:
         policy = (
             self._session.execute(
@@ -133,15 +181,33 @@ class SqlPolicyRepository:
             priority=priority,
             conditions=conditions,
             created_by=created_by,
+            state=state,
         )
         self._session.add(policy_version)
-        self._session.commit()
+        try:
+            self._session.commit()
+        except OperationalError:
+            # Backward compatibility with pre-state schema versions.
+            self._session.rollback()
+            policy_version = PolicyVersion(
+                tenant_id=tenant_id,
+                policy_id=policy.id,
+                version=next_version,
+                action=action,
+                effect=effect,
+                priority=priority,
+                conditions=conditions,
+                created_by=created_by,
+            )
+            self._session.add(policy_version)
+            self._session.commit()
         self._session.refresh(policy_version)
         return PolicyMutationResult(
             id=policy_version.id,
             action=policy_version.action,
             effect=policy_version.effect,
             priority=policy_version.priority,
+            state=policy_version.state,
             conditions=dict(policy_version.conditions or {}),
         )
 
@@ -194,12 +260,59 @@ class SqlPolicyRepository:
         self._session.execute(delete(Policy).where(Policy.id == policy.id))
         self._session.commit()
 
-    def _current_policy_rows(self, *, tenant_id: int) -> list[tuple[PolicyVersion, Policy]]:
-        return self._session.execute(
+    def _current_policy_rows(
+        self, *, tenant_id: int, policy_set: str = "active"
+    ) -> list[tuple[PolicyVersion, Policy]]:
+        normalized_set = str(policy_set or "active").strip().lower()
+        query = (
             select(PolicyVersion, Policy)
             .join(Policy, Policy.id == PolicyVersion.policy_id)
             .where(Policy.tenant_id == tenant_id)
             .where(PolicyVersion.tenant_id == tenant_id)
             .where(PolicyVersion.version == Policy.current_version)
-            .order_by(PolicyVersion.priority.asc(), PolicyVersion.id.asc())
+        )
+        if normalized_set in {"draft", "archived", "active"}:
+            query = query.where(PolicyVersion.state == normalized_set)
+        else:
+            query = query.where(PolicyVersion.state == "active")
+        return self._session.execute(
+            query.order_by(PolicyVersion.priority.asc(), PolicyVersion.id.asc())
         ).all()
+
+    def _legacy_current_policy_rows(self, *, tenant_id: int) -> list[dict[str, Any]]:
+        rows = self._session.execute(
+            text(
+                """
+                SELECT pv.id AS id, pv.action AS action, pv.effect AS effect, pv.priority AS priority,
+                       pv.conditions AS conditions, pv.version AS version, p.policy_key AS policy_key
+                FROM policy_versions pv
+                JOIN policies p ON p.id = pv.policy_id
+                WHERE p.tenant_id = :tenant_id
+                  AND pv.tenant_id = :tenant_id
+                  AND pv.version = p.current_version
+                ORDER BY pv.priority ASC, pv.id ASC
+                """
+            ),
+            {"tenant_id": tenant_id},
+        ).mappings()
+        normalized: list[dict[str, Any]] = []
+        for row in rows:
+            conditions = row.get("conditions")
+            if isinstance(conditions, str):
+                try:
+                    conditions = json.loads(conditions)
+                except json.JSONDecodeError:
+                    conditions = {}
+            normalized.append(
+                {
+                    "id": int(row["id"]),
+                    "action": str(row["action"]),
+                    "effect": str(row["effect"]),
+                    "priority": int(row["priority"]),
+                    "conditions": conditions if isinstance(conditions, dict) else {},
+                    "version": int(row["version"]),
+                    "policy_key": str(row["policy_key"]),
+                    "state": "active",
+                }
+            )
+        return normalized

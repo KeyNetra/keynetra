@@ -4,7 +4,6 @@ import base64
 import json
 
 import pytest
-
 from keynetra.api.errors import ApiError
 from keynetra.api.pagination import decode_cursor
 from keynetra.config import redis_client

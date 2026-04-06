@@ -54,8 +54,10 @@ warnings.filterwarnings(
 app = typer.Typer(add_completion=False, help="KeyNetra operational CLI.")
 acl_app = typer.Typer(add_completion=False, help="Manage ACL entries.")
 model_app = typer.Typer(add_completion=False, help="Manage authorization models.")
+config_app = typer.Typer(add_completion=False, help="Configuration diagnostics.")
 app.add_typer(acl_app, name="acl")
 app.add_typer(model_app, name="model")
+app.add_typer(config_app, name="config")
 
 
 @app.callback()
@@ -198,8 +200,8 @@ def _render_startup_screen(
 
         f = pyfiglet.figlet_format("KEYNETRA", font="slant")
         banner = Text(f, style="bold magenta")
-    except Exception:
-        pass
+    except (ImportError, RuntimeError, ValueError):
+        banner = Text("KEYNETRA", style="bold magenta")
 
     header = Panel.fit(
         Align.center(
@@ -663,6 +665,66 @@ def compile_policies(
     )
 
 
+@app.command("generate-openapi")
+def generate_openapi(
+    output: str = typer.Option(
+        "contracts/openapi/keynetra-v0.1.0.yaml", "--output", help="OpenAPI output file path."
+    ),
+) -> None:
+    """Generate OpenAPI contract directly from the FastAPI app."""
+    from keynetra.main import create_app
+
+    app_instance = create_app()
+    payload = app_instance.openapi()
+    try:
+        import yaml
+    except ModuleNotFoundError as exc:
+        raise typer.BadParameter("pyyaml is required to generate yaml contracts") from exc
+
+    out_path = Path(output)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_text(yaml.safe_dump(payload, sort_keys=False), encoding="utf-8")
+    typer.echo(str(out_path))
+
+
+@app.command("check-openapi")
+def check_openapi(
+    contract: str = typer.Option(
+        "contracts/openapi/keynetra-v0.1.0.yaml",
+        "--contract",
+        help="Versioned OpenAPI contract to compare against generated output.",
+    ),
+) -> None:
+    """Fail if generated OpenAPI differs from the versioned contract."""
+    from keynetra.main import create_app
+
+    app_instance = create_app()
+    payload = app_instance.openapi()
+    try:
+        import yaml
+    except ModuleNotFoundError as exc:
+        raise typer.BadParameter("pyyaml is required to check yaml contracts") from exc
+
+    generated = yaml.safe_dump(payload, sort_keys=False)
+    path = Path(contract)
+    if not path.exists():
+        raise typer.BadParameter(f"contract file not found: {path}")
+    expected = path.read_text(encoding="utf-8")
+    if generated != expected:
+        typer.echo(
+            json.dumps(
+                {
+                    "ok": False,
+                    "message": "OpenAPI contract drift detected.",
+                    "contract": str(path),
+                },
+                indent=2,
+            )
+        )
+        raise typer.Exit(code=1)
+    typer.echo(json.dumps({"ok": True, "contract": str(path)}, indent=2))
+
+
 @app.command("doctor")
 def doctor(
     ctx: typer.Context,
@@ -687,6 +749,43 @@ def doctor(
 
     typer.echo(json.dumps(result, indent=2))
     if not result["ok"]:
+        raise typer.Exit(code=1)
+
+
+@config_app.command("doctor")
+def config_doctor(
+    ctx: typer.Context,
+    config: str | None = typer.Option(None, "--config", help="Path to config file."),
+) -> None:
+    """Validate runtime configuration and print explicit remediation guidance."""
+    _maybe_load_config(ctx, config)
+    settings = get_settings()
+    result = run_core_doctor(settings)
+    findings: list[dict[str, Any]] = []
+    for check in result.get("checks", []):
+        details = check.get("details") or {}
+        remediation = details.get("remediation") if isinstance(details, dict) else None
+        if check.get("ok"):
+            continue
+        findings.append(
+            {
+                "check": check.get("name"),
+                "message": check.get("message"),
+                "remediation": remediation if isinstance(remediation, list) else [],
+            }
+        )
+    typer.echo(
+        json.dumps(
+            {
+                "service": "core",
+                "ok": result.get("ok", False),
+                "environment": settings.environment,
+                "findings": findings,
+            },
+            indent=2,
+        )
+    )
+    if findings:
         raise typer.Exit(code=1)
 
 

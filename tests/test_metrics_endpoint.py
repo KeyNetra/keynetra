@@ -3,11 +3,10 @@ from __future__ import annotations
 import os
 
 from fastapi.testclient import TestClient
-from prometheus_client.parser import text_string_to_metric_families
-
 from keynetra.config.settings import reset_settings_cache
 from keynetra.infrastructure.storage.session import initialize_database
 from keynetra.main import create_app
+from prometheus_client.parser import text_string_to_metric_families
 
 
 def _metric_value(text: str, metric_name: str, labels: dict[str, str] | None = None) -> float:

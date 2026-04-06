@@ -4,7 +4,6 @@ import json
 from pathlib import Path
 
 import pytest
-
 from keynetra.config.file_loaders import (
     load_authorization_model_from_file,
     load_authorization_model_from_paths,

@@ -8,10 +8,6 @@ from fastapi import HTTPException
 from fastapi.security import HTTPAuthorizationCredentials
 from fastapi.testclient import TestClient
 from jose import jwt
-from sqlalchemy import create_engine
-from sqlalchemy.orm import Session
-from typer.testing import CliRunner
-
 from keynetra.api.errors import ApiError
 from keynetra.api.routes.access import (
     AccessRequest,
@@ -59,6 +55,9 @@ from keynetra.services.interfaces import (
 )
 from keynetra.services.policies import PolicyService
 from keynetra.services.relationships import RelationshipService
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session
+from typer.testing import CliRunner
 
 
 class DummyRequest:

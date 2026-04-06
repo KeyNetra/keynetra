@@ -38,10 +38,12 @@ def run_core_doctor(settings: Settings) -> dict[str, Any]:
         _check_redis(),
         _check_migrations(settings),
     ]
+    missing_or_weak = [check for check in checks if not check.ok]
     return {
         "service": "core",
         "ok": all(check.ok for check in checks),
         "checks": [asdict(check) for check in checks],
+        "remediation_count": len(missing_or_weak),
     }
 
 
@@ -52,12 +54,33 @@ def _check_env(settings: Settings) -> DoctorCheck:
         "KEYNETRA_DATABASE_URL": bool(os.environ.get("KEYNETRA_DATABASE_URL")),
         "KEYNETRA_REDIS_URL": bool(os.environ.get("KEYNETRA_REDIS_URL")),
     }
-    auth_configured = (
-        bool(settings.parsed_api_key_hashes())
-        or settings.jwt_secret != "change-me"
-        or bool(settings.oidc_jwks_url)
+    has_api_key_auth = bool(settings.parsed_api_key_hashes())
+    has_jwt_auth = settings.jwt_secret != "change-me" or bool(settings.oidc_jwks_url)
+    auth_configured = has_api_key_auth or has_jwt_auth
+    weak_jwt_secret = settings.jwt_secret.strip() == "change-me"
+    profile = settings.environment
+    weak_admin_username = bool(settings.admin_username) and settings.admin_username.lower() == "admin"
+    missing_admin_password_hash = bool(settings.admin_username) and not bool(settings.admin_password_hash)
+    ok = (
+        all(required_env.values())
+        and auth_configured
+        and (profile in {"development", "dev", "local"} or not weak_jwt_secret)
     )
-    ok = all(required_env.values()) and auth_configured
+    remediation: list[str] = []
+    if not required_env["KEYNETRA_DATABASE_URL"]:
+        remediation.append("Set KEYNETRA_DATABASE_URL to a reachable production database.")
+    if not required_env["KEYNETRA_REDIS_URL"]:
+        remediation.append("Set KEYNETRA_REDIS_URL to enable distributed cache and invalidation.")
+    if not auth_configured:
+        remediation.append(
+            "Configure KEYNETRA_API_KEYS/KEYNETRA_API_KEY_HASHES or JWT/OIDC settings before deployment."
+        )
+    if profile not in {"development", "dev", "local"} and weak_jwt_secret:
+        remediation.append("Set KEYNETRA_JWT_SECRET to a strong non-default value.")
+    if weak_admin_username:
+        remediation.append("Avoid default admin username; set KEYNETRA_ADMIN_USERNAME to a unique value.")
+    if missing_admin_password_hash:
+        remediation.append("Set KEYNETRA_ADMIN_PASSWORD_HASH and remove KEYNETRA_ADMIN_PASSWORD.")
     return DoctorCheck(
         name="env_variables",
         ok=ok,
@@ -66,7 +89,16 @@ def _check_env(settings: Settings) -> DoctorCheck:
             if ok
             else "missing required environment configuration"
         ),
-        details={**required_env, "auth_configured": auth_configured},
+        details={
+            **required_env,
+            "auth_configured": auth_configured,
+            "has_api_key_auth": has_api_key_auth,
+            "has_jwt_auth": has_jwt_auth,
+            "weak_jwt_secret": weak_jwt_secret,
+            "weak_admin_username": weak_admin_username,
+            "missing_admin_password_hash": missing_admin_password_hash,
+            "remediation": remediation,
+        },
     )
 
 
