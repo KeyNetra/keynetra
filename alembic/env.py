@@ -5,8 +5,8 @@ from logging.config import fileConfig
 from sqlalchemy import engine_from_config, pool
 
 from alembic import context
-from keynetra.domain.models import acl as _acl  # noqa: F401
 from keynetra.config.settings import get_settings
+from keynetra.domain.models import acl as _acl  # noqa: F401
 from keynetra.domain.models import audit as _audit  # noqa: F401
 from keynetra.domain.models import auth_model as _auth_model  # noqa: F401
 from keynetra.domain.models import idempotency as _idempotency  # noqa: F401
