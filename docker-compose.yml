@@ -16,6 +16,7 @@ x-keynetra-common: &keynetra-common
     KEYNETRA_RATE_LIMIT_BURST: ${KEYNETRA_RATE_LIMIT_BURST:-120}
     KEYNETRA_RUN_MIGRATIONS: ${KEYNETRA_RUN_MIGRATIONS:-1}
     KEYNETRA_AUTO_SEED_SAMPLE_DATA: ${KEYNETRA_AUTO_SEED_SAMPLE_DATA:-1}
+    KEYNETRA_SERVER_PORT: ${KEYNETRA_SERVER_PORT:-8080}
   depends_on:
     postgres:
       condition: service_healthy
@@ -23,13 +24,13 @@ x-keynetra-common: &keynetra-common
       condition: service_healthy
 
 services:
-  # Production/default API service.
-  keynetra:
+  keynetra-api:
     <<: *keynetra-common
+    command: ["keynetra", "serve", "--host", "0.0.0.0", "--port", "8080"]
     ports:
-      - "8000:8000"
+      - "8000:8080"
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/ready', timeout=3)"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health/ready', timeout=3)"]
       interval: 30s
       timeout: 5s
       retries: 5
@@ -73,10 +74,10 @@ services:
     ports:
       - "9090:9090"
     volumes:
-      - ./infra/docker/monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus_data:/prometheus
     depends_on:
-      keynetra:
+      keynetra-api:
         condition: service_started
 
   grafana:
@@ -90,13 +91,30 @@ services:
       - "3000:3000"
     volumes:
       - grafana_data:/var/lib/grafana
-      - ./infra/docker/monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
-      - ./infra/docker/monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
     depends_on:
       prometheus:
         condition: service_started
+
+  node-exporter:
+    image: prom/node-exporter:v1.8.2
+    restart: unless-stopped
+    ports:
+      - "9100:9100"
+
+  loki:
+    image: grafana/loki:3.2.1
+    restart: unless-stopped
+    command: -config.file=/etc/loki/loki-config.yml
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./monitoring/loki/loki-config.yml:/etc/loki/loki-config.yml:ro
+      - loki_data:/loki
 
 volumes:
   postgres_data:
   prometheus_data:
   grafana_data:
+  loki_data:

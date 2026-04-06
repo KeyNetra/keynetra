@@ -5,8 +5,8 @@ from __future__ import annotations
 from sqlalchemy import and_, or_, select
 from sqlalchemy.orm import Session
 
-from keynetra.api.pagination import encode_cursor
 from keynetra.domain.models.relationship import Relationship
+from keynetra.domain.pagination import encode_cursor
 from keynetra.services.interfaces import RelationshipRecord
 
 
@@ -148,6 +148,82 @@ class SqlRelationshipRepository:
             )
             for row in rows
         ]
+
+    def list_for_subjects(
+        self, *, tenant_id: int, subject_type: str, subject_ids: list[str]
+    ) -> dict[str, list[RelationshipRecord]]:
+        if not subject_ids:
+            return {}
+        rows = (
+            self._session.execute(
+                select(Relationship)
+                .where(Relationship.tenant_id == tenant_id)
+                .where(Relationship.subject_type == subject_type)
+                .where(Relationship.subject_id.in_(subject_ids))
+                .order_by(
+                    Relationship.subject_id.asc(),
+                    Relationship.relation.asc(),
+                    Relationship.object_type.asc(),
+                    Relationship.object_id.asc(),
+                    Relationship.id.asc(),
+                )
+            )
+            .scalars()
+            .all()
+        )
+        grouped: dict[str, list[RelationshipRecord]] = {
+            subject_id: [] for subject_id in subject_ids
+        }
+        for row in rows:
+            grouped.setdefault(row.subject_id, []).append(
+                RelationshipRecord(
+                    subject_type=row.subject_type,
+                    subject_id=row.subject_id,
+                    relation=row.relation,
+                    object_type=row.object_type,
+                    object_id=row.object_id,
+                )
+            )
+        return grouped
+
+    def list_for_objects(
+        self, *, tenant_id: int, objects: list[tuple[str, str]]
+    ) -> dict[tuple[str, str], list[RelationshipRecord]]:
+        if not objects:
+            return {}
+        clauses = [
+            and_(Relationship.object_type == object_type, Relationship.object_id == object_id)
+            for object_type, object_id in objects
+        ]
+        rows = (
+            self._session.execute(
+                select(Relationship)
+                .where(Relationship.tenant_id == tenant_id)
+                .where(or_(*clauses))
+                .order_by(
+                    Relationship.object_type.asc(),
+                    Relationship.object_id.asc(),
+                    Relationship.subject_type.asc(),
+                    Relationship.subject_id.asc(),
+                    Relationship.relation.asc(),
+                    Relationship.id.asc(),
+                )
+            )
+            .scalars()
+            .all()
+        )
+        grouped: dict[tuple[str, str], list[RelationshipRecord]] = {obj: [] for obj in objects}
+        for row in rows:
+            grouped.setdefault((row.object_type, row.object_id), []).append(
+                RelationshipRecord(
+                    subject_type=row.subject_type,
+                    subject_id=row.subject_id,
+                    relation=row.relation,
+                    object_type=row.object_type,
+                    object_id=row.object_id,
+                )
+            )
+        return grouped
 
     def create(
         self,

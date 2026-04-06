@@ -48,12 +48,23 @@ paths:
       - access
       summary: Check Access
       operationId: check_access_check_access_post
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: policy_set
+        in: query
+        required: false
+        schema:
+          type: string
+          default: active
+          title: Policy Set
       requestBody:
+        required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/AccessRequest'
-        required: true
       responses:
         '200':
           description: Successful Response
@@ -67,9 +78,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-      security:
-      - HTTPBearer: []
-      - APIKeyHeader: []
   /simulate:
     post:
       tags:
@@ -104,12 +112,23 @@ paths:
       - access
       summary: Check Access Batch
       operationId: check_access_batch_check_access_batch_post
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: policy_set
+        in: query
+        required: false
+        schema:
+          type: string
+          default: active
+          title: Policy Set
       requestBody:
+        required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/BatchAccessRequest'
-        required: true
       responses:
         '200':
           description: Successful Response
@@ -123,9 +142,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-      security:
-      - HTTPBearer: []
-      - APIKeyHeader: []
   /admin/login:
     post:
       tags:
@@ -1338,6 +1354,11 @@ components:
         principal_id:
           type: string
           title: Principal Id
+        correlation_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Correlation Id
         user:
           additionalProperties: true
           type: object
@@ -1653,6 +1674,10 @@ components:
           type: integer
           title: Priority
           default: 100
+        state:
+          type: string
+          title: State
+          default: active
         conditions:
           additionalProperties: true
           type: object
@@ -1675,6 +1700,10 @@ components:
         priority:
           type: integer
           title: Priority
+        state:
+          type: string
+          title: State
+          default: active
         conditions:
           additionalProperties: true
           type: object

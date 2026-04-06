@@ -6,9 +6,10 @@ writing. The decision engine remains pure and receives only explicit input.
 
 from __future__ import annotations
 
+import asyncio
+import json
 import logging
 import time
-from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from typing import Any
 
@@ -72,6 +73,7 @@ class AuthorizationService:
         acl_cache: ACLCache | None = None,
         access_index_cache: AccessIndexCache | None = None,
         auth_model_repository: AuthModelRepository | None = None,
+        request_id: str | None = None,
     ) -> None:
         self._settings = settings
         self._tenants = tenants
@@ -86,6 +88,7 @@ class AuthorizationService:
         self._acl_cache = acl_cache
         self._access_index_cache = access_index_cache
         self._auth_model_repository = auth_model_repository
+        self._request_id = request_id
         self._revisions = RevisionService(tenants)
         self._access_indexer = (
             AccessIndexer(
@@ -113,8 +116,11 @@ class AuthorizationService:
         consistency: str = "eventual",
         revision: int | None = None,
         audit: bool = True,
+        policy_set: str = "active",
     ) -> AuthorizationResult:
         started_at = time.perf_counter()
+        normalized_policy_set = policy_set.strip().lower() or "active"
+        consistency_mode = consistency.strip().lower()
         fallback_input = AuthorizationInput(
             user=dict(user),
             action=action,
@@ -139,9 +145,14 @@ class AuthorizationService:
 
         try:
             cache_key = None
-            if consistency.strip().lower() != "fully_consistent":
+            cache_namespace = (
+                tenant.tenant_key
+                if normalized_policy_set == "active"
+                else f"{tenant.tenant_key}:{normalized_policy_set}"
+            )
+            if consistency_mode != "fully_consistent":
                 cache_key = self._decision_cache.make_key(
-                    tenant_key=tenant.tenant_key,
+                    tenant_key=cache_namespace,
                     policy_version=tenant.policy_version,
                     authorization_input=authorization_input,
                     revision=tenant.revision if revision is None else revision,
@@ -161,6 +172,7 @@ class AuthorizationService:
                 tenant_key=tenant.tenant_key,
                 tenant_id=tenant.id,
                 policy_version=tenant.policy_version,
+                policy_set=normalized_policy_set,
             )
             decision = engine.decide(authorization_input)
             if cache_key is not None:
@@ -172,6 +184,7 @@ class AuthorizationService:
                     principal_id=str(principal.get("id")),
                     authorization_input=authorization_input,
                     decision=decision,
+                    correlation_id=self._request_id,
                 )
             return AuthorizationResult(decision=decision, cached=False, revision=tenant.revision)
         except Exception as exc:
@@ -180,6 +193,7 @@ class AuthorizationService:
                 event="authorization_fallback",
                 tenant_id=tenant.tenant_key,
                 principal_type=str(principal.get("type")),
+                correlation_id=self._request_id,
                 resilience_mode=self._settings.resilience_mode,
                 fallback_behavior=self._settings.resilience_fallback_behavior,
                 reason=repr(exc),
@@ -194,6 +208,34 @@ class AuthorizationService:
         finally:
             observe_decision_latency(tenant_key=tenant_key, value=time.perf_counter() - started_at)
 
+    async def authorize_async(
+        self,
+        *,
+        tenant_key: str,
+        principal: dict[str, Any],
+        user: dict[str, Any],
+        action: str,
+        resource: dict[str, Any],
+        context: dict[str, Any] | None = None,
+        consistency: str = "eventual",
+        revision: int | None = None,
+        audit: bool = True,
+        policy_set: str = "active",
+    ) -> AuthorizationResult:
+        return await asyncio.to_thread(
+            self.authorize,
+            tenant_key=tenant_key,
+            principal=principal,
+            user=user,
+            action=action,
+            resource=resource,
+            context=context,
+            consistency=consistency,
+            revision=revision,
+            audit=audit,
+            policy_set=policy_set,
+        )
+
     def authorize_batch(
         self,
         *,
@@ -204,9 +246,12 @@ class AuthorizationService:
         context: dict[str, Any] | None = None,
         consistency: str = "eventual",
         revision: int | None = None,
+        policy_set: str = "active",
     ) -> list[AuthorizationResult]:
         validate_user(user)
         fallback_context = dict(context or {})
+        normalized_policy_set = policy_set.strip().lower() or "active"
+        consistency_mode = consistency.strip().lower()
         try:
             tenant = with_timeout(
                 lambda: self._tenants.get_or_create(tenant_key),
@@ -217,8 +262,15 @@ class AuthorizationService:
                 tenant_key=tenant.tenant_key,
                 tenant_id=tenant.id,
                 policy_version=tenant.policy_version,
+                policy_set=normalized_policy_set,
             )
-        except Exception:
+        except (RuntimeError, TimeoutError, ValueError) as exc:
+            log_event(
+                self._logger,
+                event="authorization_batch_fallback",
+                reason=repr(exc),
+                correlation_id=self._request_id,
+            )
             return [
                 AuthorizationResult(
                     decision=self._fallback_decision(
@@ -237,46 +289,92 @@ class AuthorizationService:
                 for item in items
             ]
 
-        def evaluate_item(item: dict[str, Any]) -> AuthorizationResult:
+        item_results: list[AuthorizationResult] = []
+        memoized_results: dict[
+            tuple[str, str, str], tuple[AuthorizationInput, AuthorizationDecision, bool]
+        ] = {}
+        for item in items:
             resource = dict(item.get("resource") or {})
             validate_resource(resource)
-            authorization_input = self._build_authorization_input(
-                tenant_id=tenant.id,
-                tenant_key=tenant.tenant_key,
-                user=enriched_user,
-                action=str(item["action"]),
-                resource=resource,
-                context=dict(context or {}),
+            action = str(item["action"])
+            context_payload = dict(context or {})
+            memo_key = (
+                action,
+                json.dumps(resource, sort_keys=True, separators=(",", ":"), default=str),
+                json.dumps(context_payload, sort_keys=True, separators=(",", ":"), default=str),
             )
-            cache_key = None
-            if consistency.strip().lower() != "fully_consistent":
-                cache_key = self._decision_cache.make_key(
+            if memo_key in memoized_results:
+                authorization_input, decision, cached = memoized_results[memo_key]
+            else:
+                authorization_input = self._build_authorization_input(
+                    tenant_id=tenant.id,
                     tenant_key=tenant.tenant_key,
-                    policy_version=tenant.policy_version,
-                    authorization_input=authorization_input,
-                    revision=tenant.revision if revision is None else revision,
+                    user=enriched_user,
+                    action=action,
+                    resource=resource,
+                    context=context_payload,
                 )
-                cached = self._safe_cache_get(cache_key)
-                if cached is not None:
-                    return AuthorizationResult(
-                        decision=self._decision_from_cache(cached),
-                        cached=True,
-                        revision=tenant.revision,
+                cache_namespace = (
+                    tenant.tenant_key
+                    if normalized_policy_set == "active"
+                    else f"{tenant.tenant_key}:{normalized_policy_set}"
+                )
+                cached = False
+                if consistency_mode != "fully_consistent":
+                    cache_key = self._decision_cache.make_key(
+                        tenant_key=cache_namespace,
+                        policy_version=tenant.policy_version,
+                        authorization_input=authorization_input,
+                        revision=tenant.revision if revision is None else revision,
                     )
-            decision = engine.decide(authorization_input)
-            if cache_key is not None:
-                self._safe_cache_set(cache_key, CachedDecision.from_decision(decision))
+                    cached_decision = self._safe_cache_get(cache_key)
+                    if cached_decision is not None:
+                        decision = self._decision_from_cache(cached_decision)
+                        cached = True
+                    else:
+                        decision = engine.decide(authorization_input)
+                        self._safe_cache_set(cache_key, CachedDecision.from_decision(decision))
+                else:
+                    decision = engine.decide(authorization_input)
+                memoized_results[memo_key] = (authorization_input, decision, cached)
+
             self._safe_audit_write(
                 tenant_id=tenant.id,
                 principal_type=str(principal.get("type")),
                 principal_id=str(principal.get("id")),
                 authorization_input=authorization_input,
                 decision=decision,
+                correlation_id=self._request_id,
             )
-            return AuthorizationResult(decision=decision, cached=False, revision=tenant.revision)
+            item_results.append(
+                AuthorizationResult(decision=decision, cached=cached, revision=tenant.revision)
+            )
 
-        with ThreadPoolExecutor(max_workers=min(32, max(1, len(items)))) as pool:
-            return list(pool.map(evaluate_item, items))
+        return item_results
+
+    async def authorize_batch_async(
+        self,
+        *,
+        tenant_key: str,
+        principal: dict[str, Any],
+        user: dict[str, Any],
+        items: list[dict[str, Any]],
+        context: dict[str, Any] | None = None,
+        consistency: str = "eventual",
+        revision: int | None = None,
+        policy_set: str = "active",
+    ) -> list[AuthorizationResult]:
+        return await asyncio.to_thread(
+            self.authorize_batch,
+            tenant_key=tenant_key,
+            principal=principal,
+            user=user,
+            items=items,
+            context=context,
+            consistency=consistency,
+            revision=revision,
+            policy_set=policy_set,
+        )
 
     def simulate(
         self,
@@ -301,6 +399,24 @@ class AuthorizationService:
 
     def get_revision(self, *, tenant_key: str) -> int:
         return self._revisions.get_revision(tenant_key=tenant_key)
+
+    def build_input(
+        self,
+        *,
+        tenant_key: str,
+        user: dict[str, Any],
+        action: str,
+        resource: dict[str, Any],
+        context: dict[str, Any] | None = None,
+    ) -> AuthorizationInput:
+        authorization_input, _ = self._build_input(
+            tenant_key=tenant_key,
+            user=user,
+            action=action,
+            resource=resource,
+            context=dict(context or {}),
+        )
+        return authorization_input
 
     def _build_input(
         self,
@@ -417,23 +533,42 @@ class AuthorizationService:
         return enriched_user
 
     def _build_engine(
-        self, *, tenant_key: str, tenant_id: int, policy_version: int
+        self, *, tenant_key: str, tenant_id: int, policy_version: int, policy_set: str = "active"
     ) -> KeyNetraEngine:
-        cached = self._safe_policy_cache_get(tenant_key, policy_version)
+        policy_set_key = policy_set.strip().lower() or "active"
+        graph_tenant_key = (
+            tenant_key if policy_set_key == "active" else f"{tenant_key}:{policy_set_key}"
+        )
+        cached = (
+            self._safe_policy_cache_get(tenant_key, policy_version)
+            if policy_set_key == "active"
+            else None
+        )
         if cached is None:
+
+            def _load_current_policies() -> list[Any]:
+                try:
+                    return self._policies.list_current_policies(
+                        tenant_id=tenant_id, policy_set=policy_set_key
+                    )
+                except TypeError:
+                    # Backward compatibility for repositories that only accept tenant_id.
+                    return self._policies.list_current_policies(tenant_id=tenant_id)
+
             cached = with_timeout(
-                lambda: self._policies.list_current_policies(tenant_id=tenant_id),
+                _load_current_policies,
                 timeout_seconds=self._settings.service_timeout_seconds,
             )
             if not cached:
                 policies = self._settings.load_policies()
                 engine = KeyNetraEngine(policies, strategy="first_match")
-                COMPILED_POLICY_STORE.set(tenant_key, policy_version, engine._compiled_graph)
+                COMPILED_POLICY_STORE.set(graph_tenant_key, policy_version, engine._compiled_graph)
                 return engine
-            self._safe_policy_cache_set(tenant_key, policy_version, cached)
+            if policy_set_key == "active":
+                self._safe_policy_cache_set(tenant_key, policy_version, cached)
         policies = [policy.definition for policy in cached]
         engine = KeyNetraEngine(policies, strategy="first_match")
-        COMPILED_POLICY_STORE.set(tenant_key, policy_version, engine._compiled_graph)
+        COMPILED_POLICY_STORE.set(graph_tenant_key, policy_version, engine._compiled_graph)
         return engine
 
     def _decision_from_cache(self, cached: CachedDecision) -> AuthorizationDecision:
@@ -531,7 +666,11 @@ class AuthorizationService:
         except Exception as exc:
             record_cache_event(cache_name="decision", outcome="fallback")
             log_event(
-                self._logger, event="cache_get_failed", cache_name="decision", reason=repr(exc)
+                self._logger,
+                event="cache_get_failed",
+                cache_name="decision",
+                reason=repr(exc),
+                correlation_id=self._request_id,
             )
             return None
         record_cache_event(cache_name="decision", outcome="hit" if cached is not None else "miss")
@@ -550,7 +689,11 @@ class AuthorizationService:
             )
         except Exception as exc:
             log_event(
-                self._logger, event="cache_set_failed", cache_name="decision", reason=repr(exc)
+                self._logger,
+                event="cache_set_failed",
+                cache_name="decision",
+                reason=repr(exc),
+                correlation_id=self._request_id,
             )
 
     def _safe_policy_cache_get(self, tenant_key: str, policy_version: int):
@@ -561,7 +704,13 @@ class AuthorizationService:
             )
         except Exception as exc:
             record_cache_event(cache_name="policy", outcome="fallback")
-            log_event(self._logger, event="cache_get_failed", cache_name="policy", reason=repr(exc))
+            log_event(
+                self._logger,
+                event="cache_get_failed",
+                cache_name="policy",
+                reason=repr(exc),
+                correlation_id=self._request_id,
+            )
             return None
         record_cache_event(cache_name="policy", outcome="hit" if cached is not None else "miss")
         return cached
@@ -578,7 +727,13 @@ class AuthorizationService:
                 attempts=self._settings.critical_retry_attempts,
             )
         except Exception as exc:
-            log_event(self._logger, event="cache_set_failed", cache_name="policy", reason=repr(exc))
+            log_event(
+                self._logger,
+                event="cache_set_failed",
+                cache_name="policy",
+                reason=repr(exc),
+                correlation_id=self._request_id,
+            )
 
     def _safe_relationship_cache_get(self, *, tenant_id: int, subject_type: str, subject_id: str):
         try:
@@ -591,7 +746,11 @@ class AuthorizationService:
         except Exception as exc:
             record_cache_event(cache_name="relationship", outcome="fallback")
             log_event(
-                self._logger, event="cache_get_failed", cache_name="relationship", reason=repr(exc)
+                self._logger,
+                event="cache_get_failed",
+                cache_name="relationship",
+                reason=repr(exc),
+                correlation_id=self._request_id,
             )
             return None
         record_cache_event(
@@ -617,7 +776,11 @@ class AuthorizationService:
             )
         except Exception as exc:
             log_event(
-                self._logger, event="cache_set_failed", cache_name="relationship", reason=repr(exc)
+                self._logger,
+                event="cache_set_failed",
+                cache_name="relationship",
+                reason=repr(exc),
+                correlation_id=self._request_id,
             )
 
     def _resource_identity(self, resource: dict[str, Any]) -> tuple[str, str]:
@@ -641,4 +804,9 @@ class AuthorizationService:
                 attempts=self._settings.critical_retry_attempts,
             )
         except Exception as exc:
-            log_event(self._logger, event="audit_write_failed", reason=repr(exc))
+            log_event(
+                self._logger,
+                event="audit_write_failed",
+                reason=repr(exc),
+                correlation_id=self._request_id,
+            )

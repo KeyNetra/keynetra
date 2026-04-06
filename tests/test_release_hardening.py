@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import hashlib
 from types import SimpleNamespace
 
@@ -20,11 +21,7 @@ from keynetra.api.routes.access import (
     check_access_batch,
 )
 from keynetra.api.routes.access import simulate as access_simulate
-from keynetra.api.routes.dev import (
-    _require_local_dev,
-    get_sample_data,
-    seed_sample_data,
-)
+from keynetra.api.routes.dev import _require_local_dev, get_sample_data, seed_sample_data
 from keynetra.api.routes.simulation import (
     ImpactAnalysisRequest,
     PolicySimulationRequest,
@@ -34,10 +31,7 @@ from keynetra.api.routes.simulation import (
 )
 from keynetra.cli import app
 from keynetra.config.admin_auth import AdminAccess, _resolve_tenant_role, require_management_role
-from keynetra.config.security import (
-    _matches_api_key,
-    get_principal,
-)
+from keynetra.config.security import _matches_api_key, get_principal
 from keynetra.config.settings import Settings, reset_settings_cache
 from keynetra.domain.models.base import Base
 from keynetra.domain.models.rbac import Permission, Role
@@ -151,7 +145,9 @@ def test_get_principal_supports_api_key_and_bearer_jwt(
 ) -> None:
     request = DummyRequest()
     monkeypatch.setattr("keynetra.config.security._matches_api_key", lambda *_: True)
-    api_key_settings = Settings()
+    api_key_settings = Settings(
+        api_key_scopes_json='{"test-key":{"tenant":"default","role":"developer","permissions":["*"]}}'
+    )
 
     api_key_principal = get_principal(
         request,
@@ -210,7 +206,8 @@ def test_get_principal_rejects_invalid_jwt() -> None:
 
 
 def test_resolve_tenant_role_covers_list_and_dict_claims() -> None:
-    assert _resolve_tenant_role({"type": "api_key"}) == "admin"
+    assert _resolve_tenant_role({"type": "api_key"}) is None
+    assert _resolve_tenant_role({"type": "api_key", "scopes": {"role": "admin"}}) == "admin"
     assert _resolve_tenant_role({"claims": {"tenant_roles": {"acme": "developer"}}}) == "developer"
     assert _resolve_tenant_role({"claims": {"tenant_roles": [{"role": "viewer"}]}}) == "viewer"
     assert _resolve_tenant_role({"claims": {"roles": ["developer", "viewer"]}}) == "developer"
@@ -220,7 +217,10 @@ def test_require_management_role_resolves_and_enforces_roles() -> None:
     request = DummyRequest()
     dependency = require_management_role("developer")
 
-    access = dependency(request, principal={"type": "api_key", "id": "test"})
+    access = dependency(
+        request,
+        principal={"type": "api_key", "id": "test", "scopes": {"role": "admin"}},
+    )
     assert access.role == "admin"
     assert request.state.admin_role == "admin"
 
@@ -434,37 +434,47 @@ def test_access_route_helpers_cover_transport_paths() -> None:
 
     request = DummyRequest()
     service = FakeAccessService()
+    services = SimpleNamespace(settings=SimpleNamespace(async_authorization_enabled=False))
 
-    check = check_access(
-        payload=AccessRequest(
-            user={"id": 1}, action="read", resource={}, context={}, consistency="eventual"
-        ),
-        request=request,
-        service=service,
-        principal={"type": "api_key"},
+    check = asyncio.run(
+        check_access(
+            payload=AccessRequest(
+                user={"id": 1}, action="read", resource={}, context={}, consistency="eventual"
+            ),
+            request=request,
+            service=service,
+            services=services,
+            principal={"type": "api_key"},
+        )
     )
     assert check["data"]["decision"] == "allow"
     assert check["data"]["revision"] == 9
 
-    simulated = access_simulate(
-        payload=AccessRequest(
-            user={"id": 1}, action="read", resource={}, context={}, consistency="eventual"
-        ),
-        request=request,
-        service=service,
-        principal={"type": "api_key"},
+    simulated = asyncio.run(
+        access_simulate(
+            payload=AccessRequest(
+                user={"id": 1}, action="read", resource={}, context={}, consistency="eventual"
+            ),
+            request=request,
+            service=service,
+            services=services,
+            principal={"type": "api_key"},
+        )
     )
     assert simulated["data"]["decision"] == "deny"
 
-    batch = check_access_batch(
-        payload=BatchAccessRequest(
-            user={"id": 1},
-            items=[{"action": "read"}, {"action": "write"}],
-            consistency="eventual",
-        ),
-        request=request,
-        service=service,
-        principal={"type": "api_key"},
+    batch = asyncio.run(
+        check_access_batch(
+            payload=BatchAccessRequest(
+                user={"id": 1},
+                items=[{"action": "read"}, {"action": "write"}],
+                consistency="eventual",
+            ),
+            request=request,
+            service=service,
+            services=services,
+            principal={"type": "api_key"},
+        )
     )
     assert batch["data"]["results"] == [
         {"action": "read", "allowed": True, "revision": 1},
@@ -509,7 +519,14 @@ def test_simulation_and_dev_routes_cover_local_and_normalization_paths(
 
     _require_local_dev(Settings(environment="development"))
     with pytest.raises(ApiError):
-        _require_local_dev(Settings(environment="production"))
+        _require_local_dev(
+            Settings(
+                environment="production",
+                api_keys="prod-key",
+                api_key_scopes_json='{"prod-key":{"tenant":"default","role":"viewer","permissions":["*"]}}',
+                jwt_secret="strong-prod-secret",
+            )
+        )
 
     request = DummyRequest()
     sample = get_sample_data(request=request, settings=Settings(environment="development"))
@@ -517,7 +534,7 @@ def test_simulation_and_dev_routes_cover_local_and_normalization_paths(
 
     seeded = seed_sample_data(
         request=request,
-        db=object(),
+        services=SimpleNamespace(db=object()),
         settings=Settings(environment="development"),
         reset=True,
     )
@@ -539,7 +556,7 @@ def test_simulation_and_dev_routes_cover_local_and_normalization_paths(
             request=normalized,
         ),
         request=request,
-        deps=(SimpleNamespace(), FakeSimulator(), FakeImpact()),
+        services=SimpleNamespace(policy_simulator=FakeSimulator(), impact_analyzer=FakeImpact()),
         access=AdminAccess(tenant_key="default", role="viewer", principal={"type": "api_key"}),
     )
     assert simulation["data"]["decision_before"]["decision"] == "deny"
@@ -548,7 +565,7 @@ def test_simulation_and_dev_routes_cover_local_and_normalization_paths(
     impact = impact_analysis(
         payload=ImpactAnalysisRequest(policy_change="allow read"),
         request=request,
-        deps=(SimpleNamespace(), FakeSimulator(), FakeImpact()),
+        services=SimpleNamespace(policy_simulator=FakeSimulator(), impact_analyzer=FakeImpact()),
         access=AdminAccess(tenant_key="default", role="viewer", principal={"type": "api_key"}),
     )
     assert impact["data"]["gained_access"] == [1, 2]
@@ -871,6 +888,10 @@ def test_management_routes_cover_permissions_roles_and_acl(
     database_url = f"sqlite+pysqlite:///{tmp_path / 'management.db'}"
     monkeypatch.setenv("KEYNETRA_DATABASE_URL", database_url)
     monkeypatch.setenv("KEYNETRA_API_KEYS", "testkey")
+    monkeypatch.setenv(
+        "KEYNETRA_API_KEY_SCOPES_JSON",
+        '{"testkey":{"tenant":"default","role":"admin","permissions":["*"]}}',
+    )
     monkeypatch.setenv("KEYNETRA_RATE_LIMIT_PER_MINUTE", "1000")
     monkeypatch.setenv("KEYNETRA_RATE_LIMIT_BURST", "1000")
     reset_settings_cache()

@@ -27,6 +27,9 @@ def test_policy_creation_emits_role_warning(tmp_path) -> None:
     os.environ["KEYNETRA_DATABASE_URL"] = database_url
     _setup_database(database_url)
     os.environ["KEYNETRA_API_KEYS"] = "testkey"
+    os.environ["KEYNETRA_API_KEY_SCOPES_JSON"] = (
+        '{"testkey":{"tenant":"default","role":"developer","permissions":["policies:write"]}}'
+    )
     reset_settings_cache()
     client = TestClient(create_app())
     headers = {"X-API-Key": "testkey"}

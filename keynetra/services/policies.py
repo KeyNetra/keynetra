@@ -37,9 +37,12 @@ class PolicyService:
 
     def list_policies(self, *, tenant_key: str) -> list[dict[str, object]]:
         tenant = self._tenants.get_or_create(tenant_key)
-        return [
-            item.__dict__ for item in self._policies.list_current_policy_views(tenant_id=tenant.id)
-        ]
+        data: list[dict[str, object]] = []
+        for item in self._policies.list_current_policy_views(tenant_id=tenant.id):
+            row = dict(item.__dict__)
+            row.pop("state", None)
+            data.append(row)
+        return data
 
     def list_policies_page(
         self,
@@ -52,7 +55,12 @@ class PolicyService:
         items, next_cursor = self._policies.list_current_policy_page(
             tenant_id=tenant.id, limit=limit, cursor=cursor
         )
-        return [item.__dict__ for item in items], next_cursor
+        data: list[dict[str, object]] = []
+        for item in items:
+            row = dict(item.__dict__)
+            row.pop("state", None)
+            data.append(row)
+        return data, next_cursor
 
     def create_policy(
         self,
@@ -64,17 +72,30 @@ class PolicyService:
         priority: int,
         conditions: dict[str, object],
         created_by: str | None,
+        state: str = "active",
     ) -> PolicyMutationResult:
         tenant = self._tenants.get_or_create(tenant_key)
-        result = self._policies.create_policy_version(
-            tenant_id=tenant.id,
-            policy_key=policy_key,
-            action=action,
-            effect=effect,
-            priority=priority,
-            conditions=conditions,
-            created_by=created_by,
-        )
+        try:
+            result = self._policies.create_policy_version(
+                tenant_id=tenant.id,
+                policy_key=policy_key,
+                action=action,
+                effect=effect,
+                priority=priority,
+                conditions=conditions,
+                created_by=created_by,
+                state=state,
+            )
+        except TypeError:
+            result = self._policies.create_policy_version(
+                tenant_id=tenant.id,
+                policy_key=policy_key,
+                action=action,
+                effect=effect,
+                priority=priority,
+                conditions=conditions,
+                created_by=created_by,
+            )
         updated_tenant = self._tenants.bump_policy_version(tenant)
         self._policy_cache.invalidate(updated_tenant.tenant_key)
         self._decision_cache.bump_namespace(updated_tenant.tenant_key)

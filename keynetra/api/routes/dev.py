@@ -1,14 +1,13 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Query, Request
-from sqlalchemy.orm import Session
 
+from keynetra.api.dependencies import ServiceContainer, build_services
 from keynetra.api.errors import ApiError, ApiErrorCode
 from keynetra.api.responses import request_id_from_state, success_response
 from keynetra.config.sample_data import sample_bootstrap_document
 from keynetra.config.settings import Settings, get_settings
 from keynetra.domain.schemas.api import SuccessResponse
-from keynetra.infrastructure.storage.session import get_db
 from keynetra.services.seeding import seed_demo_data
 
 router = APIRouter(prefix="/dev")
@@ -33,12 +32,12 @@ def get_sample_data(
 @router.post("/sample-data/seed", response_model=SuccessResponse[dict[str, object]])
 def seed_sample_data(
     request: Request,
-    db: Session = Depends(get_db),
+    services: ServiceContainer = Depends(build_services),
     settings: Settings = Depends(get_settings),
     reset: bool = Query(False, description="Clear the sample dataset before reseeding it."),
 ) -> dict[str, object]:
     _require_local_dev(settings)
-    summary = seed_demo_data(db, reset=reset)
+    summary = seed_demo_data(services.db, reset=reset)
     return success_response(
         data={
             "tenant_key": summary.tenant_key,

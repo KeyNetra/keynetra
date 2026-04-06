@@ -1,7 +1,0 @@
-image:
-  repository: ghcr.io/keynetra/core
-  tag: "0.1.0"
-
-service:
-  type: ClusterIP
-  port: 8000

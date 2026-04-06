@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import os
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from fastapi.testclient import TestClient
 from jose import jwt
@@ -14,6 +14,9 @@ from keynetra.main import create_app
 def _client(database_url: str) -> TestClient:
     os.environ["KEYNETRA_DATABASE_URL"] = database_url
     os.environ["KEYNETRA_API_KEYS"] = "testkey"
+    os.environ["KEYNETRA_API_KEY_SCOPES_JSON"] = (
+        '{"testkey":{"tenant":"default","role":"admin","permissions":["*"]}}'
+    )
     os.environ["KEYNETRA_RATE_LIMIT_PER_MINUTE"] = "1000"
     reset_settings_cache()
     initialize_database(database_url)
@@ -44,7 +47,7 @@ def test_viewer_can_list_but_cannot_mutate_management_api(tmp_path) -> None:
         == 201
     )
 
-    viewer_headers = _jwt_headers(tenant_key="tenant-a", role="viewer")
+    viewer_headers = _jwt_headers(tenant_key="default", role="viewer")
     listed = client.get("/policies", headers=viewer_headers)
     denied = client.post(
         "/policies",
@@ -92,7 +95,7 @@ def test_admin_required_for_global_management_writes(tmp_path) -> None:
 def test_audit_endpoints_support_filters_time_range_and_pagination(tmp_path) -> None:
     client = _client(f"sqlite+pysqlite:///{tmp_path / 'audit.db'}")
     admin_headers = {"X-API-Key": "testkey"}
-    viewer_headers = _jwt_headers(tenant_key="tenant-a", role="viewer")
+    viewer_headers = _jwt_headers(tenant_key="default", role="viewer")
 
     assert (
         client.post(
@@ -129,8 +132,8 @@ def test_audit_endpoints_support_filters_time_range_and_pagination(tmp_path) -> 
         == 200
     )
 
-    start_time = (datetime.now(timezone.utc) - timedelta(minutes=5)).isoformat()
-    end_time = (datetime.now(timezone.utc) + timedelta(minutes=5)).isoformat()
+    start_time = (datetime.now(UTC) - timedelta(minutes=5)).isoformat()
+    end_time = (datetime.now(UTC) + timedelta(minutes=5)).isoformat()
 
     page_one = client.get(
         "/audit",
@@ -157,3 +160,19 @@ def test_audit_endpoints_support_filters_time_range_and_pagination(tmp_path) -> 
     assert len(deny_only.json()["data"]) == 1
     assert deny_only.json()["data"][0]["decision"] == "DENY"
     assert deny_only.json()["data"][0]["user"]["id"] == "u2"
+
+
+def test_api_key_without_role_scope_is_rejected_for_management_routes(tmp_path) -> None:
+    database_url = f"sqlite+pysqlite:///{tmp_path / 'no-role.db'}"
+    os.environ["KEYNETRA_DATABASE_URL"] = database_url
+    os.environ["KEYNETRA_API_KEYS"] = "testkey"
+    os.environ["KEYNETRA_API_KEY_SCOPES_JSON"] = '{"testkey":{"tenant":"default","permissions":[]}}'
+    os.environ["KEYNETRA_RATE_LIMIT_PER_MINUTE"] = "1000"
+    reset_settings_cache()
+    initialize_database(database_url)
+    client = TestClient(create_app())
+
+    response = client.post("/roles", json={"name": "viewer"}, headers={"X-API-Key": "testkey"})
+
+    assert response.status_code == 403
+    assert response.json()["error"]["message"] == "tenant access denied"

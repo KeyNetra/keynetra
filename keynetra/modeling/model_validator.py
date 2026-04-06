@@ -40,7 +40,7 @@ def _validate_expr(expr, schema: AuthorizationSchema) -> None:
     if isinstance(expr, NotExpr):
         _validate_expr(expr.value, schema)
         return
-    if isinstance(expr, AndExpr) or isinstance(expr, OrExpr):
+    if isinstance(expr, (AndExpr, OrExpr)):
         _validate_expr(expr.left, schema)
         _validate_expr(expr.right, schema)
         return

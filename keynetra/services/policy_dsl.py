@@ -20,11 +20,11 @@ def dsl_to_policy(dsl_text: str) -> dict[str, Any]:
           role: admin
           owner_only: true
     """
-    if yaml is not None:
-        data = yaml.safe_load(dsl_text)
-    else:
-        # Allow JSON payloads as a subset fallback when PyYAML is unavailable.
-        data = json.loads(dsl_text)
+    data = (
+        yaml.safe_load(dsl_text)
+        if yaml is not None
+        else json.loads(dsl_text)  # Allow JSON payloads when PyYAML is unavailable.
+    )
     if not isinstance(data, dict) or not data:
         raise ValueError("invalid dsl")
 

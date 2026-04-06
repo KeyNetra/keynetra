@@ -4,11 +4,11 @@ from fastapi import APIRouter, Depends, Request, status
 from fastapi.responses import JSONResponse
 from sqlalchemy import text
 
+from keynetra.api.dependencies import ServiceContainer, build_services
 from keynetra.api.responses import request_id_from_state, success_response
 from keynetra.config.redis_client import get_redis
 from keynetra.config.settings import Settings, get_settings
 from keynetra.domain.schemas.api import SuccessResponse
-from keynetra.infrastructure.storage.session import create_engine_for_url
 
 router = APIRouter()
 
@@ -24,8 +24,12 @@ def liveness(request: Request) -> dict[str, object]:
 
 
 @router.get("/health/ready", response_model=SuccessResponse[dict[str, object]])
-def readiness(request: Request, settings: Settings = Depends(get_settings)) -> JSONResponse:
-    database_status = _check_database(settings)
+def readiness(
+    request: Request,
+    settings: Settings = Depends(get_settings),
+    services: ServiceContainer = Depends(build_services),
+) -> JSONResponse:
+    database_status = _check_database(services)
     redis_status = _check_redis(settings)
     healthy = database_status["status"] == "ok" and redis_status["status"] in {
         "ok",
@@ -47,11 +51,9 @@ def readiness(request: Request, settings: Settings = Depends(get_settings)) -> J
     )
 
 
-def _check_database(settings: Settings) -> dict[str, str]:
+def _check_database(services: ServiceContainer) -> dict[str, str]:
     try:
-        engine = create_engine_for_url(settings.database_url)
-        with engine.connect() as connection:
-            connection.execute(text("SELECT 1"))
+        services.db.execute(text("SELECT 1"))
         return {"status": "ok"}
     except Exception as exc:
         return {"status": "error", "detail": repr(exc)}

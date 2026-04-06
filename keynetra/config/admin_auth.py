@@ -7,7 +7,8 @@ from fastapi import Depends, Request, status
 
 from keynetra.api.errors import ApiError, ApiErrorCode
 from keynetra.config.security import get_principal
-from keynetra.config.tenancy import DEFAULT_TENANT_KEY
+from keynetra.config.settings import Settings, get_settings
+from keynetra.config.tenancy import DEFAULT_TENANT_KEY, normalize_tenant_key, tenant_from_principal
 
 _ROLE_ORDER = {"viewer": 1, "developer": 2, "admin": 3}
 
@@ -26,14 +27,20 @@ def require_management_role(minimum_role: str):
     def dependency(
         request: Request,
         principal: dict[str, Any] = Depends(get_principal),
+        settings: Settings = Depends(get_settings),
     ) -> AdminAccess:
-        role = _resolve_tenant_role(principal)
+        if not isinstance(settings, Settings):
+            settings = get_settings()
+        tenant_key = _resolve_request_tenant_key(
+            request=request, principal=principal, settings=settings
+        )
+        role = _resolve_tenant_role(principal, tenant_key=tenant_key)
         if role is None:
             raise ApiError(
                 status_code=status.HTTP_403_FORBIDDEN,
                 code=ApiErrorCode.FORBIDDEN,
                 message="tenant access denied",
-                details={"tenant_key": DEFAULT_TENANT_KEY},
+                details={"tenant_key": tenant_key},
             )
         if _ROLE_ORDER[role] < _ROLE_ORDER[minimum_role]:
             raise ApiError(
@@ -43,19 +50,28 @@ def require_management_role(minimum_role: str):
                 details={
                     "required_role": minimum_role,
                     "actual_role": role,
-                    "tenant_key": DEFAULT_TENANT_KEY,
+                    "tenant_key": tenant_key,
                 },
             )
         request.state.admin_role = role
-        request.state.admin_tenant_key = DEFAULT_TENANT_KEY
-        return AdminAccess(tenant_key=DEFAULT_TENANT_KEY, role=role, principal=principal)
+        request.state.admin_tenant_key = tenant_key
+        request.state.requested_tenant_key = tenant_key
+        return AdminAccess(tenant_key=tenant_key, role=role, principal=principal)
 
     return dependency
 
 
-def _resolve_tenant_role(principal: dict[str, Any]) -> str | None:
+def _resolve_tenant_role(principal: dict[str, Any], tenant_key: str | None = None) -> str | None:
     if principal.get("type") == "api_key":
-        return "admin"
+        scopes = principal.get("scopes")
+        if isinstance(scopes, dict):
+            role = scopes.get("role")
+            if isinstance(role, str) and role in _ROLE_ORDER:
+                scoped_tenant = normalize_tenant_key(str(scopes.get("tenant") or ""))
+                if tenant_key and scoped_tenant and scoped_tenant != tenant_key:
+                    return None
+                return role
+        return None
 
     claims = principal.get("claims")
     if not isinstance(claims, dict):
@@ -63,6 +79,10 @@ def _resolve_tenant_role(principal: dict[str, Any]) -> str | None:
 
     tenant_roles = claims.get("tenant_roles")
     if isinstance(tenant_roles, dict):
+        if tenant_key:
+            role = tenant_roles.get(tenant_key)
+            if isinstance(role, str) and role in _ROLE_ORDER:
+                return role
         for role in sorted(
             tenant_roles.values(), key=lambda item: _ROLE_ORDER.get(item, 0), reverse=True
         ):
@@ -73,6 +93,11 @@ def _resolve_tenant_role(principal: dict[str, Any]) -> str | None:
             if not isinstance(item, dict):
                 continue
             role = item.get("role")
+            role_tenant = normalize_tenant_key(
+                str(item.get("tenant") or item.get("tenant_key") or "")
+            )
+            if tenant_key and role_tenant and role_tenant != tenant_key:
+                continue
             if isinstance(role, str) and role in _ROLE_ORDER:
                 return role
 
@@ -87,3 +112,36 @@ def _resolve_tenant_role(principal: dict[str, Any]) -> str | None:
                 return item
 
     return None
+
+
+def _resolve_request_tenant_key(
+    *, request: Request, principal: dict[str, Any], settings: Settings
+) -> str:
+    headers = getattr(request, "headers", {})
+    header_tenant = normalize_tenant_key(
+        headers.get("X-Tenant-Id") or getattr(request.state, "requested_tenant_key", None)
+    )
+    if header_tenant:
+        return header_tenant
+
+    principal_tenant = tenant_from_principal(principal)
+    if principal_tenant:
+        return principal_tenant
+
+    if settings.strict_tenancy:
+        raise ApiError(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            code=ApiErrorCode.VALIDATION_ERROR,
+            message="tenant is required",
+            details={"header": "X-Tenant-Id"},
+        )
+
+    if settings.is_development():
+        return DEFAULT_TENANT_KEY
+
+    raise ApiError(
+        status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+        code=ApiErrorCode.VALIDATION_ERROR,
+        message="tenant is required",
+        details={"header": "X-Tenant-Id"},
+    )

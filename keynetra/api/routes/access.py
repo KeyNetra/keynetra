@@ -10,14 +10,17 @@ import logging
 
 from fastapi import APIRouter, Depends, Request, status
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.orm import Session
 
+from keynetra.api.dependencies import ServiceContainer, build_services
 from keynetra.api.errors import ApiError, ApiErrorCode
 from keynetra.api.responses import request_id_from_state, success_response
-from keynetra.config.redis_client import get_redis
 from keynetra.config.security import get_principal
-from keynetra.config.settings import Settings, get_settings
-from keynetra.config.tenancy import DEFAULT_TENANT_KEY
+from keynetra.config.tenancy import (
+    DEFAULT_TENANT_KEY,
+    TENANT_HEADER_NAME,
+    normalize_tenant_key,
+    tenant_from_principal,
+)
 from keynetra.domain.schemas.access import (
     AccessDecisionResponse,
     AccessRequest,
@@ -27,19 +30,6 @@ from keynetra.domain.schemas.access import (
     SimulationResponse,
 )
 from keynetra.domain.schemas.api import SuccessResponse
-from keynetra.infrastructure.cache.access_index_cache import build_access_index_cache
-from keynetra.infrastructure.cache.acl_cache import build_acl_cache
-from keynetra.infrastructure.cache.decision_cache import build_decision_cache
-from keynetra.infrastructure.cache.policy_cache import build_policy_cache
-from keynetra.infrastructure.cache.relationship_cache import build_relationship_cache
-from keynetra.infrastructure.repositories.acl import SqlACLRepository
-from keynetra.infrastructure.repositories.audit import SqlAuditRepository
-from keynetra.infrastructure.repositories.auth_models import SqlAuthModelRepository
-from keynetra.infrastructure.repositories.policies import SqlPolicyRepository
-from keynetra.infrastructure.repositories.relationships import SqlRelationshipRepository
-from keynetra.infrastructure.repositories.tenants import SqlTenantRepository
-from keynetra.infrastructure.repositories.users import SqlUserRepository
-from keynetra.infrastructure.storage.session import get_db
 from keynetra.services.attribute_validation import AttributeValidationError
 from keynetra.services.authorization import AuthorizationService
 
@@ -47,27 +37,53 @@ router = APIRouter()
 logger = logging.getLogger("keynetra.access")
 
 
-def get_authorization_service(
-    settings: Settings = Depends(get_settings),
-    db: Session = Depends(get_db),
-) -> AuthorizationService:
-    """Create the request-scoped authorization service."""
+def _legacy_service_override() -> AuthorizationService | None:
+    return None
 
-    redis_client = get_redis()
-    return AuthorizationService(
-        settings=settings,
-        tenants=SqlTenantRepository(db),
-        policies=SqlPolicyRepository(db),
-        users=SqlUserRepository(db),
-        relationships=SqlRelationshipRepository(db),
-        audit=SqlAuditRepository(db),
-        policy_cache=build_policy_cache(redis_client),
-        relationship_cache=build_relationship_cache(redis_client),
-        decision_cache=build_decision_cache(redis_client),
-        acl_repository=SqlACLRepository(db),
-        acl_cache=build_acl_cache(redis_client),
-        access_index_cache=build_access_index_cache(redis_client),
-        auth_model_repository=SqlAuthModelRepository(db),
+
+def _resolve_tenant_key(
+    *,
+    request: Request,
+    principal: dict[str, str],
+    services: ServiceContainer,
+) -> str:
+    headers = getattr(request, "headers", {})
+    requested = normalize_tenant_key(
+        headers.get(TENANT_HEADER_NAME) or getattr(request.state, "requested_tenant_key", None)
+    )
+    if requested:
+        request.state.requested_tenant_key = requested
+        return requested
+
+    principal_tenant = tenant_from_principal(principal)
+    if principal_tenant:
+        request.state.requested_tenant_key = principal_tenant
+        return principal_tenant
+
+    settings = getattr(services, "settings", None)
+    strict_tenancy = (
+        bool(getattr(settings, "strict_tenancy", False)) if settings is not None else False
+    )
+    if strict_tenancy:
+        raise ApiError(
+            status_code=422,
+            code=ApiErrorCode.VALIDATION_ERROR,
+            message="tenant is required",
+            details={"header": TENANT_HEADER_NAME},
+        )
+
+    is_development = (
+        bool(getattr(settings, "is_development", lambda: True)()) if settings is not None else True
+    )
+    if is_development:
+        request.state.requested_tenant_key = DEFAULT_TENANT_KEY
+        return DEFAULT_TENANT_KEY
+
+    raise ApiError(
+        status_code=422,
+        code=ApiErrorCode.VALIDATION_ERROR,
+        message="tenant is required",
+        details={"header": TENANT_HEADER_NAME},
     )
 
 
@@ -76,23 +92,48 @@ def get_authorization_service(
     response_model=SuccessResponse[AccessDecisionResponse],
     dependencies=[Depends(get_principal)],
 )
-def check_access(
+async def check_access(
     payload: AccessRequest,
     request: Request,
-    service: AuthorizationService = Depends(get_authorization_service),
+    service: AuthorizationService | None = Depends(_legacy_service_override),
+    services: ServiceContainer = Depends(build_services),
     principal: dict[str, str] = Depends(get_principal),
+    policy_set: str = "active",
 ) -> dict[str, object]:
-    try:
-        result = service.authorize(
-            tenant_key=DEFAULT_TENANT_KEY,
-            principal=principal,
-            user=payload.user,
-            action=payload.action,
-            resource=payload.resource,
-            context=payload.context,
-            consistency=payload.consistency,
-            revision=payload.revision,
+    effective_service = service or services.authorization_service
+    tenant_key = _resolve_tenant_key(request=request, principal=principal, services=services)
+    normalized_policy_set = policy_set.strip().lower()
+    if normalized_policy_set not in {"active", "draft", "archived"}:
+        raise ApiError(
+            status_code=422,
+            code=ApiErrorCode.VALIDATION_ERROR,
+            message="policy_set must be one of active, draft, archived",
         )
+    try:
+        if services.settings.async_authorization_enabled:
+            result = await effective_service.authorize_async(
+                tenant_key=tenant_key,
+                principal=principal,
+                user=payload.user,
+                action=payload.action,
+                resource=payload.resource,
+                context=payload.context,
+                consistency=payload.consistency,
+                revision=payload.revision,
+                policy_set=normalized_policy_set,
+            )
+        else:
+            result = effective_service.authorize(
+                tenant_key=tenant_key,
+                principal=principal,
+                user=payload.user,
+                action=payload.action,
+                resource=payload.resource,
+                context=payload.context,
+                consistency=payload.consistency,
+                revision=payload.revision,
+                policy_set=normalized_policy_set,
+            )
     except AttributeValidationError as error:
         raise ApiError(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -131,21 +172,36 @@ def check_access(
     response_model=SuccessResponse[SimulationResponse],
     dependencies=[Depends(get_principal)],
 )
-def simulate(
+async def simulate(
     payload: AccessRequest,
     request: Request,
-    service: AuthorizationService = Depends(get_authorization_service),
+    service: AuthorizationService | None = Depends(_legacy_service_override),
+    services: ServiceContainer = Depends(build_services),
     principal: dict[str, str] = Depends(get_principal),
 ) -> dict[str, object]:
+    effective_service = service or services.authorization_service
+    tenant_key = _resolve_tenant_key(request=request, principal=principal, services=services)
     try:
-        decision = service.simulate(
-            tenant_key=DEFAULT_TENANT_KEY,
-            principal=principal,
-            user=payload.user,
-            action=payload.action,
-            resource=payload.resource,
-            context=payload.context,
-        )
+        if services.settings.async_authorization_enabled:
+            decision = (
+                await effective_service.authorize_async(
+                    tenant_key=tenant_key,
+                    principal=principal,
+                    user=payload.user,
+                    action=payload.action,
+                    resource=payload.resource,
+                    context=payload.context,
+                )
+            ).decision
+        else:
+            decision = effective_service.simulate(
+                tenant_key=tenant_key,
+                principal=principal,
+                user=payload.user,
+                action=payload.action,
+                resource=payload.resource,
+                context=payload.context,
+            )
     except AttributeValidationError as error:
         raise ApiError(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -172,7 +228,7 @@ def simulate(
             policy_id=decision.policy_id,
             explain_trace=[step.to_dict() for step in decision.explain_trace],
             failed_conditions=list(decision.failed_conditions),
-            revision=service.get_revision(tenant_key=DEFAULT_TENANT_KEY),
+            revision=effective_service.get_revision(tenant_key=tenant_key),
         ).model_dump(),
         request_id=request_id_from_state(request.state),
     )
@@ -183,21 +239,44 @@ def simulate(
     response_model=SuccessResponse[BatchAccessResponse],
     dependencies=[Depends(get_principal)],
 )
-def check_access_batch(
+async def check_access_batch(
     payload: BatchAccessRequest,
     request: Request,
-    service: AuthorizationService = Depends(get_authorization_service),
+    service: AuthorizationService | None = Depends(_legacy_service_override),
+    services: ServiceContainer = Depends(build_services),
     principal: dict[str, str] = Depends(get_principal),
+    policy_set: str = "active",
 ) -> dict[str, object]:
-    try:
-        results = service.authorize_batch(
-            tenant_key=DEFAULT_TENANT_KEY,
-            principal=principal,
-            user=payload.user,
-            items=[item.model_dump() for item in payload.items],
-            consistency=payload.consistency,
-            revision=payload.revision,
+    effective_service = service or services.authorization_service
+    tenant_key = _resolve_tenant_key(request=request, principal=principal, services=services)
+    normalized_policy_set = policy_set.strip().lower()
+    if normalized_policy_set not in {"active", "draft", "archived"}:
+        raise ApiError(
+            status_code=422,
+            code=ApiErrorCode.VALIDATION_ERROR,
+            message="policy_set must be one of active, draft, archived",
         )
+    try:
+        if services.settings.async_authorization_enabled:
+            results = await effective_service.authorize_batch_async(
+                tenant_key=tenant_key,
+                principal=principal,
+                user=payload.user,
+                items=[item.model_dump() for item in payload.items],
+                consistency=payload.consistency,
+                revision=payload.revision,
+                policy_set=normalized_policy_set,
+            )
+        else:
+            results = effective_service.authorize_batch(
+                tenant_key=tenant_key,
+                principal=principal,
+                user=payload.user,
+                items=[item.model_dump() for item in payload.items],
+                consistency=payload.consistency,
+                revision=payload.revision,
+                policy_set=normalized_policy_set,
+            )
     except AttributeValidationError as error:
         raise ApiError(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,

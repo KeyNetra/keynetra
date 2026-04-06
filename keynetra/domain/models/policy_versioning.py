@@ -39,6 +39,7 @@ class PolicyVersion(Base):
         DateTime(timezone=True), nullable=False, default=datetime.utcnow
     )
     created_by: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    state: Mapped[str] = mapped_column(String(16), nullable=False, default="active")
 
     __table_args__ = (
         UniqueConstraint("policy_id", "version", name="uq_policy_versions_policy_version"),

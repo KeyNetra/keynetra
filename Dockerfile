@@ -15,14 +15,16 @@ RUN pip install --no-cache-dir -r /app/requirements.txt
 COPY alembic.ini /app/alembic.ini
 COPY alembic /app/alembic
 COPY keynetra /app/keynetra
-COPY infra/docker/start.sh /usr/local/bin/start-keynetra
-
-RUN chmod +x /usr/local/bin/start-keynetra && chown -R appuser:appuser /app
+COPY contracts /app/contracts
+COPY pyproject.toml /app/pyproject.toml
+COPY README.md /app/README.md
+RUN pip install --no-cache-dir /app
+RUN chown -R appuser:appuser /app
 
 USER appuser
-EXPOSE 8000
+EXPOSE 8080
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=5 \
-  CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/ready', timeout=3)"
+  CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health/ready', timeout=3)"
 
-ENTRYPOINT ["start-keynetra"]
+CMD ["keynetra", "serve", "--host", "0.0.0.0", "--port", "8080"]

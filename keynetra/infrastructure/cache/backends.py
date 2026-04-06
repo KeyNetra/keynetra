@@ -6,8 +6,13 @@ defined in ``keynetra.services.interfaces``.
 
 from __future__ import annotations
 
+import logging
 import time
 from typing import Any, Protocol
+
+from keynetra.infrastructure.logging import log_event
+
+_logger = logging.getLogger("keynetra.cache")
 
 
 class CacheBackend(Protocol):
@@ -61,7 +66,8 @@ class RedisCacheBackend:
     def get(self, key: str) -> str | None:
         try:
             value = self._client.get(key)
-        except Exception:
+        except (ConnectionError, OSError, RuntimeError, ValueError) as exc:
+            log_event(_logger, event="cache_backend_get_failed", key=key, reason=repr(exc))
             return None
         if value is None:
             return None
@@ -73,19 +79,22 @@ class RedisCacheBackend:
                 self._client.set(key, value)
             else:
                 self._client.setex(key, max(1, ttl_seconds), value)
-        except Exception:
+        except (ConnectionError, OSError, RuntimeError, ValueError) as exc:
+            log_event(_logger, event="cache_backend_set_failed", key=key, reason=repr(exc))
             return
 
     def delete(self, key: str) -> None:
         try:
             self._client.delete(key)
-        except Exception:
+        except (ConnectionError, OSError, RuntimeError, ValueError) as exc:
+            log_event(_logger, event="cache_backend_delete_failed", key=key, reason=repr(exc))
             return
 
     def incr(self, key: str) -> int:
         try:
             return int(self._client.incr(key))
-        except Exception:
+        except (ConnectionError, OSError, RuntimeError, ValueError) as exc:
+            log_event(_logger, event="cache_backend_incr_failed", key=key, reason=repr(exc))
             return 0
 
 

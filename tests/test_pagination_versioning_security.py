@@ -23,6 +23,9 @@ def _client(database_url: str) -> TestClient:
 def test_roles_cursor_pagination_and_version_header(tmp_path) -> None:
     database_url = f"sqlite+pysqlite:///{tmp_path / 'roles.db'}"
     os.environ["KEYNETRA_API_KEYS"] = "testkey"
+    os.environ["KEYNETRA_API_KEY_SCOPES_JSON"] = (
+        '{"testkey":{"tenant":"default","role":"admin","permissions":["*"]}}'
+    )
     client = _client(database_url)
 
     first = client.post("/roles", json={"name": "admin"}, headers={"X-API-Key": "testkey"})
@@ -48,6 +51,9 @@ def test_roles_cursor_pagination_and_version_header(tmp_path) -> None:
 def test_policies_cursor_pagination(tmp_path) -> None:
     database_url = f"sqlite+pysqlite:///{tmp_path / 'policies.db'}"
     os.environ["KEYNETRA_API_KEYS"] = "testkey"
+    os.environ["KEYNETRA_API_KEY_SCOPES_JSON"] = (
+        '{"testkey":{"tenant":"default","role":"admin","permissions":["*"]}}'
+    )
     client = _client(database_url)
     headers = {"X-API-Key": "testkey"}
 

@@ -5,8 +5,14 @@ from __future__ import annotations
 import json
 import logging
 import os
-from datetime import datetime, timezone
+from contextvars import ContextVar, Token
+from datetime import UTC, datetime
 from typing import Any
+
+_correlation_id_ctx: ContextVar[str | None] = ContextVar(
+    "keynetra_correlation_id",
+    default=None,
+)
 
 
 class JsonLogFormatter(logging.Formatter):
@@ -16,7 +22,7 @@ class JsonLogFormatter(logging.Formatter):
             payload = dict(record.msg)
         else:
             payload = {"message": record.getMessage()}
-        payload.setdefault("timestamp", datetime.now(timezone.utc).isoformat())
+        payload.setdefault("timestamp", datetime.now(UTC).isoformat())
         payload.setdefault("level", record.levelname)
         payload.setdefault("logger", record.name)
         return json.dumps(payload, default=str)
@@ -70,4 +76,18 @@ def configure_rich_logging() -> None:
 
 
 def log_event(logger: logging.Logger, *, event: str, **fields: Any) -> None:
-    logger.info({"event": event, **fields})
+    payload = {"event": event, **fields}
+    payload.setdefault("correlation_id", get_correlation_id())
+    logger.info(payload)
+
+
+def set_correlation_id(correlation_id: str | None) -> Token[str | None]:
+    return _correlation_id_ctx.set(correlation_id)
+
+
+def reset_correlation_id(token: Token[str | None]) -> None:
+    _correlation_id_ctx.reset(token)
+
+
+def get_correlation_id() -> str | None:
+    return _correlation_id_ctx.get()

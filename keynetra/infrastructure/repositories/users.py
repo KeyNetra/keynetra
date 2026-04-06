@@ -45,3 +45,31 @@ class SqlUserRepository:
     def list_user_ids(self, *, tenant_id: int) -> list[int]:
         rows = self._session.execute(select(User.id).order_by(User.id.asc())).scalars().all()
         return [int(row) for row in rows]
+
+    def get_user_contexts(self, user_ids: list[int]) -> dict[int, dict[str, Any]]:
+        if not user_ids:
+            return {}
+        users = (
+            self._session.execute(
+                select(User)
+                .where(User.id.in_(user_ids))
+                .options(joinedload(User.roles).joinedload(Role.permissions))
+            )
+            .scalars()
+            .all()
+        )
+        contexts: dict[int, dict[str, Any]] = {}
+        for user in users:
+            permissions: set[str] = set()
+            roles: set[str] = set()
+            for role in user.roles:
+                roles.add(role.name)
+                for permission in role.permissions:
+                    permissions.add(permission.action)
+            contexts[int(user.id)] = {
+                "id": user.id,
+                "role": next(iter(sorted(roles)), None),
+                "roles": sorted(roles),
+                "permissions": sorted(permissions),
+            }
+        return contexts

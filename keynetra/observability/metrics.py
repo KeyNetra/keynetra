@@ -69,6 +69,36 @@ if Counter is not None and Histogram is not None:
         "Core API error counts",
         labelnames=("code",),
     )
+    BOOTSTRAP_FAILURES_TOTAL = Counter(
+        "keynetra_bootstrap_failures_total",
+        "Startup/bootstrap failure counts",
+        labelnames=("stage",),
+    )
+    CACHE_FALLBACK_TOTAL = Counter(
+        "keynetra_cache_fallback_total",
+        "Cache fallback counts",
+        labelnames=("cache_name",),
+    )
+    AUTH_FAILURES_TOTAL = Counter(
+        "keynetra_auth_failures_total",
+        "Authentication failure counts",
+        labelnames=("reason",),
+    )
+    JWKS_FETCH_TOTAL = Counter(
+        "keynetra_jwks_fetch_total",
+        "JWKS fetch outcome counts",
+        labelnames=("outcome",),
+    )
+    ACCESS_INDEX_REBUILDS_TOTAL = Counter(
+        "keynetra_access_index_rebuilds_total",
+        "Access index rebuild counts",
+        labelnames=("mode",),
+    )
+    DB_QUERY_LATENCY_SECONDS = Histogram(
+        "keynetra_db_query_latency_seconds",
+        "Database query latency",
+        labelnames=("operation",),
+    )
 else:  # pragma: no cover
     ACCESS_CHECKS_TOTAL = None
     ACL_MATCHES_TOTAL = None
@@ -82,6 +112,12 @@ else:  # pragma: no cover
     DECISION_LATENCY_SECONDS = None
     CACHE_EVENTS_TOTAL = None
     API_ERRORS_TOTAL = None
+    BOOTSTRAP_FAILURES_TOTAL = None
+    CACHE_FALLBACK_TOTAL = None
+    AUTH_FAILURES_TOTAL = None
+    JWKS_FETCH_TOTAL = None
+    ACCESS_INDEX_REBUILDS_TOTAL = None
+    DB_QUERY_LATENCY_SECONDS = None
 
 
 def _tenant_label(tenant: str | None) -> str:
@@ -91,7 +127,11 @@ def _tenant_label(tenant: str | None) -> str:
 
 def _cache_type_label(cache_type: str) -> str:
     value = str(cache_type or "unknown").strip().lower()
-    return value if value in {"policy", "acl", "relationship", "access_index"} else "unknown"
+    return (
+        value
+        if value in {"policy", "acl", "relationship", "access_index", "decision"}
+        else "unknown"
+    )
 
 
 def record_access_check(*, tenant: str | None, decision: str) -> None:
@@ -154,6 +194,8 @@ def record_cache_event(*, cache_name: str, outcome: str) -> None:
         record_cache_hit(cache_type=cache)
     else:
         record_cache_miss(cache_type=cache)
+    if outcome_label == "fallback" and CACHE_FALLBACK_TOTAL is not None:
+        CACHE_FALLBACK_TOTAL.labels(cache_name=cache).inc()
 
 
 def observe_decision_latency(*, tenant_key: str, value: float) -> None:
@@ -164,3 +206,30 @@ def observe_decision_latency(*, tenant_key: str, value: float) -> None:
 def record_api_error(*, code: str) -> None:
     if API_ERRORS_TOTAL is not None:
         API_ERRORS_TOTAL.labels(code=code).inc()
+
+
+def record_bootstrap_failure(*, stage: str) -> None:
+    if BOOTSTRAP_FAILURES_TOTAL is not None:
+        BOOTSTRAP_FAILURES_TOTAL.labels(stage=str(stage)).inc()
+
+
+def record_auth_failure(*, reason: str) -> None:
+    if AUTH_FAILURES_TOTAL is not None:
+        AUTH_FAILURES_TOTAL.labels(reason=str(reason)).inc()
+
+
+def record_jwks_fetch(*, outcome: str) -> None:
+    if JWKS_FETCH_TOTAL is not None:
+        JWKS_FETCH_TOTAL.labels(outcome=str(outcome)).inc()
+
+
+def record_access_index_rebuild(*, mode: str) -> None:
+    if ACCESS_INDEX_REBUILDS_TOTAL is not None:
+        ACCESS_INDEX_REBUILDS_TOTAL.labels(mode=str(mode)).inc()
+
+
+def observe_db_query_latency(*, operation: str, value: float) -> None:
+    if DB_QUERY_LATENCY_SECONDS is not None:
+        DB_QUERY_LATENCY_SECONDS.labels(operation=str(operation or "unknown")).observe(
+            max(0.0, float(value))
+        )

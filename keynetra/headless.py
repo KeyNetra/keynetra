@@ -28,7 +28,7 @@ class KeyNetra:
     _permission_graph: CompiledPermissionGraph | None = None
 
     @classmethod
-    def from_config(cls, path: str | Path) -> "KeyNetra":
+    def from_config(cls, path: str | Path) -> KeyNetra:
         config = load_config_file(path)
         policies = load_policies_from_paths(list(config.policy_paths)) or list(DEFAULT_POLICIES)
         engine = cls(_engine=KeyNetraEngine(policies))

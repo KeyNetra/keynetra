@@ -17,6 +17,9 @@ from keynetra.main import create_app
 def _build_client(database_url: str) -> TestClient:
     os.environ["KEYNETRA_DATABASE_URL"] = database_url
     os.environ["KEYNETRA_API_KEYS"] = "testkey"
+    os.environ["KEYNETRA_API_KEY_SCOPES_JSON"] = (
+        '{"testkey":{"tenant":"default","role":"developer","permissions":["policies:write","relationships:write"]}}'
+    )
     reset_settings_cache()
     initialize_database(database_url)
     return TestClient(create_app())

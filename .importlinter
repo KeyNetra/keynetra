@@ -1,0 +1,53 @@
+[importlinter]
+root_package = keynetra
+
+[importlinter:contract:services-no-api]
+name = Services must not import API layer
+type = forbidden
+source_modules =
+    keynetra.services
+forbidden_modules =
+    keynetra.api
+
+[importlinter:contract:engine-no-runtime-layers]
+name = Engine must not import API, services, or infrastructure
+type = forbidden
+source_modules =
+    keynetra.engine
+forbidden_modules =
+    keynetra.api
+    keynetra.services
+    keynetra.infrastructure
+
+[importlinter:contract:infrastructure-no-api-or-services]
+name = Infrastructure must not import API
+type = forbidden
+source_modules =
+    keynetra.infrastructure
+forbidden_modules =
+    keynetra.api
+
+[importlinter:contract:domain-no-infra]
+name = Domain must not import infrastructure
+type = forbidden
+source_modules =
+    keynetra.domain
+forbidden_modules =
+    keynetra.infrastructure
+
+[importlinter:contract:domain-no-api-services]
+name = Domain must not import API or services
+type = forbidden
+source_modules =
+    keynetra.domain
+forbidden_modules =
+    keynetra.api
+    keynetra.services
+
+[importlinter:contract:config-no-api-routes]
+name = Config must not import API routes
+type = forbidden
+source_modules =
+    keynetra.config
+forbidden_modules =
+    keynetra.api.routes

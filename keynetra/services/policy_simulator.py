@@ -5,10 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from keynetra.engine.keynetra_engine import (
-    AuthorizationDecision,
-    KeyNetraEngine,
-)
+from keynetra.engine.keynetra_engine import AuthorizationDecision, KeyNetraEngine
 from keynetra.services.authorization import AuthorizationService
 from keynetra.services.interfaces import PolicyRepository, TenantRepository
 from keynetra.services.policy_dsl import dsl_to_policy

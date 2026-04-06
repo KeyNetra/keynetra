@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import logging
 import math
 import time
 from dataclasses import dataclass
@@ -15,6 +16,9 @@ from starlette.responses import Response
 
 from keynetra.config.redis_client import get_redis
 from keynetra.config.settings import Settings
+from keynetra.infrastructure.logging import log_event
+
+_logger = logging.getLogger("keynetra.rate_limit")
 
 
 @dataclass
@@ -86,7 +90,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         response.headers["X-RateLimit-Reset"] = str(decision.retry_after)
         return response
 
-    def _consume(self, request: Request) -> "_BucketDecision | Response":
+    def _consume(self, request: Request) -> _BucketDecision | Response:
         rate = max(1, self._settings.rate_limit_per_minute)
         interval = max(1, self._settings.rate_limit_window_seconds)
         capacity = max(1, self._settings.rate_limit_burst or rate)
@@ -120,8 +124,13 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                 return _BucketDecision(
                     limit=capacity, remaining=remaining_tokens, retry_after=retry_after_seconds
                 )
-            except Exception:
-                pass
+            except (AttributeError, ConnectionError, OSError, RuntimeError, ValueError) as exc:
+                log_event(
+                    _logger,
+                    event="rate_limit_redis_fallback",
+                    reason=repr(exc),
+                    request_id=getattr(request.state, "request_id", None),
+                )
 
         with _local_limits_lock:
             bucket = _local_limits.get(key)

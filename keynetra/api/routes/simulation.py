@@ -2,13 +2,11 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.orm import Session
 
+from keynetra.api.dependencies import ServiceContainer, build_services
 from keynetra.api.errors import ApiError, ApiErrorCode
 from keynetra.api.responses import request_id_from_state, success_response
 from keynetra.config.admin_auth import AdminAccess, require_management_role
-from keynetra.config.redis_client import get_redis
-from keynetra.config.settings import get_settings
 from keynetra.domain.schemas.api import SuccessResponse
 from keynetra.domain.schemas.modeling import (
     ImpactAnalysisRequest,
@@ -16,66 +14,17 @@ from keynetra.domain.schemas.modeling import (
     PolicySimulationRequest,
     PolicySimulationResponse,
 )
-from keynetra.infrastructure.cache.access_index_cache import build_access_index_cache
-from keynetra.infrastructure.cache.acl_cache import build_acl_cache
-from keynetra.infrastructure.cache.decision_cache import build_decision_cache
-from keynetra.infrastructure.cache.policy_cache import build_policy_cache
-from keynetra.infrastructure.cache.relationship_cache import build_relationship_cache
-from keynetra.infrastructure.repositories.acl import SqlACLRepository
-from keynetra.infrastructure.repositories.audit import SqlAuditRepository
-from keynetra.infrastructure.repositories.auth_models import SqlAuthModelRepository
-from keynetra.infrastructure.repositories.policies import SqlPolicyRepository
-from keynetra.infrastructure.repositories.relationships import SqlRelationshipRepository
-from keynetra.infrastructure.repositories.tenants import SqlTenantRepository
-from keynetra.infrastructure.repositories.users import SqlUserRepository
-from keynetra.infrastructure.storage.session import get_db
-from keynetra.services.authorization import AuthorizationService
-from keynetra.services.impact_analysis import ImpactAnalyzer
-from keynetra.services.policy_simulator import PolicySimulator
 
 router = APIRouter()
-
-
-def get_simulation_services(
-    db: Session = Depends(get_db),
-) -> tuple[AuthorizationService, PolicySimulator, ImpactAnalyzer]:
-    redis_client = get_redis()
-    tenants = SqlTenantRepository(db)
-    policies = SqlPolicyRepository(db)
-    users = SqlUserRepository(db)
-    relationships = SqlRelationshipRepository(db)
-    auth = AuthorizationService(
-        settings=get_settings(),
-        tenants=tenants,
-        policies=policies,
-        users=users,
-        relationships=relationships,
-        audit=SqlAuditRepository(db),
-        policy_cache=build_policy_cache(redis_client),
-        relationship_cache=build_relationship_cache(redis_client),
-        decision_cache=build_decision_cache(redis_client),
-        acl_repository=SqlACLRepository(db),
-        acl_cache=build_acl_cache(redis_client),
-        access_index_cache=build_access_index_cache(redis_client),
-        auth_model_repository=SqlAuthModelRepository(db),
-    )
-    simulator = PolicySimulator(tenants=tenants, policies=policies, authorization_service=auth)
-    impact = ImpactAnalyzer(
-        tenants=tenants, policies=policies, users=users, relationships=relationships
-    )
-    return auth, simulator, impact
 
 
 @router.post("/simulate-policy", response_model=SuccessResponse[PolicySimulationResponse])
 def simulate_policy(
     payload: PolicySimulationRequest,
     request: Request,
-    deps: tuple[AuthorizationService, PolicySimulator, ImpactAnalyzer] = Depends(
-        get_simulation_services
-    ),
+    services: ServiceContainer = Depends(build_services),
     access: AdminAccess = Depends(require_management_role("viewer")),
 ) -> dict[str, object]:
-    _auth, simulator, _impact = deps
     req = _normalize_request(payload.request)
     policy_change = payload.simulate.policy_change
     if not policy_change:
@@ -83,7 +32,7 @@ def simulate_policy(
             status_code=422, code=ApiErrorCode.VALIDATION_ERROR, message="policy_change is required"
         )
     try:
-        result = simulator.simulate_policy_change(
+        result = services.policy_simulator.simulate_policy_change(
             tenant_key=access.tenant_key,
             user=req["user"],
             action=req["action"],
@@ -122,14 +71,11 @@ def simulate_policy(
 def impact_analysis(
     payload: ImpactAnalysisRequest,
     request: Request,
-    deps: tuple[AuthorizationService, PolicySimulator, ImpactAnalyzer] = Depends(
-        get_simulation_services
-    ),
+    services: ServiceContainer = Depends(build_services),
     access: AdminAccess = Depends(require_management_role("viewer")),
 ) -> dict[str, object]:
-    _auth, _simulator, impact = deps
     try:
-        result = impact.analyze_policy_change(
+        result = services.impact_analyzer.analyze_policy_change(
             tenant_key=access.tenant_key, policy_change=payload.policy_change
         )
     except ValueError as error:

@@ -1,0 +1,5 @@
+ignore-vulnerabilities:
+  64459:
+    reason: "Side-channel vulnerability in ecdsa not exploitable in this project"
+  64396:
+    reason: "ecdsa library limitation; project does not use ECDSA private key operations"

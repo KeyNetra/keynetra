@@ -41,6 +41,7 @@ class PolicyCreate(BaseModel):
     action: str
     effect: str = "allow"
     priority: int = 100
+    state: str = "active"
     conditions: dict[str, Any] = Field(default_factory=dict)
 
 
@@ -49,6 +50,7 @@ class PolicyOut(BaseModel):
     action: str
     effect: str
     priority: int
+    state: str = "active"
     conditions: dict[str, Any]
 
 
@@ -71,6 +73,7 @@ class AuditRecordOut(BaseModel):
     id: int
     principal_type: str
     principal_id: str
+    correlation_id: str | None = None
     user: dict[str, Any]
     action: str
     resource: dict[str, Any]

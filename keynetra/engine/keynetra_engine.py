@@ -8,9 +8,10 @@ explicitly through ``AuthorizationInput``.
 from __future__ import annotations
 
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Callable, Literal
+from typing import Any, Literal
 
 from keynetra.engine.compiled.decision_graph import DecisionGraph
 from keynetra.engine.compiled.policy_compiler import compile_policy_graph
@@ -53,7 +54,7 @@ class PolicyDefinition:
     policy_id: str | None = None
 
     @staticmethod
-    def from_dict(raw: dict[str, Any]) -> "PolicyDefinition":
+    def from_dict(raw: dict[str, Any]) -> PolicyDefinition:
         return PolicyDefinition(
             action=str(raw.get("action", "")),
             effect="allow" if str(raw.get("effect", "deny")) == "allow" else "deny",

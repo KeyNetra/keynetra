@@ -28,7 +28,7 @@ class User(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     external_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
 
-    roles: Mapped[list["Role"]] = relationship(secondary=user_roles, back_populates="users")
+    roles: Mapped[list[Role]] = relationship(secondary=user_roles, back_populates="users")
 
     __table_args__ = (Index("ix_users_external_id", "external_id"),)
 
@@ -40,7 +40,7 @@ class Role(Base):
     name: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)
 
     users: Mapped[list[User]] = relationship(secondary=user_roles, back_populates="roles")
-    permissions: Mapped[list["Permission"]] = relationship(
+    permissions: Mapped[list[Permission]] = relationship(
         secondary=role_permissions, back_populates="roles"
     )
 
