@@ -1,0 +1,28 @@
+name: Feature request
+description: Suggest an improvement or new capability for KeyNetra.
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: Summarize the feature you want to add.
+      placeholder: What should KeyNetra do?
+    validations:
+      required: true
+  - type: textarea
+    id: use_case
+    attributes:
+      label: Use case
+      description: Explain the problem this feature solves.
+    validations:
+      required: true
+  - type: textarea
+    id: impact
+    attributes:
+      label: Impact
+      description: Describe the expected benefit or tradeoffs.
+    validations:
+      required: true

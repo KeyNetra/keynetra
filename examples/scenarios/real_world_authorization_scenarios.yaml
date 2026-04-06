@@ -1,0 +1,221 @@
+scenarios:
+  - id: document_management
+    name: Document Management System
+    subjects:
+      - user:alice
+      - user:bob
+      - user:charlie
+    resources:
+      - document:doc-001
+      - document:doc-002
+    actions: [read, write, delete, share]
+    relationships:
+      - subject: user:alice
+        relation: owner
+        resource: document:doc-001
+      - subject: user:bob
+        relation: editor
+        resource: document:doc-001
+      - subject: user:charlie
+        relation: viewer
+        resource: document:doc-001
+    roles:
+      - name: document_admin
+        subjects: [user:alice]
+      - name: contributor
+        subjects: [user:bob]
+      - name: viewer
+        subjects: [user:charlie]
+    policies:
+      - id: doc-owner-full
+        effect: allow
+        action: write
+        conditions: { relation: owner, resource_type: document }
+      - id: doc-editor-write
+        effect: allow
+        action: write
+        conditions: { relation: editor, resource_type: document }
+      - id: doc-viewer-read
+        effect: allow
+        action: read
+        conditions: { relation: viewer, resource_type: document }
+    acl_entries:
+      - resource: document:doc-001
+        action: share
+        effect: deny
+        subject: user:charlie
+
+  - id: saas_multi_tenant
+    name: SaaS Multi-Tenant Access
+    subjects:
+      - user:tenant-a-admin
+      - user:tenant-a-analyst
+      - user:tenant-b-admin
+    resources:
+      - invoice:inv-100
+      - dashboard:dash-1
+    actions: [read, export, manage]
+    relationships:
+      - subject: user:tenant-a-admin
+        relation: member
+        resource: tenant:acme
+      - subject: user:tenant-a-analyst
+        relation: member
+        resource: tenant:acme
+      - subject: user:tenant-b-admin
+        relation: member
+        resource: tenant:globex
+    roles:
+      - name: tenant_admin
+        subjects: [user:tenant-a-admin, user:tenant-b-admin]
+      - name: tenant_analyst
+        subjects: [user:tenant-a-analyst]
+    policies:
+      - id: same-tenant-read
+        effect: allow
+        action: read
+        conditions: { same_tenant: true }
+      - id: tenant-admin-manage
+        effect: allow
+        action: manage
+        conditions: { role: tenant_admin }
+      - id: cross-tenant-deny
+        effect: deny
+        action: read
+        conditions: { same_tenant: false }
+    acl_entries:
+      - resource: dashboard:dash-1
+        action: export
+        effect: deny
+        subject: user:tenant-a-analyst
+
+  - id: financial_approval
+    name: Financial Approval Workflow
+    subjects:
+      - user:approver-1
+      - user:manager-1
+      - user:cfo-1
+    resources:
+      - payment:pay-900
+    actions: [submit, approve, reject]
+    relationships:
+      - subject: user:approver-1
+        relation: owner
+        resource: payment:pay-900
+      - subject: user:manager-1
+        relation: reviewer
+        resource: payment:pay-900
+    roles:
+      - name: employee
+        subjects: [user:approver-1]
+      - name: manager
+        subjects: [user:manager-1]
+      - name: finance_admin
+        subjects: [user:cfo-1]
+    policies:
+      - id: manager-approve-under-limit
+        effect: allow
+        action: approve
+        conditions: { role: manager, max_amount: 100000 }
+      - id: cfo-approve-over-limit
+        effect: allow
+        action: approve
+        conditions: { role: finance_admin, min_amount: 100001 }
+      - id: maker-checker-separation
+        effect: deny
+        action: approve
+        conditions: { owner_only: true }
+    acl_entries:
+      - resource: payment:pay-900
+        action: reject
+        effect: allow
+        subject: user:manager-1
+
+  - id: team_collaboration
+    name: Team-Based Collaboration
+    subjects:
+      - user:lead
+      - user:dev1
+      - user:contractor
+    resources:
+      - board:team-roadmap
+      - repo:platform-core
+    actions: [read, comment, merge]
+    relationships:
+      - subject: user:lead
+        relation: maintainer
+        resource: repo:platform-core
+      - subject: user:dev1
+        relation: contributor
+        resource: repo:platform-core
+      - subject: user:contractor
+        relation: commenter
+        resource: board:team-roadmap
+    roles:
+      - name: team_lead
+        subjects: [user:lead]
+      - name: engineer
+        subjects: [user:dev1]
+      - name: external
+        subjects: [user:contractor]
+    policies:
+      - id: maintainer-merge
+        effect: allow
+        action: merge
+        conditions: { relation: maintainer }
+      - id: contributor-comment
+        effect: allow
+        action: comment
+        conditions: { relation: contributor }
+      - id: external-no-merge
+        effect: deny
+        action: merge
+        conditions: { role: external }
+    acl_entries:
+      - resource: repo:platform-core
+        action: read
+        effect: allow
+        subject: user:contractor
+
+  - id: admin_delegation
+    name: Admin Privilege Delegation
+    subjects:
+      - user:root-admin
+      - user:ops-admin
+      - user:support-agent
+    resources:
+      - tenant:acme
+      - policy:billing-guard
+    actions: [grant, revoke, update_policy, read]
+    relationships:
+      - subject: user:root-admin
+        relation: owner
+        resource: tenant:acme
+      - subject: user:ops-admin
+        relation: delegate
+        resource: tenant:acme
+    roles:
+      - name: admin
+        subjects: [user:root-admin]
+      - name: developer
+        subjects: [user:ops-admin]
+      - name: viewer
+        subjects: [user:support-agent]
+    policies:
+      - id: admin-full-management
+        effect: allow
+        action: update_policy
+        conditions: { role: admin }
+      - id: delegated-ops-limited
+        effect: allow
+        action: grant
+        conditions: { role: developer, delegated_by_admin: true }
+      - id: support-read-only
+        effect: allow
+        action: read
+        conditions: { role: viewer }
+    acl_entries:
+      - resource: policy:billing-guard
+        action: update_policy
+        effect: deny
+        subject: user:support-agent

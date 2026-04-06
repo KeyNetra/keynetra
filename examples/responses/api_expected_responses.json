@@ -1,0 +1,64 @@
+{
+  "check-access": {
+    "data": {
+      "allowed": true,
+      "decision": "allow",
+      "matched_policies": ["rbac:permissions"],
+      "reason": "explicit permission grant",
+      "policy_id": "rbac:permissions",
+      "revision": 1
+    },
+    "meta": {"request_id": "<request-id>"},
+    "error": null
+  },
+  "check-access-batch": {
+    "data": {
+      "results": [
+        {"action": "read", "allowed": true, "revision": 1},
+        {"action": "write", "allowed": true, "revision": 1},
+        {"action": "delete", "allowed": false, "revision": 1}
+      ],
+      "revision": 1
+    },
+    "meta": {"request_id": "<request-id>"},
+    "error": null
+  },
+  "simulate": {
+    "data": {
+      "decision": "allow",
+      "matched_policies": ["approve-manager-owner"],
+      "reason": "manager policy conditions matched",
+      "policy_id": "approve-manager-owner",
+      "failed_conditions": [],
+      "revision": 1
+    },
+    "meta": {"request_id": "<request-id>"},
+    "error": null
+  },
+  "simulate-policy": {
+    "data": {
+      "decision_before": {
+        "allowed": false,
+        "decision": "deny",
+        "reason": "no matching policy",
+        "policy_id": null
+      },
+      "decision_after": {
+        "allowed": true,
+        "decision": "allow",
+        "reason": "policy change grants access",
+        "policy_id": "share-admin"
+      }
+    },
+    "meta": {"request_id": "<request-id>"},
+    "error": null
+  },
+  "impact-analysis": {
+    "data": {
+      "gained_access": [101, 204],
+      "lost_access": [302]
+    },
+    "meta": {"request_id": "<request-id>"},
+    "error": null
+  }
+}

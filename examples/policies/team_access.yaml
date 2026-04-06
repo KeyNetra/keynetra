@@ -1,0 +1,33 @@
+policies:
+  - action: merge
+    effect: allow
+    priority: 10
+    policy_id: team-maintainer-merge
+    conditions:
+      relation: maintainer
+      resource_type: repo
+      same_tenant: true
+
+  - action: comment
+    effect: allow
+    priority: 20
+    policy_id: team-collaborator-comment
+    conditions:
+      relation: contributor
+      resource_type: repo
+
+  - action: read
+    effect: allow
+    priority: 30
+    policy_id: team-viewer-read
+    conditions:
+      role: viewer
+      resource_type: board
+
+  - action: merge
+    effect: deny
+    priority: 40
+    policy_id: team-external-no-merge
+    conditions:
+      role: external
+      resource_type: repo

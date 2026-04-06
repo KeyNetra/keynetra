@@ -1,0 +1,9 @@
+[
+  {"id": "alice", "tenant": "acme", "role": "document_admin", "department": "engineering"},
+  {"id": "bob", "tenant": "acme", "role": "contributor", "department": "engineering"},
+  {"id": "charlie", "tenant": "acme", "role": "viewer", "department": "support"},
+  {"id": "manager-1", "tenant": "acme", "role": "manager", "department": "finance"},
+  {"id": "cfo-1", "tenant": "acme", "role": "finance_admin", "department": "finance"},
+  {"id": "contractor", "tenant": "acme", "role": "external", "department": "vendor"},
+  {"id": "root-admin", "tenant": "acme", "role": "admin", "department": "platform"}
+]

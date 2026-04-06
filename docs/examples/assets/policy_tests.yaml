@@ -1,0 +1,42 @@
+policies:
+  - action: read
+    effect: allow
+    priority: 10
+    policy_id: document-read-admin
+    conditions:
+      role: admin
+      resource_type: document
+
+  - action: read
+    effect: deny
+    priority: 80
+    policy_id: document-read-legal-hold
+    conditions:
+      resource_type: document
+      classification: legal_hold
+
+tests:
+  - name: admin can read normal document
+    expect: allow
+    input:
+      user:
+        id: alice
+        role: admin
+      action: read
+      resource:
+        resource_type: document
+        resource_id: doc-1
+      context: {}
+
+  - name: legal hold document denied for admin
+    expect: deny
+    input:
+      user:
+        id: alice
+        role: admin
+      action: read
+      resource:
+        resource_type: document
+        resource_id: doc-2
+        classification: legal_hold
+      context: {}

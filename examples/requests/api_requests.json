@@ -1,0 +1,37 @@
+{
+  "check-access": {
+    "user": {"id": "alice", "role": "editor", "permissions": ["approve_payment"]},
+    "action": "read",
+    "resource": {"resource_type": "document", "resource_id": "doc-123", "owner_id": "alice"},
+    "context": {"department": "engineering", "time": "2026-04-06T12:00:00Z"}
+  },
+  "check-access-batch": {
+    "user": {"id": "alice", "role": "editor", "permissions": ["approve_payment"]},
+    "items": [
+      {"action": "read", "resource": {"resource_type": "document", "resource_id": "doc-123"}},
+      {"action": "write", "resource": {"resource_type": "document", "resource_id": "doc-123"}},
+      {"action": "delete", "resource": {"resource_type": "document", "resource_id": "doc-123"}}
+    ],
+    "consistency": "eventual"
+  },
+  "simulate": {
+    "user": {"id": "manager-1", "role": "manager", "permissions": []},
+    "action": "approve_payment",
+    "resource": {"resource_type": "payment", "resource_id": "pay-900", "amount": 45000, "owner_id": "u-12"},
+    "context": {"department": "finance", "time": "2026-04-06T12:00:00Z"}
+  },
+  "simulate-policy": {
+    "simulate": {
+      "policy_change": "allow:\n  action: share_document\n  priority: 1\n  policy_key: share-admin\n  when:\n    role: admin"
+    },
+    "request": {
+      "user": {"id": "root-admin", "role": "admin", "roles": ["admin"]},
+      "action": "share_document",
+      "resource": {"resource_type": "document", "resource_id": "doc-123"},
+      "context": {"tenant": "acme"}
+    }
+  },
+  "impact-analysis": {
+    "policy_change": "deny:\n  action: export_payment\n  priority: 1\n  policy_key: deny-export-contractors\n  when:\n    role: external"
+  }
+}

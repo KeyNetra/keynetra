@@ -1,0 +1,36 @@
+policies:
+  - action: approve_payment
+    effect: allow
+    priority: 10
+    policy_id: finance-approve-manager-under-limit
+    conditions:
+      role: manager
+      max_amount: 100000
+      owner_only: false
+      resource_type: payment
+
+  - action: approve_payment
+    effect: allow
+    priority: 20
+    policy_id: finance-approve-cfo-over-limit
+    conditions:
+      role: finance_admin
+      min_amount: 100001
+      resource_type: payment
+
+  - action: approve_payment
+    effect: deny
+    priority: 30
+    policy_id: finance-maker-checker-deny
+    conditions:
+      owner_only: true
+      resource_type: payment
+
+  - action: export_payment
+    effect: allow
+    priority: 40
+    policy_id: finance-export-auditor
+    conditions:
+      role: auditor
+      department: finance
+      resource_type: payment

@@ -1,0 +1,2216 @@
+openapi: 3.1.0
+info:
+  title: KeyNetra
+  version: 0.1.0
+paths:
+  /health:
+    get:
+      tags:
+      - health
+      summary: Health
+      operationId: health_health_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_dict_str__str__'
+  /health/live:
+    get:
+      tags:
+      - health
+      summary: Liveness
+      operationId: liveness_health_live_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_dict_str__str__'
+  /health/ready:
+    get:
+      tags:
+      - health
+      summary: Readiness
+      operationId: readiness_health_ready_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_dict_str__object__'
+  /check-access:
+    post:
+      tags:
+      - access
+      summary: Check Access
+      operationId: check_access_check_access_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AccessRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_AccessDecisionResponse_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+  /simulate:
+    post:
+      tags:
+      - access
+      summary: Simulate
+      operationId: simulate_simulate_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AccessRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_SimulationResponse_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+  /check-access-batch:
+    post:
+      tags:
+      - access
+      summary: Check Access Batch
+      operationId: check_access_batch_check_access_batch_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BatchAccessRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_BatchAccessResponse_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+  /admin/login:
+    post:
+      tags:
+      - auth
+      - auth
+      summary: Admin Login
+      operationId: admin_login_admin_login_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminLoginRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_AdminLoginResponse_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /policies:
+    get:
+      tags:
+      - management
+      summary: List Policies
+      operationId: list_policies_policies_get
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 50
+          title: Limit
+      - name: cursor
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Cursor
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_list_PolicyOut__'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    post:
+      tags:
+      - management
+      summary: Create Policy
+      operationId: create_policy_policies_post
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PolicyCreate'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_PolicyOut_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /policies/{policy_key}:
+    put:
+      tags:
+      - management
+      summary: Update Policy
+      operationId: update_policy_policies__policy_key__put
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: policy_key
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Policy Key
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PolicyCreate'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_PolicyOut_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    delete:
+      tags:
+      - management
+      summary: Delete Policy
+      operationId: delete_policy_policies__policy_key__delete
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: policy_key
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Policy Key
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_dict_str__str__'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /policies/dsl:
+    post:
+      tags:
+      - management
+      summary: Create Policy From Dsl
+      operationId: create_policy_from_dsl_policies_dsl_post
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: dsl
+        in: query
+        required: true
+        schema:
+          type: string
+          title: Dsl
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_PolicyOut_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /policies/{policy_key}/rollback/{version}:
+    post:
+      tags:
+      - management
+      summary: Rollback Policy
+      operationId: rollback_policy_policies__policy_key__rollback__version__post
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: policy_key
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Policy Key
+      - name: version
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Version
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_dict_str__Union_int__str___'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /acl:
+    post:
+      tags:
+      - management
+      summary: Create Acl Entry
+      operationId: create_acl_entry_acl_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ACLCreate'
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_ACLOut_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+  /acl/{resource_type}/{resource_id}:
+    get:
+      tags:
+      - management
+      summary: List Acl Entries
+      operationId: list_acl_entries_acl__resource_type___resource_id__get
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: resource_type
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Resource Type
+      - name: resource_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Resource Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_list_ACLOut__'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /acl/{acl_id}:
+    delete:
+      tags:
+      - management
+      summary: Delete Acl Entry
+      operationId: delete_acl_entry_acl__acl_id__delete
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: acl_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Acl Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_dict_str__int__'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /auth-model:
+    get:
+      tags:
+      - management
+      summary: Get Auth Model
+      operationId: get_auth_model_auth_model_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_AuthModelOut_'
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+    post:
+      tags:
+      - management
+      summary: Create Auth Model
+      operationId: create_auth_model_auth_model_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthModelCreate'
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_AuthModelOut_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+  /simulate-policy:
+    post:
+      tags:
+      - management
+      summary: Simulate Policy
+      operationId: simulate_policy_simulate_policy_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PolicySimulationRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_PolicySimulationResponse_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+  /impact-analysis:
+    post:
+      tags:
+      - management
+      summary: Impact Analysis
+      operationId: impact_analysis_impact_analysis_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ImpactAnalysisRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_ImpactAnalysisResponse_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+  /roles:
+    get:
+      tags:
+      - management
+      summary: List Roles
+      operationId: list_roles_roles_get
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 50
+          title: Limit
+      - name: cursor
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Cursor
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_list_RoleOut__'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    post:
+      tags:
+      - management
+      summary: Create Role
+      operationId: create_role_roles_post
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RoleCreate'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoleOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /roles/{role_id}:
+    put:
+      tags:
+      - management
+      summary: Update Role
+      operationId: update_role_roles__role_id__put
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: role_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Role Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RoleUpdate'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoleOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    delete:
+      tags:
+      - management
+      summary: Delete Role
+      operationId: delete_role_roles__role_id__delete
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: role_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Role Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_dict_str__int__'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /roles/{role_id}/permissions:
+    get:
+      tags:
+      - management
+      summary: List Role Permissions
+      operationId: list_role_permissions_roles__role_id__permissions_get
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: role_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Role Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_list_PermissionOut__'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /roles/{role_id}/permissions/{permission_id}:
+    post:
+      tags:
+      - management
+      summary: Add Permission To Role
+      operationId: add_permission_to_role_roles__role_id__permissions__permission_id__post
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: role_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Role Id
+      - name: permission_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Permission Id
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_PermissionOut_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    delete:
+      tags:
+      - management
+      summary: Remove Permission From Role
+      operationId: remove_permission_from_role_roles__role_id__permissions__permission_id__delete
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: role_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Role Id
+      - name: permission_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Permission Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_dict_str__int__'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /permissions:
+    get:
+      tags:
+      - management
+      summary: List Permissions
+      operationId: list_permissions_permissions_get
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 50
+          title: Limit
+      - name: cursor
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Cursor
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_list_PermissionOut__'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    post:
+      tags:
+      - management
+      summary: Create Permission
+      operationId: create_permission_permissions_post
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PermissionCreate'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PermissionOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /permissions/{permission_id}:
+    put:
+      tags:
+      - management
+      summary: Update Permission
+      operationId: update_permission_permissions__permission_id__put
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: permission_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Permission Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PermissionUpdate'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PermissionOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    delete:
+      tags:
+      - management
+      summary: Delete Permission
+      operationId: delete_permission_permissions__permission_id__delete
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: permission_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Permission Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_dict_str__int__'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /permissions/{permission_id}/roles:
+    get:
+      tags:
+      - management
+      summary: List Permission Roles
+      operationId: list_permission_roles_permissions__permission_id__roles_get
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: permission_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Permission Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_list_RoleOut__'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /relationships:
+    get:
+      tags:
+      - management
+      summary: List Relationships
+      operationId: list_relationships_relationships_get
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: subject_type
+        in: query
+        required: true
+        schema:
+          type: string
+          title: Subject Type
+      - name: subject_id
+        in: query
+        required: true
+        schema:
+          type: string
+          title: Subject Id
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 50
+          title: Limit
+      - name: cursor
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Cursor
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_list_dict_str__str___'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    post:
+      tags:
+      - management
+      summary: Create Relationship
+      operationId: create_relationship_relationships_post
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RelationshipCreate'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_RelationshipOut_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /audit:
+    get:
+      tags:
+      - management
+      summary: List Audit Logs
+      operationId: list_audit_logs_audit_get
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 50
+          title: Limit
+      - name: cursor
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Cursor
+      - name: user_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: User Id
+      - name: resource_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Resource Id
+      - name: decision
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Decision
+      - name: start_time
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Start Time
+      - name: end_time
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: End Time
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_list_AuditRecordOut__'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /playground/evaluate:
+    post:
+      tags:
+      - playground
+      summary: Evaluate
+      operationId: evaluate_playground_evaluate_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlaygroundEvaluateRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_dict_str__Any__'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+  /dev/sample-data:
+    get:
+      tags:
+      - dev
+      summary: Get Sample Data
+      operationId: get_sample_data_dev_sample_data_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_dict_str__object__'
+  /dev/sample-data/seed:
+    post:
+      tags:
+      - dev
+      summary: Seed Sample Data
+      operationId: seed_sample_data_dev_sample_data_seed_post
+      parameters:
+      - name: reset
+        in: query
+        required: false
+        schema:
+          type: boolean
+          description: Clear the sample dataset before reseeding it.
+          default: false
+          title: Reset
+        description: Clear the sample dataset before reseeding it.
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_dict_str__object__'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+components:
+  schemas:
+    ACLCreate:
+      properties:
+        subject_type:
+          type: string
+          title: Subject Type
+        subject_id:
+          type: string
+          title: Subject Id
+        resource_type:
+          type: string
+          title: Resource Type
+        resource_id:
+          type: string
+          title: Resource Id
+        action:
+          type: string
+          title: Action
+        effect:
+          type: string
+          title: Effect
+      type: object
+      required:
+      - subject_type
+      - subject_id
+      - resource_type
+      - resource_id
+      - action
+      - effect
+      title: ACLCreate
+    ACLOut:
+      properties:
+        subject_type:
+          type: string
+          title: Subject Type
+        subject_id:
+          type: string
+          title: Subject Id
+        resource_type:
+          type: string
+          title: Resource Type
+        resource_id:
+          type: string
+          title: Resource Id
+        action:
+          type: string
+          title: Action
+        effect:
+          type: string
+          title: Effect
+        id:
+          type: integer
+          title: Id
+        tenant_id:
+          type: integer
+          title: Tenant Id
+        created_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Created At
+      type: object
+      required:
+      - subject_type
+      - subject_id
+      - resource_type
+      - resource_id
+      - action
+      - effect
+      - id
+      - tenant_id
+      title: ACLOut
+    AccessDecisionResponse:
+      properties:
+        allowed:
+          type: boolean
+          title: Allowed
+        decision:
+          type: string
+          title: Decision
+        matched_policies:
+          items:
+            type: string
+          type: array
+          title: Matched Policies
+        reason:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Reason
+        policy_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Policy Id
+        explain_trace:
+          items:
+            additionalProperties: true
+            type: object
+          type: array
+          title: Explain Trace
+        revision:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Revision
+      type: object
+      required:
+      - allowed
+      - decision
+      title: AccessDecisionResponse
+    AccessRequest:
+      properties:
+        user:
+          additionalProperties: true
+          type: object
+          title: User
+        action:
+          type: string
+          title: Action
+        resource:
+          additionalProperties: true
+          type: object
+          title: Resource
+        context:
+          additionalProperties: true
+          type: object
+          title: Context
+        consistency:
+          type: string
+          title: Consistency
+          default: eventual
+        revision:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Revision
+      type: object
+      required:
+      - action
+      title: AccessRequest
+      description: Explicit authorization request passed through the API boundary.
+    AdminLoginRequest:
+      properties:
+        username:
+          type: string
+          title: Username
+        password:
+          type: string
+          title: Password
+      type: object
+      required:
+      - username
+      - password
+      title: AdminLoginRequest
+    AdminLoginResponse:
+      properties:
+        access_token:
+          type: string
+          title: Access Token
+        token_type:
+          type: string
+          title: Token Type
+          default: bearer
+        expires_in:
+          type: integer
+          title: Expires In
+        role:
+          type: string
+          title: Role
+          default: admin
+        tenant_key:
+          type: string
+          title: Tenant Key
+      type: object
+      required:
+      - access_token
+      - expires_in
+      - tenant_key
+      title: AdminLoginResponse
+    AuditRecordOut:
+      properties:
+        id:
+          type: integer
+          title: Id
+        principal_type:
+          type: string
+          title: Principal Type
+        principal_id:
+          type: string
+          title: Principal Id
+        user:
+          additionalProperties: true
+          type: object
+          title: User
+        action:
+          type: string
+          title: Action
+        resource:
+          additionalProperties: true
+          type: object
+          title: Resource
+        decision:
+          type: string
+          title: Decision
+        matched_policies:
+          items: {}
+          type: array
+          title: Matched Policies
+        reason:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Reason
+        evaluated_rules:
+          items: {}
+          type: array
+          title: Evaluated Rules
+        failed_conditions:
+          items: {}
+          type: array
+          title: Failed Conditions
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+      type: object
+      required:
+      - id
+      - principal_type
+      - principal_id
+      - user
+      - action
+      - resource
+      - decision
+      - matched_policies
+      - evaluated_rules
+      - failed_conditions
+      - created_at
+      title: AuditRecordOut
+    AuthModelCreate:
+      properties:
+        schema:
+          type: string
+          title: Schema
+      type: object
+      required:
+      - schema
+      title: AuthModelCreate
+    AuthModelOut:
+      properties:
+        id:
+          type: integer
+          title: Id
+        tenant_id:
+          type: integer
+          title: Tenant Id
+        schema:
+          type: string
+          title: Schema
+        parsed:
+          additionalProperties: true
+          type: object
+          title: Parsed
+        compiled:
+          additionalProperties: true
+          type: object
+          title: Compiled
+      type: object
+      required:
+      - id
+      - tenant_id
+      - schema
+      - parsed
+      - compiled
+      title: AuthModelOut
+    BatchAccessItem:
+      properties:
+        action:
+          type: string
+          title: Action
+        resource:
+          additionalProperties: true
+          type: object
+          title: Resource
+      type: object
+      required:
+      - action
+      title: BatchAccessItem
+    BatchAccessRequest:
+      properties:
+        user:
+          additionalProperties: true
+          type: object
+          title: User
+        items:
+          items:
+            $ref: '#/components/schemas/BatchAccessItem'
+          type: array
+          title: Items
+        consistency:
+          type: string
+          title: Consistency
+          default: eventual
+        revision:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Revision
+      type: object
+      required:
+      - items
+      title: BatchAccessRequest
+    BatchAccessResponse:
+      properties:
+        results:
+          items:
+            $ref: '#/components/schemas/BatchAccessResult'
+          type: array
+          title: Results
+        revision:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Revision
+      type: object
+      required:
+      - results
+      title: BatchAccessResponse
+    BatchAccessResult:
+      properties:
+        action:
+          type: string
+          title: Action
+        allowed:
+          type: boolean
+          title: Allowed
+        revision:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Revision
+      type: object
+      required:
+      - action
+      - allowed
+      title: BatchAccessResult
+    HTTPValidationError:
+      properties:
+        detail:
+          items:
+            $ref: '#/components/schemas/ValidationError'
+          type: array
+          title: Detail
+      type: object
+      title: HTTPValidationError
+    ImpactAnalysisRequest:
+      properties:
+        policy_change:
+          type: string
+          title: Policy Change
+      type: object
+      required:
+      - policy_change
+      title: ImpactAnalysisRequest
+    ImpactAnalysisResponse:
+      properties:
+        gained_access:
+          items:
+            type: integer
+          type: array
+          title: Gained Access
+        lost_access:
+          items:
+            type: integer
+          type: array
+          title: Lost Access
+      type: object
+      title: ImpactAnalysisResponse
+    MetaBody:
+      properties:
+        request_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Request Id
+        limit:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Limit
+        next_cursor:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Next Cursor
+        extra:
+          additionalProperties: true
+          type: object
+          title: Extra
+      type: object
+      title: MetaBody
+    PermissionCreate:
+      properties:
+        action:
+          type: string
+          title: Action
+      type: object
+      required:
+      - action
+      title: PermissionCreate
+    PermissionOut:
+      properties:
+        id:
+          type: integer
+          title: Id
+        action:
+          type: string
+          title: Action
+      type: object
+      required:
+      - id
+      - action
+      title: PermissionOut
+    PermissionUpdate:
+      properties:
+        action:
+          type: string
+          title: Action
+      type: object
+      required:
+      - action
+      title: PermissionUpdate
+    PlaygroundEvaluateRequest:
+      properties:
+        policies:
+          items:
+            $ref: '#/components/schemas/PlaygroundPolicy'
+          type: array
+          title: Policies
+        input:
+          $ref: '#/components/schemas/PlaygroundInput'
+      type: object
+      required:
+      - policies
+      - input
+      title: PlaygroundEvaluateRequest
+    PlaygroundInput:
+      properties:
+        user:
+          additionalProperties: true
+          type: object
+          title: User
+        resource:
+          additionalProperties: true
+          type: object
+          title: Resource
+        action:
+          type: string
+          title: Action
+          default: ''
+        context:
+          additionalProperties: true
+          type: object
+          title: Context
+      type: object
+      title: PlaygroundInput
+    PlaygroundPolicy:
+      properties:
+        action:
+          type: string
+          title: Action
+        effect:
+          type: string
+          title: Effect
+          default: allow
+        priority:
+          type: integer
+          title: Priority
+          default: 100
+        policy_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Policy Id
+        conditions:
+          additionalProperties: true
+          type: object
+          title: Conditions
+      type: object
+      required:
+      - action
+      title: PlaygroundPolicy
+    PolicyCreate:
+      properties:
+        action:
+          type: string
+          title: Action
+        effect:
+          type: string
+          title: Effect
+          default: allow
+        priority:
+          type: integer
+          title: Priority
+          default: 100
+        conditions:
+          additionalProperties: true
+          type: object
+          title: Conditions
+      type: object
+      required:
+      - action
+      title: PolicyCreate
+    PolicyOut:
+      properties:
+        id:
+          type: integer
+          title: Id
+        action:
+          type: string
+          title: Action
+        effect:
+          type: string
+          title: Effect
+        priority:
+          type: integer
+          title: Priority
+        conditions:
+          additionalProperties: true
+          type: object
+          title: Conditions
+      type: object
+      required:
+      - id
+      - action
+      - effect
+      - priority
+      - conditions
+      title: PolicyOut
+    PolicySimulationInput:
+      properties:
+        policy_change:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Policy Change
+        relationship_change:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Relationship Change
+        role_change:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Role Change
+      type: object
+      title: PolicySimulationInput
+    PolicySimulationRequest:
+      properties:
+        simulate:
+          $ref: '#/components/schemas/PolicySimulationInput'
+        request:
+          additionalProperties: true
+          type: object
+          title: Request
+      type: object
+      title: PolicySimulationRequest
+    PolicySimulationResponse:
+      properties:
+        decision_before:
+          additionalProperties: true
+          type: object
+          title: Decision Before
+        decision_after:
+          additionalProperties: true
+          type: object
+          title: Decision After
+      type: object
+      required:
+      - decision_before
+      - decision_after
+      title: PolicySimulationResponse
+    RelationshipCreate:
+      properties:
+        subject_type:
+          type: string
+          title: Subject Type
+        subject_id:
+          type: string
+          title: Subject Id
+        relation:
+          type: string
+          title: Relation
+        object_type:
+          type: string
+          title: Object Type
+        object_id:
+          type: string
+          title: Object Id
+      type: object
+      required:
+      - subject_type
+      - subject_id
+      - relation
+      - object_type
+      - object_id
+      title: RelationshipCreate
+    RelationshipOut:
+      properties:
+        subject_type:
+          type: string
+          title: Subject Type
+        subject_id:
+          type: string
+          title: Subject Id
+        relation:
+          type: string
+          title: Relation
+        object_type:
+          type: string
+          title: Object Type
+        object_id:
+          type: string
+          title: Object Id
+        id:
+          type: integer
+          title: Id
+      type: object
+      required:
+      - subject_type
+      - subject_id
+      - relation
+      - object_type
+      - object_id
+      - id
+      title: RelationshipOut
+    RoleCreate:
+      properties:
+        name:
+          type: string
+          title: Name
+      type: object
+      required:
+      - name
+      title: RoleCreate
+    RoleOut:
+      properties:
+        id:
+          type: integer
+          title: Id
+        name:
+          type: string
+          title: Name
+      type: object
+      required:
+      - id
+      - name
+      title: RoleOut
+    RoleUpdate:
+      properties:
+        name:
+          type: string
+          title: Name
+      type: object
+      required:
+      - name
+      title: RoleUpdate
+    SimulationResponse:
+      properties:
+        decision:
+          type: string
+          title: Decision
+        matched_policies:
+          items:
+            type: string
+          type: array
+          title: Matched Policies
+        reason:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Reason
+        policy_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Policy Id
+        explain_trace:
+          items:
+            additionalProperties: true
+            type: object
+          type: array
+          title: Explain Trace
+        failed_conditions:
+          items:
+            type: string
+          type: array
+          title: Failed Conditions
+        revision:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Revision
+      type: object
+      required:
+      - decision
+      - matched_policies
+      title: SimulationResponse
+    SuccessResponse_ACLOut_:
+      properties:
+        data:
+          $ref: '#/components/schemas/ACLOut'
+        meta:
+          $ref: '#/components/schemas/MetaBody'
+        error:
+          type: 'null'
+          title: Error
+      type: object
+      required:
+      - data
+      title: SuccessResponse[ACLOut]
+    SuccessResponse_AccessDecisionResponse_:
+      properties:
+        data:
+          $ref: '#/components/schemas/AccessDecisionResponse'
+        meta:
+          $ref: '#/components/schemas/MetaBody'
+        error:
+          type: 'null'
+          title: Error
+      type: object
+      required:
+      - data
+      title: SuccessResponse[AccessDecisionResponse]
+    SuccessResponse_AdminLoginResponse_:
+      properties:
+        data:
+          $ref: '#/components/schemas/AdminLoginResponse'
+        meta:
+          $ref: '#/components/schemas/MetaBody'
+        error:
+          type: 'null'
+          title: Error
+      type: object
+      required:
+      - data
+      title: SuccessResponse[AdminLoginResponse]
+    SuccessResponse_AuthModelOut_:
+      properties:
+        data:
+          $ref: '#/components/schemas/AuthModelOut'
+        meta:
+          $ref: '#/components/schemas/MetaBody'
+        error:
+          type: 'null'
+          title: Error
+      type: object
+      required:
+      - data
+      title: SuccessResponse[AuthModelOut]
+    SuccessResponse_BatchAccessResponse_:
+      properties:
+        data:
+          $ref: '#/components/schemas/BatchAccessResponse'
+        meta:
+          $ref: '#/components/schemas/MetaBody'
+        error:
+          type: 'null'
+          title: Error
+      type: object
+      required:
+      - data
+      title: SuccessResponse[BatchAccessResponse]
+    SuccessResponse_ImpactAnalysisResponse_:
+      properties:
+        data:
+          $ref: '#/components/schemas/ImpactAnalysisResponse'
+        meta:
+          $ref: '#/components/schemas/MetaBody'
+        error:
+          type: 'null'
+          title: Error
+      type: object
+      required:
+      - data
+      title: SuccessResponse[ImpactAnalysisResponse]
+    SuccessResponse_PermissionOut_:
+      properties:
+        data:
+          $ref: '#/components/schemas/PermissionOut'
+        meta:
+          $ref: '#/components/schemas/MetaBody'
+        error:
+          type: 'null'
+          title: Error
+      type: object
+      required:
+      - data
+      title: SuccessResponse[PermissionOut]
+    SuccessResponse_PolicyOut_:
+      properties:
+        data:
+          $ref: '#/components/schemas/PolicyOut'
+        meta:
+          $ref: '#/components/schemas/MetaBody'
+        error:
+          type: 'null'
+          title: Error
+      type: object
+      required:
+      - data
+      title: SuccessResponse[PolicyOut]
+    SuccessResponse_PolicySimulationResponse_:
+      properties:
+        data:
+          $ref: '#/components/schemas/PolicySimulationResponse'
+        meta:
+          $ref: '#/components/schemas/MetaBody'
+        error:
+          type: 'null'
+          title: Error
+      type: object
+      required:
+      - data
+      title: SuccessResponse[PolicySimulationResponse]
+    SuccessResponse_RelationshipOut_:
+      properties:
+        data:
+          $ref: '#/components/schemas/RelationshipOut'
+        meta:
+          $ref: '#/components/schemas/MetaBody'
+        error:
+          type: 'null'
+          title: Error
+      type: object
+      required:
+      - data
+      title: SuccessResponse[RelationshipOut]
+    SuccessResponse_SimulationResponse_:
+      properties:
+        data:
+          $ref: '#/components/schemas/SimulationResponse'
+        meta:
+          $ref: '#/components/schemas/MetaBody'
+        error:
+          type: 'null'
+          title: Error
+      type: object
+      required:
+      - data
+      title: SuccessResponse[SimulationResponse]
+    SuccessResponse_dict_str__Any__:
+      properties:
+        data:
+          additionalProperties: true
+          type: object
+          title: Data
+        meta:
+          $ref: '#/components/schemas/MetaBody'
+        error:
+          type: 'null'
+          title: Error
+      type: object
+      required:
+      - data
+      title: SuccessResponse[dict[str, Any]]
+    SuccessResponse_dict_str__Union_int__str___:
+      properties:
+        data:
+          additionalProperties:
+            anyOf:
+            - type: integer
+            - type: string
+          type: object
+          title: Data
+        meta:
+          $ref: '#/components/schemas/MetaBody'
+        error:
+          type: 'null'
+          title: Error
+      type: object
+      required:
+      - data
+      title: SuccessResponse[dict[str, Union[int, str]]]
+    SuccessResponse_dict_str__int__:
+      properties:
+        data:
+          additionalProperties:
+            type: integer
+          type: object
+          title: Data
+        meta:
+          $ref: '#/components/schemas/MetaBody'
+        error:
+          type: 'null'
+          title: Error
+      type: object
+      required:
+      - data
+      title: SuccessResponse[dict[str, int]]
+    SuccessResponse_dict_str__object__:
+      properties:
+        data:
+          additionalProperties: true
+          type: object
+          title: Data
+        meta:
+          $ref: '#/components/schemas/MetaBody'
+        error:
+          type: 'null'
+          title: Error
+      type: object
+      required:
+      - data
+      title: SuccessResponse[dict[str, object]]
+    SuccessResponse_dict_str__str__:
+      properties:
+        data:
+          additionalProperties:
+            type: string
+          type: object
+          title: Data
+        meta:
+          $ref: '#/components/schemas/MetaBody'
+        error:
+          type: 'null'
+          title: Error
+      type: object
+      required:
+      - data
+      title: SuccessResponse[dict[str, str]]
+    SuccessResponse_list_ACLOut__:
+      properties:
+        data:
+          items:
+            $ref: '#/components/schemas/ACLOut'
+          type: array
+          title: Data
+        meta:
+          $ref: '#/components/schemas/MetaBody'
+        error:
+          type: 'null'
+          title: Error
+      type: object
+      required:
+      - data
+      title: SuccessResponse[list[ACLOut]]
+    SuccessResponse_list_AuditRecordOut__:
+      properties:
+        data:
+          items:
+            $ref: '#/components/schemas/AuditRecordOut'
+          type: array
+          title: Data
+        meta:
+          $ref: '#/components/schemas/MetaBody'
+        error:
+          type: 'null'
+          title: Error
+      type: object
+      required:
+      - data
+      title: SuccessResponse[list[AuditRecordOut]]
+    SuccessResponse_list_PermissionOut__:
+      properties:
+        data:
+          items:
+            $ref: '#/components/schemas/PermissionOut'
+          type: array
+          title: Data
+        meta:
+          $ref: '#/components/schemas/MetaBody'
+        error:
+          type: 'null'
+          title: Error
+      type: object
+      required:
+      - data
+      title: SuccessResponse[list[PermissionOut]]
+    SuccessResponse_list_PolicyOut__:
+      properties:
+        data:
+          items:
+            $ref: '#/components/schemas/PolicyOut'
+          type: array
+          title: Data
+        meta:
+          $ref: '#/components/schemas/MetaBody'
+        error:
+          type: 'null'
+          title: Error
+      type: object
+      required:
+      - data
+      title: SuccessResponse[list[PolicyOut]]
+    SuccessResponse_list_RoleOut__:
+      properties:
+        data:
+          items:
+            $ref: '#/components/schemas/RoleOut'
+          type: array
+          title: Data
+        meta:
+          $ref: '#/components/schemas/MetaBody'
+        error:
+          type: 'null'
+          title: Error
+      type: object
+      required:
+      - data
+      title: SuccessResponse[list[RoleOut]]
+    SuccessResponse_list_dict_str__str___:
+      properties:
+        data:
+          items:
+            additionalProperties:
+              type: string
+            type: object
+          type: array
+          title: Data
+        meta:
+          $ref: '#/components/schemas/MetaBody'
+        error:
+          type: 'null'
+          title: Error
+      type: object
+      required:
+      - data
+      title: SuccessResponse[list[dict[str, str]]]
+    ValidationError:
+      properties:
+        loc:
+          items:
+            anyOf:
+            - type: string
+            - type: integer
+          type: array
+          title: Location
+        msg:
+          type: string
+          title: Message
+        type:
+          type: string
+          title: Error Type
+        input:
+          title: Input
+        ctx:
+          type: object
+          title: Context
+      type: object
+      required:
+      - loc
+      - msg
+      - type
+      title: ValidationError
+  securitySchemes:
+    HTTPBearer:
+      type: http
+      scheme: bearer
+    APIKeyHeader:
+      type: apiKey
+      in: header
+      name: X-API-Key
