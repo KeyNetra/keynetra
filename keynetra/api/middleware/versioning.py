@@ -9,6 +9,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 
+from keynetra.config.tenancy import TENANT_HEADER_NAME, normalize_tenant_key, tenant_for_logs
 from keynetra.infrastructure.logging import log_event
 
 
@@ -43,6 +44,10 @@ class ApiVersionMiddleware(BaseHTTPMiddleware):
             )
 
         request.state.api_version = requested_version
+        if getattr(request.state, "requested_tenant_key", None) is None:
+            header_tenant = normalize_tenant_key(request.headers.get(TENANT_HEADER_NAME))
+            if header_tenant:
+                request.state.requested_tenant_key = header_tenant
         log_event(
             logging.getLogger("keynetra.api_version"),
             event="api_version_used",
@@ -50,7 +55,7 @@ class ApiVersionMiddleware(BaseHTTPMiddleware):
             path=request.url.path,
             method=request.method,
             request_id=getattr(request.state, "request_id", None),
-            tenant_id="default",
+            tenant_id=tenant_for_logs(request),
         )
         response = await call_next(request)
         response.headers[self.header_name] = requested_version

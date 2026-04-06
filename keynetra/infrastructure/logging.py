@@ -5,8 +5,14 @@ from __future__ import annotations
 import json
 import logging
 import os
+from contextvars import ContextVar, Token
 from datetime import UTC, datetime
 from typing import Any
+
+_correlation_id_ctx: ContextVar[str | None] = ContextVar(
+    "keynetra_correlation_id",
+    default=None,
+)
 
 
 class JsonLogFormatter(logging.Formatter):
@@ -70,4 +76,18 @@ def configure_rich_logging() -> None:
 
 
 def log_event(logger: logging.Logger, *, event: str, **fields: Any) -> None:
-    logger.info({"event": event, **fields})
+    payload = {"event": event, **fields}
+    payload.setdefault("correlation_id", get_correlation_id())
+    logger.info(payload)
+
+
+def set_correlation_id(correlation_id: str | None) -> Token[str | None]:
+    return _correlation_id_ctx.set(correlation_id)
+
+
+def reset_correlation_id(token: Token[str | None]) -> None:
+    _correlation_id_ctx.reset(token)
+
+
+def get_correlation_id() -> str | None:
+    return _correlation_id_ctx.get()

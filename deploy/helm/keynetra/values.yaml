@@ -1,0 +1,41 @@
+replicaCount: 2
+
+image:
+  repository: ghcr.io/keynetra/keynetra
+  tag: v0.1.0
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 8000
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 256Mi
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+
+ingress:
+  enabled: false
+  className: nginx
+  host: keynetra.example.com
+  path: /
+
+hpa:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+
+env:
+  KEYNETRA_ENVIRONMENT: prod
+  KEYNETRA_STRICT_TENANCY: "true"
+  KEYNETRA_DATABASE_URL: postgresql+psycopg://keynetra:keynetra@postgres:5432/keynetra
+  KEYNETRA_REDIS_URL: redis://redis:6379/0
+
+secretEnv:
+  KEYNETRA_API_KEY_HASHES: replace-with-sha256-hashes
+  KEYNETRA_API_KEY_SCOPES_JSON: '{"replace":{"tenant":"default","role":"admin","permissions":["*"]}}'
+  KEYNETRA_JWT_SECRET: replace-with-strong-secret

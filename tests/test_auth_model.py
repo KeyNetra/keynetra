@@ -59,6 +59,9 @@ def test_auth_model_route_round_trip(tmp_path) -> None:
     database_url = f"sqlite+pysqlite:///{tmp_path / 'auth-model.db'}"
     os.environ["KEYNETRA_DATABASE_URL"] = database_url
     os.environ["KEYNETRA_API_KEYS"] = "testkey"
+    os.environ["KEYNETRA_API_KEY_SCOPES_JSON"] = (
+        '{"testkey":{"tenant":"default","role":"developer","permissions":["auth_model:write"]}}'
+    )
     os.environ["KEYNETRA_RATE_LIMIT_PER_MINUTE"] = "1000"
     os.environ["KEYNETRA_RATE_LIMIT_BURST"] = "1000"
     reset_settings_cache()

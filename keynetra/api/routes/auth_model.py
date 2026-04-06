@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Request, status
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.orm import Session
 
+from keynetra.api.dependencies import ServiceContainer, build_services
 from keynetra.api.errors import ApiError, ApiErrorCode
 from keynetra.api.responses import request_id_from_state, success_response
 from keynetra.config.admin_auth import AdminAccess, require_management_role
@@ -11,9 +11,6 @@ from keynetra.config.security import get_principal
 from keynetra.domain.schemas.api import SuccessResponse
 from keynetra.domain.schemas.modeling import AuthModelCreate, AuthModelOut
 from keynetra.engine.model_graph.permission_graph import MODEL_GRAPH_STORE, CompiledPermissionGraph
-from keynetra.infrastructure.repositories.auth_models import SqlAuthModelRepository
-from keynetra.infrastructure.repositories.tenants import SqlTenantRepository
-from keynetra.infrastructure.storage.session import get_db
 from keynetra.modeling import (
     compile_authorization_schema,
     parse_authorization_schema,
@@ -28,17 +25,15 @@ router = APIRouter(prefix="/auth-model", dependencies=[Depends(get_principal)])
 def create_auth_model(
     payload: AuthModelCreate,
     request: Request,
-    db: Session = Depends(get_db),
+    services: ServiceContainer = Depends(build_services),
     access: AdminAccess = Depends(require_management_role("developer")),
 ) -> dict[str, object]:
-    tenant_repo = SqlTenantRepository(db)
-    repo = SqlAuthModelRepository(db)
-    tenant = tenant_repo.get_or_create(access.tenant_key)
+    tenant = services.tenant_repo.get_or_create(access.tenant_key)
     try:
         schema = parse_authorization_schema(payload.schema_text)
         validate_authorization_schema(schema)
         compiled = compile_authorization_schema(schema)
-        record = repo.upsert_model(
+        record = services.auth_model_repo.upsert_model(
             tenant_id=tenant.id,
             schema_text=payload.schema_text,
             schema_json={
@@ -52,7 +47,7 @@ def create_auth_model(
         MODEL_GRAPH_STORE.set(
             access.tenant_key, CompiledPermissionGraph(tenant_key=access.tenant_key, model=compiled)
         )
-        RevisionService(tenant_repo).bump_revision(tenant_key=access.tenant_key)
+        RevisionService(services.tenant_repo).bump_revision(tenant_key=access.tenant_key)
     except ValueError as error:
         raise ApiError(
             status_code=422, code=ApiErrorCode.VALIDATION_ERROR, message=str(error)
@@ -76,13 +71,11 @@ def create_auth_model(
 @router.get("", response_model=SuccessResponse[AuthModelOut])
 def get_auth_model(
     request: Request,
-    db: Session = Depends(get_db),
+    services: ServiceContainer = Depends(build_services),
     access: AdminAccess = Depends(require_management_role("viewer")),
 ) -> dict[str, object]:
-    tenant_repo = SqlTenantRepository(db)
-    repo = SqlAuthModelRepository(db)
-    tenant = tenant_repo.get_or_create(access.tenant_key)
-    record = repo.get_model(tenant_id=tenant.id)
+    tenant = services.tenant_repo.get_or_create(access.tenant_key)
+    record = services.auth_model_repo.get_model(tenant_id=tenant.id)
     if record is None:
         raise ApiError(status_code=404, code=ApiErrorCode.NOT_FOUND, message="auth model not found")
     return success_response(

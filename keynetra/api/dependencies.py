@@ -23,13 +23,17 @@ from keynetra.infrastructure.repositories.users import SqlUserRepository
 from keynetra.infrastructure.storage.session import get_db
 from keynetra.services.access_indexer import AccessIndexer
 from keynetra.services.authorization import AuthorizationService
+from keynetra.services.impact_analysis import ImpactAnalyzer
+from keynetra.services.interfaces import DecisionCache
 from keynetra.services.policies import PolicyService
 from keynetra.services.policy_lint import PolicyLintService
+from keynetra.services.policy_simulator import PolicySimulator
 from keynetra.services.relationships import RelationshipService
 
 
 @dataclass(frozen=True)
 class ServiceContainer:
+    db: Session
     settings: Settings
     tenant_repo: SqlTenantRepository
     policy_repo: SqlPolicyRepository
@@ -43,6 +47,10 @@ class ServiceContainer:
     policy_lint_service: PolicyLintService
     relationship_service: RelationshipService
     access_indexer: AccessIndexer
+    access_index_cache: object
+    decision_cache: DecisionCache
+    policy_simulator: PolicySimulator
+    impact_analyzer: ImpactAnalyzer
 
 
 def build_services(
@@ -51,14 +59,22 @@ def build_services(
     db: Session = Depends(get_db),
 ) -> ServiceContainer:
     redis_client = get_redis()
+    decision_cache = build_decision_cache(redis_client)
+    policy_cache = build_policy_cache(redis_client)
+    relationship_cache = build_relationship_cache(redis_client)
+    acl_cache = build_acl_cache(redis_client)
+    access_index_cache = build_access_index_cache(redis_client)
     tenant_repo = SqlTenantRepository(db)
     policy_repo = SqlPolicyRepository(db)
+    user_repo = SqlUserRepository(db)
     relationship_repo = SqlRelationshipRepository(db)
     acl_repo = SqlACLRepository(db)
+    audit_repo = SqlAuditRepository(db)
+    auth_model_repo = SqlAuthModelRepository(db)
     access_indexer = AccessIndexer(
         acl_repository=acl_repo,
-        acl_cache=build_acl_cache(redis_client),
-        access_index_cache=build_access_index_cache(redis_client),
+        acl_cache=acl_cache,
+        access_index_cache=access_index_cache,
         relationships=relationship_repo,
     )
     request_id = getattr(request.state, "request_id", None)
@@ -66,43 +82,59 @@ def build_services(
         settings=settings,
         tenants=tenant_repo,
         policies=policy_repo,
-        users=SqlUserRepository(db),
+        users=user_repo,
         relationships=relationship_repo,
-        audit=SqlAuditRepository(db),
-        policy_cache=build_policy_cache(redis_client),
-        relationship_cache=build_relationship_cache(redis_client),
-        decision_cache=build_decision_cache(redis_client),
+        audit=audit_repo,
+        policy_cache=policy_cache,
+        relationship_cache=relationship_cache,
+        decision_cache=decision_cache,
         acl_repository=acl_repo,
-        acl_cache=build_acl_cache(redis_client),
-        access_index_cache=build_access_index_cache(redis_client),
-        auth_model_repository=SqlAuthModelRepository(db),
+        acl_cache=acl_cache,
+        access_index_cache=access_index_cache,
+        auth_model_repository=auth_model_repo,
         request_id=request_id,
     )
     policy_service = PolicyService(
         tenants=tenant_repo,
         policies=policy_repo,
-        policy_cache=build_policy_cache(redis_client),
-        decision_cache=build_decision_cache(redis_client),
+        policy_cache=policy_cache,
+        decision_cache=decision_cache,
         publisher=RedisPolicyEventPublisher(settings),
     )
+    policy_simulator = PolicySimulator(
+        tenants=tenant_repo,
+        policies=policy_repo,
+        authorization_service=authorization_service,
+    )
+    impact_analyzer = ImpactAnalyzer(
+        tenants=tenant_repo,
+        policies=policy_repo,
+        users=user_repo,
+        relationships=relationship_repo,
+    )
     return ServiceContainer(
+        db=db,
         settings=settings,
         tenant_repo=tenant_repo,
         policy_repo=policy_repo,
-        user_repo=SqlUserRepository(db),
+        user_repo=user_repo,
         relationship_repo=relationship_repo,
         acl_repo=acl_repo,
-        audit_repo=SqlAuditRepository(db),
-        auth_model_repo=SqlAuthModelRepository(db),
+        audit_repo=audit_repo,
+        auth_model_repo=auth_model_repo,
         authorization_service=authorization_service,
         policy_service=policy_service,
         policy_lint_service=PolicyLintService(session=db, policies=policy_repo),
         relationship_service=RelationshipService(
             tenants=tenant_repo,
             relationships=relationship_repo,
-            relationship_cache=build_relationship_cache(redis_client),
-            decision_cache=build_decision_cache(redis_client),
-            access_index_cache=build_access_index_cache(redis_client),
+            relationship_cache=relationship_cache,
+            decision_cache=decision_cache,
+            access_index_cache=access_index_cache,
         ),
         access_indexer=access_indexer,
+        access_index_cache=access_index_cache,
+        decision_cache=decision_cache,
+        policy_simulator=policy_simulator,
+        impact_analyzer=impact_analyzer,
     )

@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: keynetra
+  labels:
+    app: keynetra
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: keynetra
+  template:
+    metadata:
+      labels:
+        app: keynetra
+    spec:
+      containers:
+        - name: keynetra
+          image: ghcr.io/keynetra/keynetra:v0.1.0
+          imagePullPolicy: IfNotPresent
+          args: ["keynetra", "serve", "--host", "0.0.0.0", "--port", "8000"]
+          ports:
+            - containerPort: 8000
+              name: http
+          envFrom:
+            - configMapRef:
+                name: keynetra-config
+            - secretRef:
+                name: keynetra-secret
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "256Mi"
+            limits:
+              cpu: "1000m"
+              memory: "1Gi"
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 3
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: http
+            initialDelaySeconds: 20
+            periodSeconds: 20
+            timeoutSeconds: 3

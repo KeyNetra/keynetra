@@ -668,7 +668,7 @@ def compile_policies(
 @app.command("generate-openapi")
 def generate_openapi(
     output: str = typer.Option(
-        "contracts/openapi/keynetra-v0.1.0.yaml", "--output", help="OpenAPI output file path."
+        "contracts/openapi/openapi.json", "--output", help="OpenAPI output file path."
     ),
 ) -> None:
     """Generate OpenAPI contract directly from the FastAPI app."""
@@ -683,14 +683,17 @@ def generate_openapi(
 
     out_path = Path(output)
     out_path.parent.mkdir(parents=True, exist_ok=True)
-    out_path.write_text(yaml.safe_dump(payload, sort_keys=False), encoding="utf-8")
+    if out_path.suffix.lower() == ".json":
+        out_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    else:
+        out_path.write_text(yaml.safe_dump(payload, sort_keys=False), encoding="utf-8")
     typer.echo(str(out_path))
 
 
 @app.command("check-openapi")
 def check_openapi(
     contract: str = typer.Option(
-        "contracts/openapi/keynetra-v0.1.0.yaml",
+        "contracts/openapi/openapi.json",
         "--contract",
         help="Versioned OpenAPI contract to compare against generated output.",
     ),
@@ -705,10 +708,13 @@ def check_openapi(
     except ModuleNotFoundError as exc:
         raise typer.BadParameter("pyyaml is required to check yaml contracts") from exc
 
-    generated = yaml.safe_dump(payload, sort_keys=False)
     path = Path(contract)
     if not path.exists():
         raise typer.BadParameter(f"contract file not found: {path}")
+    if path.suffix.lower() == ".json":
+        generated = json.dumps(payload, indent=2)
+    else:
+        generated = yaml.safe_dump(payload, sort_keys=False)
     expected = path.read_text(encoding="utf-8")
     if generated != expected:
         typer.echo(

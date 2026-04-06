@@ -9,8 +9,8 @@ from sqlalchemy import and_, delete, or_, select, text
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
 
-from keynetra.api.pagination import encode_cursor
 from keynetra.domain.models.policy_versioning import Policy, PolicyVersion
+from keynetra.domain.pagination import encode_cursor
 from keynetra.engine.keynetra_engine import PolicyDefinition
 from keynetra.services.interfaces import PolicyListItem, PolicyMutationResult, PolicyRecord
 
@@ -281,8 +281,7 @@ class SqlPolicyRepository:
 
     def _legacy_current_policy_rows(self, *, tenant_id: int) -> list[dict[str, Any]]:
         rows = self._session.execute(
-            text(
-                """
+            text("""
                 SELECT pv.id AS id, pv.action AS action, pv.effect AS effect, pv.priority AS priority,
                        pv.conditions AS conditions, pv.version AS version, p.policy_key AS policy_key
                 FROM policy_versions pv
@@ -291,8 +290,7 @@ class SqlPolicyRepository:
                   AND pv.tenant_id = :tenant_id
                   AND pv.version = p.current_version
                 ORDER BY pv.priority ASC, pv.id ASC
-                """
-            ),
+                """),
             {"tenant_id": tenant_id},
         ).mappings()
         normalized: list[dict[str, Any]] = []

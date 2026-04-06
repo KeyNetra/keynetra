@@ -22,6 +22,9 @@ def test_revision_token_increments_across_model_and_acl_changes(tmp_path) -> Non
     database_url = f"sqlite+pysqlite:///{tmp_path / 'revisions.db'}"
     os.environ["KEYNETRA_DATABASE_URL"] = database_url
     os.environ["KEYNETRA_API_KEYS"] = "testkey"
+    os.environ["KEYNETRA_API_KEY_SCOPES_JSON"] = (
+        '{"testkey":{"tenant":"default","role":"developer","permissions":["auth_model:write","acl:write"]}}'
+    )
     os.environ["KEYNETRA_POLICIES_JSON"] = "[]"
     os.environ["KEYNETRA_RATE_LIMIT_PER_MINUTE"] = "1000"
     os.environ["KEYNETRA_RATE_LIMIT_BURST"] = "1000"

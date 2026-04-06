@@ -1,19 +1,69 @@
+# Python bytecode and caches
 __pycache__/
-*.pyc
-.env
-.venv
-.vscode
-.idea
-dist/
+*.py[cod]
+*$py.class
+
+# Build and packaging artifacts
 build/
+dist/
+site/
+*.egg-info/
+.eggs/
+pip-wheel-metadata/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Test/coverage/type/lint caches
 .coverage
+.coverage.*
+coverage.xml
 htmlcov/
 .pytest_cache/
-node_modules/
-.ruff_cache/
 .mypy_cache/
+.ruff_cache/
+.import_linter_cache/
+.tox/
+.nox/
+coverage/
+
+# Local environment files
+.env
+.env.local
+
+# Logs and temp files
+*.log
+*.tmp
+*.swp
+
+# Local databases
 *.db
 *.sqlite
 *.sqlite3
+
+# Terraform state and overrides
+.terraform/
+*.tfstate
+*.tfstate.*
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraform.lock.hcl
+
+# Editor/IDE settings
+.vscode/
+.idea/
+
+# OS artifacts
 .DS_Store
+Thumbs.db
+
+# JS/build cache
+node_modules/
+
+# Project-specific
 docs-site

@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: keynetra-config
+data:
+  KEYNETRA_ENVIRONMENT: "prod"
+  KEYNETRA_STRICT_TENANCY: "true"
+  KEYNETRA_DATABASE_URL: "postgresql+psycopg://keynetra:keynetra@postgres:5432/keynetra"
+  KEYNETRA_REDIS_URL: "redis://redis:6379/0"

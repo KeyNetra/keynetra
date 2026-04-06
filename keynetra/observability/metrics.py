@@ -89,6 +89,16 @@ if Counter is not None and Histogram is not None:
         "JWKS fetch outcome counts",
         labelnames=("outcome",),
     )
+    ACCESS_INDEX_REBUILDS_TOTAL = Counter(
+        "keynetra_access_index_rebuilds_total",
+        "Access index rebuild counts",
+        labelnames=("mode",),
+    )
+    DB_QUERY_LATENCY_SECONDS = Histogram(
+        "keynetra_db_query_latency_seconds",
+        "Database query latency",
+        labelnames=("operation",),
+    )
 else:  # pragma: no cover
     ACCESS_CHECKS_TOTAL = None
     ACL_MATCHES_TOTAL = None
@@ -106,6 +116,8 @@ else:  # pragma: no cover
     CACHE_FALLBACK_TOTAL = None
     AUTH_FAILURES_TOTAL = None
     JWKS_FETCH_TOTAL = None
+    ACCESS_INDEX_REBUILDS_TOTAL = None
+    DB_QUERY_LATENCY_SECONDS = None
 
 
 def _tenant_label(tenant: str | None) -> str:
@@ -209,3 +221,15 @@ def record_auth_failure(*, reason: str) -> None:
 def record_jwks_fetch(*, outcome: str) -> None:
     if JWKS_FETCH_TOTAL is not None:
         JWKS_FETCH_TOTAL.labels(outcome=str(outcome)).inc()
+
+
+def record_access_index_rebuild(*, mode: str) -> None:
+    if ACCESS_INDEX_REBUILDS_TOTAL is not None:
+        ACCESS_INDEX_REBUILDS_TOTAL.labels(mode=str(mode)).inc()
+
+
+def observe_db_query_latency(*, operation: str, value: float) -> None:
+    if DB_QUERY_LATENCY_SECONDS is not None:
+        DB_QUERY_LATENCY_SECONDS.labels(operation=str(operation or "unknown")).observe(
+            max(0.0, float(value))
+        )

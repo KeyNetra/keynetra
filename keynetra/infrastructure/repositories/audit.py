@@ -7,8 +7,8 @@ from datetime import datetime
 from sqlalchemy import String, and_, desc, func, or_, select
 from sqlalchemy.orm import Session
 
-from keynetra.api.pagination import encode_cursor
 from keynetra.domain.models.audit import AuditLog
+from keynetra.domain.pagination import encode_cursor
 from keynetra.engine.keynetra_engine import AuthorizationDecision, AuthorizationInput
 from keynetra.services.interfaces import AuditListItem
 

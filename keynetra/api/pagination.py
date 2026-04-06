@@ -2,18 +2,15 @@
 
 from __future__ import annotations
 
-import base64
-import json
 from typing import Any
 
 from keynetra.api.errors import ApiError, ApiErrorCode
+from keynetra.domain.pagination import decode_cursor as _decode_cursor
+from keynetra.domain.pagination import encode_cursor as _encode_cursor
 
 
 def encode_cursor(payload: dict[str, Any]) -> str:
-    """Encode an opaque cursor payload."""
-
-    raw = json.dumps(payload, separators=(",", ":"), sort_keys=True).encode("utf-8")
-    return base64.urlsafe_b64encode(raw).decode("ascii")
+    return _encode_cursor(payload)
 
 
 def decode_cursor(cursor: str | None) -> dict[str, Any] | None:
@@ -22,8 +19,7 @@ def decode_cursor(cursor: str | None) -> dict[str, Any] | None:
     if not cursor:
         return None
     try:
-        raw = base64.urlsafe_b64decode(cursor.encode("ascii"))
-        decoded = json.loads(raw.decode("utf-8"))
+        decoded = _decode_cursor(cursor)
     except Exception as exc:
         raise ApiError(
             status_code=422,
@@ -31,11 +27,4 @@ def decode_cursor(cursor: str | None) -> dict[str, Any] | None:
             message="invalid cursor",
             details={"cursor": cursor},
         ) from exc
-    if not isinstance(decoded, dict):
-        raise ApiError(
-            status_code=422,
-            code=ApiErrorCode.VALIDATION_ERROR,
-            message="invalid cursor",
-            details={"cursor": cursor},
-        )
     return decoded

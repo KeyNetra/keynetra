@@ -5,11 +5,11 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from keynetra.api.middleware.admin import AdminAuthorizationContextMiddleware
 from keynetra.api.middleware.errors import register_error_handlers
 from keynetra.api.middleware.idempotency import IdempotencyMiddleware
 from keynetra.api.middleware.logging import RequestLoggingMiddleware
 from keynetra.api.middleware.request_id import RequestIdMiddleware
+from keynetra.api.middleware.tenant import TenantResolverMiddleware
 from keynetra.api.middleware.versioning import ApiVersionMiddleware
 from keynetra.api.service_modes import router_for_mode
 from keynetra.config.rate_limit import RateLimitMiddleware
@@ -51,9 +51,9 @@ def create_app() -> FastAPI:
     settings = get_settings()
 
     app.add_middleware(RequestIdMiddleware)
+    app.add_middleware(TenantResolverMiddleware)
     app.add_middleware(ApiVersionMiddleware)
     app.add_middleware(RequestLoggingMiddleware)
-    app.add_middleware(AdminAuthorizationContextMiddleware)
     app.add_middleware(RateLimitMiddleware, settings=settings)
     app.add_middleware(IdempotencyMiddleware, settings=settings)
     app.add_middleware(
@@ -108,7 +108,9 @@ def _run_startup(settings: Settings) -> None:
         db.close()
 
 
-def _start_policy_subscriber(app: FastAPI, *, settings: Settings) -> None:
+def _start_policy_subscriber(app: FastAPI, *, settings: Settings | None = None) -> None:
+    if settings is None:
+        settings = get_settings()
     policy_cache = build_policy_cache(get_redis())
     try:
         import json
@@ -162,7 +164,9 @@ def _stop_policy_subscriber(app: FastAPI) -> None:
         log_event(_bootstrap_logger, event="policy_subscriber_close_failed", reason=repr(exc))
 
 
-def _bootstrap_file_backed_model(settings: Settings) -> None:
+def _bootstrap_file_backed_model(settings: Settings | None = None) -> None:
+    if settings is None:
+        settings = get_settings()
     model_paths = settings.parsed_model_paths()
     if not model_paths:
         return
@@ -180,11 +184,16 @@ def _bootstrap_file_backed_model(settings: Settings) -> None:
     except (ValueError, RuntimeError) as exc:
         record_bootstrap_failure(stage="model_bootstrap")
         log_event(_bootstrap_logger, event="model_bootstrap_failed", reason=repr(exc))
-        if settings.environment in {"prod", "production"}:
+        if str(getattr(settings, "environment", "development")).strip().lower() in {
+            "prod",
+            "production",
+        }:
             raise BootstrapError("authorization model bootstrap failed") from exc
 
 
-def _bootstrap_file_backed_policies(settings: Settings) -> None:
+def _bootstrap_file_backed_policies(settings: Settings | None = None) -> None:
+    if settings is None:
+        settings = get_settings()
     try:
         policies = settings.load_policies()
         engine = KeyNetraEngine(policies)
@@ -192,7 +201,10 @@ def _bootstrap_file_backed_policies(settings: Settings) -> None:
     except (ValueError, RuntimeError) as exc:
         record_bootstrap_failure(stage="policy_bootstrap")
         log_event(_bootstrap_logger, event="policy_bootstrap_failed", reason=repr(exc))
-        if settings.environment in {"prod", "production"}:
+        if str(getattr(settings, "environment", "development")).strip().lower() in {
+            "prod",
+            "production",
+        }:
             raise BootstrapError("policy bootstrap failed") from exc
 
 

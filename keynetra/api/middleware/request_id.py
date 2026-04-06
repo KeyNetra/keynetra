@@ -7,6 +7,8 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
 
+from keynetra.infrastructure.logging import reset_correlation_id, set_correlation_id
+
 
 class RequestIdMiddleware(BaseHTTPMiddleware):
     """
@@ -23,6 +25,10 @@ class RequestIdMiddleware(BaseHTTPMiddleware):
     ) -> Response:
         request_id = request.headers.get(self.header_name) or secrets.token_urlsafe(10)
         request.state.request_id = request_id
-        response = await call_next(request)
-        response.headers[self.header_name] = request_id
-        return response
+        token = set_correlation_id(request_id)
+        try:
+            response = await call_next(request)
+            response.headers[self.header_name] = request_id
+            return response
+        finally:
+            reset_correlation_id(token)

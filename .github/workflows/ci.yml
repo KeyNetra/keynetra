@@ -17,7 +17,6 @@ jobs:
       fail-fast: false
       matrix:
         python-version: ["3.11", "3.12", "3.13", "3.14"]
-
     env:
       KEYNETRA_DATABASE_URL: sqlite+pysqlite:///./.keynetra-ci.db
       KEYNETRA_API_KEYS: testkey
@@ -41,9 +40,14 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -r requirements.txt
-          python -m pip install -r requirements-dev.txt
+          python -m pip install -r requirements.lock
+          python -m pip install -r requirements-dev.lock
           python -m pip install -e .
+          if [ -d ./keynetra-client-python ]; then
+            python -m pip install -e ./keynetra-client-python
+          else
+            echo "SDK repo not present in this checkout; skipping local SDK install."
+          fi
 
       - name: Lint
         run: |
@@ -51,28 +55,36 @@ jobs:
           black --check .
           isort --check-only .
           mypy keynetra
+          lint-imports --config .importlinter
 
       - name: Security dependency scans
         run: |
           pip-audit
           safety check --full-report
+          mkdir -p artifacts
+          pip-audit -f cyclonedx-json -o artifacts/sbom.cdx.json
 
       - name: OpenAPI contract drift check
         env:
           PYTHONPATH: ${{ github.workspace }}
         run: |
-          python -m keynetra.cli check-openapi
+          keynetra check-openapi
 
       - name: Migration check
         env:
           PYTHONPATH: ${{ github.workspace }}
-        run: python -m keynetra.cli migrate --confirm-destructive
+        run: keynetra migrate --confirm-destructive
 
       - name: Tests and coverage
         env:
           PYTHONPATH: ${{ github.workspace }}
         run: |
           python -m pytest -q --cov=keynetra --cov-fail-under=80 --cov-report=json --cov-report=term
+          if [ -d ./keynetra-client-python/tests ]; then
+            python -m pytest -q keynetra-client-python/tests
+          else
+            echo "SDK repo tests not present; skipping local SDK tests."
+          fi
           python scripts/check_coverage.py
 
       - name: Load smoke budgets (locust)
@@ -84,3 +96,9 @@ jobs:
           sleep 3
           locust -f locustfile.py --host http://127.0.0.1:8000 --headless -u 10 -r 2 -t 20s --csv /tmp/locust --only-summary
           python scripts/check_load_budget.py
+
+      - name: Upload SBOM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-${{ matrix.python-version }}
+          path: artifacts/sbom.cdx.json

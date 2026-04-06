@@ -94,7 +94,7 @@ def sample_bootstrap_document() -> dict[str, Any]:
             "policies": SAMPLE_POLICY_DEFINITIONS,
         },
         "commands": {
-            "seed": "PYTHONPATH=core python -m keynetra.cli seed-data --reset",
-            "start": "PYTHONPATH=core python -m keynetra.cli start --host 0.0.0.0 --port 8000",
+            "seed": "PYTHONPATH=core keynetra seed-data --reset",
+            "start": "PYTHONPATH=core keynetra start --host 0.0.0.0 --port 8000",
         },
     }

@@ -300,6 +300,7 @@ def test_simulate_policy_and_impact_analysis_endpoints_work_for_admin_api_key() 
     import os
 
     os.environ["KEYNETRA_API_KEYS"] = "testkey"
+    os.environ.pop("KEYNETRA_API_KEY_SCOPES_JSON", None)
     os.environ["KEYNETRA_RATE_LIMIT_PER_MINUTE"] = "1000"
     os.environ["KEYNETRA_RATE_LIMIT_BURST"] = "1000"
     os.environ["KEYNETRA_RATE_LIMIT_WINDOW_SECONDS"] = "60"

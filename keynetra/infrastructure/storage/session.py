@@ -2,13 +2,41 @@ from __future__ import annotations
 
 from collections.abc import Generator
 from functools import lru_cache
+from time import perf_counter
 
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine
+from sqlalchemy.event import listens_for
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from keynetra.config.settings import get_settings
+from keynetra.observability.metrics import observe_db_query_latency
+
+
+def _operation_name(statement: str) -> str:
+    first = (statement or "").strip().split(" ", 1)[0].upper()
+    return first if first else "UNKNOWN"
+
+
+@listens_for(Engine, "before_cursor_execute")
+def _before_cursor_execute(  # pragma: no cover - sqlalchemy runtime hook
+    conn, cursor, statement, parameters, context, executemany
+) -> None:
+    conn.info.setdefault("_query_start_times", []).append(perf_counter())
+
+
+@listens_for(Engine, "after_cursor_execute")
+def _after_cursor_execute(  # pragma: no cover - sqlalchemy runtime hook
+    conn, cursor, statement, parameters, context, executemany
+) -> None:
+    starts = conn.info.get("_query_start_times", [])
+    if not starts:
+        return
+    started_at = starts.pop()
+    observe_db_query_latency(
+        operation=_operation_name(statement), value=perf_counter() - started_at
+    )
 
 
 @lru_cache

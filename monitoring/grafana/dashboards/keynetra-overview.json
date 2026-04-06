@@ -1,0 +1,308 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Request Rate (req/s)",
+      "gridPos": {"h": 5, "w": 4, "x": 0, "y": 0},
+      "targets": [
+        {
+          "expr": "sum(rate(keynetra_http_requests_total{tenant=~\"$tenant\"}[5m]))",
+          "legendFormat": "req/s",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Error Rate (5xx req/s)",
+      "gridPos": {"h": 5, "w": 4, "x": 4, "y": 0},
+      "targets": [
+        {
+          "expr": "sum(rate(keynetra_http_requests_total{tenant=~\"$tenant\",status=~\"5..\"}[5m]))",
+          "legendFormat": "5xx/s",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "gauge",
+      "title": "Cache Hit Ratio %",
+      "gridPos": {"h": 5, "w": 4, "x": 8, "y": 0},
+      "fieldConfig": {
+        "defaults": {
+          "min": 0,
+          "max": 100,
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "expr": "100 * sum(rate(keynetra_cache_events_total{outcome=\"hit\"}[5m])) / clamp_min(sum(rate(keynetra_cache_events_total[5m])), 0.000001)",
+          "legendFormat": "hit%",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Auth Failures / min",
+      "gridPos": {"h": 5, "w": 4, "x": 12, "y": 0},
+      "targets": [
+        {
+          "expr": "sum(increase(keynetra_auth_failures_total[1m]))",
+          "legendFormat": "auth_fail/min",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "Policy Evals / min",
+      "gridPos": {"h": 5, "w": 4, "x": 16, "y": 0},
+      "targets": [
+        {
+          "expr": "sum(increase(keynetra_policy_evaluations_total{tenant=~\"$tenant\"}[1m]))",
+          "legendFormat": "policy/min",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "stat",
+      "title": "Decision p95 (ms)",
+      "gridPos": {"h": 5, "w": 4, "x": 20, "y": 0},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "expr": "1000 * histogram_quantile(0.95, sum(rate(keynetra_decision_latency_seconds_bucket{tenant_key=~\"$tenant\"}[5m])) by (le))",
+          "legendFormat": "p95",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "HTTP Request Throughput by Endpoint",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 5},
+      "targets": [
+        {
+          "expr": "sum(rate(keynetra_http_requests_total{tenant=~\"$tenant\"}[5m])) by (endpoint, method)",
+          "legendFormat": "{{method}} {{endpoint}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "HTTP Latency p50/p95 by Endpoint",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 5},
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(keynetra_http_request_duration_seconds_bucket{tenant=~\"$tenant\"}[5m])) by (le, endpoint))",
+          "legendFormat": "p50 {{endpoint}}",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(keynetra_http_request_duration_seconds_bucket{tenant=~\"$tenant\"}[5m])) by (le, endpoint))",
+          "legendFormat": "p95 {{endpoint}}",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "type": "bargauge",
+      "title": "Authorization Decisions by Tenant",
+      "gridPos": {"h": 8, "w": 8, "x": 0, "y": 13},
+      "targets": [
+        {
+          "expr": "sum(increase(keynetra_access_checks_total[5m])) by (tenant, decision)",
+          "legendFormat": "{{tenant}} {{decision}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "type": "timeseries",
+      "title": "Policy Evaluation Latency by Stage",
+      "gridPos": {"h": 8, "w": 8, "x": 8, "y": 13},
+      "targets": [
+        {
+          "expr": "sum(rate(keynetra_access_check_latency_seconds_sum{tenant=~\"$tenant\"}[5m])) by (stage) / clamp_min(sum(rate(keynetra_access_check_latency_seconds_count{tenant=~\"$tenant\"}[5m])) by (stage), 0.000001)",
+          "legendFormat": "{{stage}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "type": "heatmap",
+      "title": "Decision Latency Distribution",
+      "gridPos": {"h": 8, "w": 8, "x": 16, "y": 13},
+      "targets": [
+        {
+          "expr": "sum(rate(keynetra_decision_latency_seconds_bucket{tenant_key=~\"$tenant\"}[5m])) by (le)",
+          "legendFormat": "bucket",
+          "refId": "A",
+          "format": "heatmap"
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "type": "timeseries",
+      "title": "Cache Events by Type/Outcome",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 21},
+      "targets": [
+        {
+          "expr": "sum(rate(keynetra_cache_events_total[5m])) by (cache_name, outcome)",
+          "legendFormat": "{{cache_name}} {{outcome}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "type": "timeseries",
+      "title": "Database Query Latency",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 21},
+      "targets": [
+        {
+          "expr": "sum(rate(keynetra_db_query_latency_seconds_sum[5m])) by (operation) / clamp_min(sum(rate(keynetra_db_query_latency_seconds_count[5m])) by (operation), 0.000001)",
+          "legendFormat": "{{operation}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "type": "piechart",
+      "title": "HTTP Status Distribution",
+      "gridPos": {"h": 8, "w": 8, "x": 0, "y": 29},
+      "targets": [
+        {
+          "expr": "sum(increase(keynetra_http_requests_total{tenant=~\"$tenant\"}[15m])) by (status)",
+          "legendFormat": "{{status}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "type": "table",
+      "title": "Top Endpoints by Request Volume",
+      "gridPos": {"h": 8, "w": 8, "x": 8, "y": 29},
+      "targets": [
+        {
+          "expr": "topk(15, sum(increase(keynetra_http_requests_total{tenant=~\"$tenant\"}[15m])) by (endpoint, method))",
+          "legendFormat": "{{method}} {{endpoint}}",
+          "refId": "A",
+          "format": "table"
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "type": "timeseries",
+      "title": "Tenant Activity (Requests)",
+      "gridPos": {"h": 8, "w": 8, "x": 16, "y": 29},
+      "targets": [
+        {
+          "expr": "sum(rate(keynetra_http_requests_total[5m])) by (tenant)",
+          "legendFormat": "{{tenant}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 17,
+      "type": "timeseries",
+      "title": "JWKS Fetch Outcomes",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 37},
+      "targets": [
+        {
+          "expr": "sum(rate(keynetra_jwks_fetch_total[5m])) by (outcome)",
+          "legendFormat": "{{outcome}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 18,
+      "type": "timeseries",
+      "title": "Access Index Rebuilds / Revision Updates",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 37},
+      "targets": [
+        {
+          "expr": "sum(increase(keynetra_access_index_rebuilds_total[15m])) by (mode)",
+          "legendFormat": "rebuild {{mode}}",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(increase(keynetra_revision_updates_total[15m])) by (tenant)",
+          "legendFormat": "revision {{tenant}}",
+          "refId": "B"
+        }
+      ]
+    }
+  ],
+  "refresh": "10s",
+  "schemaVersion": 39,
+  "style": "dark",
+  "tags": ["keynetra", "authorization", "multi-tenant", "observability"],
+  "templating": {
+    "list": [
+      {
+        "name": "tenant",
+        "type": "query",
+        "label": "Tenant",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${DS_PROMETHEUS}"
+        },
+        "refresh": 2,
+        "query": "label_values(keynetra_http_requests_total, tenant)",
+        "includeAll": true,
+        "multi": true,
+        "allValue": ".*",
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": ["$__all"]
+        }
+      }
+    ]
+  },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timezone": "browser",
+  "title": "KeyNetra Deep Observability",
+  "uid": "keynetra-overview",
+  "version": 2,
+  "weekStart": ""
+}

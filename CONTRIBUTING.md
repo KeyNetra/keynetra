@@ -15,7 +15,7 @@ export KEYNETRA_API_KEYS=devkey
 Start the API locally:
 
 ```bash
-python -m keynetra.cli serve
+keynetra serve
 ```
 
 ## Run tests

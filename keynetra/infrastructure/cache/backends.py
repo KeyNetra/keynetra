@@ -14,6 +14,7 @@ from keynetra.infrastructure.logging import log_event
 
 _logger = logging.getLogger("keynetra.cache")
 
+
 class CacheBackend(Protocol):
     """Minimal key/value backend required by cache adapters."""
 

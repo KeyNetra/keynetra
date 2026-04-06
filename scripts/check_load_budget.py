@@ -47,9 +47,7 @@ def main() -> int:
     metrics = httpx.get("http://127.0.0.1:8000/metrics", timeout=5.0).text
     ratio = _cache_hit_ratio(metrics)
     if ratio < CACHE_HIT_RATIO_MIN:
-        print(
-            f"decision cache hit ratio budget failed: {ratio:.3f} < {CACHE_HIT_RATIO_MIN:.3f}"
-        )
+        print(f"decision cache hit ratio budget failed: {ratio:.3f} < {CACHE_HIT_RATIO_MIN:.3f}")
         return 1
     print(f"load budgets passed: p95={p95:.2f}ms cache_hit_ratio={ratio:.3f}")
     return 0

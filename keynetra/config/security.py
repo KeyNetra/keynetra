@@ -12,6 +12,7 @@ from fastapi.security import APIKeyHeader, HTTPAuthorizationCredentials, HTTPBea
 from jose import JWTError, jwt
 
 from keynetra.config.settings import Settings, get_settings
+from keynetra.config.tenancy import DEFAULT_TENANT_KEY, tenant_for_logs
 from keynetra.infrastructure.logging import log_event
 from keynetra.observability.metrics import record_auth_failure, record_jwks_fetch
 
@@ -52,7 +53,7 @@ def _log_failed_auth(request: Request, *, reason: str, api_key: str | None = Non
         path=request.url.path,
         method=request.method,
         request_id=getattr(request.state, "request_id", None),
-        tenant_id="default",
+        tenant_id=tenant_for_logs(request),
         client_host=request.client.host if request.client else None,
         api_key_prefix=(api_key or "")[:12] or None,
     )
@@ -61,6 +62,14 @@ def _log_failed_auth(request: Request, *, reason: str, api_key: str | None = Non
 def _matches_api_key(candidate: str, stored_hashes: set[str]) -> bool:
     candidate_hash = hashlib.sha256(candidate.encode("utf-8")).hexdigest()
     return any(hmac.compare_digest(candidate_hash, stored_hash) for stored_hash in stored_hashes)
+
+
+def _scopes_are_defined(scopes: dict[str, Any]) -> bool:
+    role = scopes.get("role")
+    permissions = scopes.get("permissions")
+    return (isinstance(role, str) and role.strip() != "") or (
+        isinstance(permissions, list) and len(permissions) > 0
+    )
 
 
 def _get_jwks(settings: Settings) -> dict[str, Any]:
@@ -110,12 +119,26 @@ def get_principal(
     x_api_key: str | None = Security(api_key_scheme),
 ) -> dict[str, Any]:
     api_key_hashes = settings.parsed_api_key_hashes()
+    parsed_scopes = settings.parsed_api_key_scopes()
     if x_api_key:
         key_hash = hashlib.sha256(x_api_key.encode("utf-8")).hexdigest()
         if _matches_api_key(x_api_key, api_key_hashes):
-            scopes = settings.parsed_api_key_scopes().get(key_hash, {})
-            if settings.is_development() and not scopes:
-                scopes = {"role": "admin", "tenant": "default", "permissions": ["*"]}
+            scopes = parsed_scopes.get(key_hash, {})
+            has_explicit_scope_for_key = key_hash in parsed_scopes
+            if not _scopes_are_defined(scopes):
+                _log_failed_auth(
+                    request,
+                    reason="api_key_missing_scope",
+                    api_key=x_api_key,
+                )
+                if settings.is_development() and not has_explicit_scope_for_key:
+                    scopes = {
+                        "tenant": DEFAULT_TENANT_KEY,
+                        "role": "admin",
+                        "permissions": ["*"],
+                    }
+                if not settings.is_development():
+                    raise _unauthorized("api key scopes must include role or permissions")
             return {
                 "type": "api_key",
                 "id": key_hash[:12],

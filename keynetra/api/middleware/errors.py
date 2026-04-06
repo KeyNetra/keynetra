@@ -11,6 +11,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from keynetra.api.errors import ApiError, ApiErrorCode
 from keynetra.config.settings import Settings
+from keynetra.config.tenancy import tenant_for_logs
 from keynetra.infrastructure.logging import log_event
 from keynetra.infrastructure.metrics import record_api_error
 
@@ -31,7 +32,7 @@ def register_error_handlers(app: FastAPI, settings: Settings) -> None:
             code=str(exc.code),
             message=exc.message,
             request_id=_request_id(request),
-            tenant_id="default",
+            tenant_id=tenant_for_logs(request),
         )
         payload: dict[str, Any] = {
             "data": None,
@@ -83,7 +84,7 @@ def register_error_handlers(app: FastAPI, settings: Settings) -> None:
             logger,
             event="unhandled_exception",
             request_id=rid,
-            tenant_id="default",
+            tenant_id=tenant_for_logs(request),
             error=repr(exc),
             traceback="".join(traceback.format_exception(type(exc), exc, exc.__traceback__)),
         )

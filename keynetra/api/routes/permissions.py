@@ -3,15 +3,13 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, Request, status
 from sqlalchemy import and_, delete, or_, select
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.orm import Session
 
+from keynetra.api.dependencies import ServiceContainer, build_services
 from keynetra.api.errors import ApiError, ApiErrorCode
 from keynetra.api.pagination import decode_cursor, encode_cursor
 from keynetra.api.responses import request_id_from_state, success_response
 from keynetra.config.admin_auth import AdminAccess, require_management_role
-from keynetra.config.redis_client import get_redis
 from keynetra.config.security import get_principal
-from keynetra.config.tenancy import DEFAULT_TENANT_KEY
 from keynetra.domain.models.rbac import Permission, Role, role_permissions
 from keynetra.domain.schemas.api import SuccessResponse
 from keynetra.domain.schemas.management import (
@@ -20,9 +18,6 @@ from keynetra.domain.schemas.management import (
     PermissionUpdate,
     RoleOut,
 )
-from keynetra.infrastructure.cache.access_index_cache import build_access_index_cache
-from keynetra.infrastructure.repositories.tenants import SqlTenantRepository
-from keynetra.infrastructure.storage.session import get_db
 from keynetra.services.revisions import RevisionService
 
 router = APIRouter(prefix="/permissions", dependencies=[Depends(get_principal)])
@@ -31,11 +26,12 @@ router = APIRouter(prefix="/permissions", dependencies=[Depends(get_principal)])
 @router.get("", response_model=SuccessResponse[list[PermissionOut]])
 def list_permissions(
     request: Request,
-    db: Session = Depends(get_db),
+    services: ServiceContainer = Depends(build_services),
     _: AdminAccess = Depends(require_management_role("viewer")),
     limit: int = 50,
     cursor: str | None = None,
 ) -> dict[str, object]:
+    db = services.db
     if limit < 1 or limit > 100:
         raise ApiError(
             status_code=422,
@@ -74,9 +70,10 @@ def list_permissions(
 @router.post("", response_model=PermissionOut, status_code=status.HTTP_201_CREATED)
 def create_permission(
     payload: PermissionCreate,
-    db: Session = Depends(get_db),
-    _: AdminAccess = Depends(require_management_role("admin")),
+    services: ServiceContainer = Depends(build_services),
+    access: AdminAccess = Depends(require_management_role("admin")),
 ) -> PermissionOut:
+    db = services.db
     existing = (
         db.execute(select(Permission).where(Permission.action == payload.action)).scalars().first()
     )
@@ -89,8 +86,8 @@ def create_permission(
         db.add(perm)
         db.commit()
         db.refresh(perm)
-        build_access_index_cache(get_redis()).invalidate_global()
-        RevisionService(SqlTenantRepository(db)).bump_revision(tenant_key=DEFAULT_TENANT_KEY)
+        services.access_index_cache.invalidate_global()
+        RevisionService(services.tenant_repo).bump_revision(tenant_key=access.tenant_key)
     except SQLAlchemyError as e:
         db.rollback()
         raise ApiError(status_code=500, code=ApiErrorCode.DATABASE_ERROR, message="db error") from e
@@ -101,9 +98,10 @@ def create_permission(
 def update_permission(
     permission_id: int,
     payload: PermissionUpdate,
-    db: Session = Depends(get_db),
-    _: AdminAccess = Depends(require_management_role("developer")),
+    services: ServiceContainer = Depends(build_services),
+    access: AdminAccess = Depends(require_management_role("developer")),
 ) -> PermissionOut:
+    db = services.db
     permission = db.get(Permission, permission_id)
     if permission is None:
         raise ApiError(status_code=404, code=ApiErrorCode.NOT_FOUND, message="permission not found")
@@ -124,8 +122,8 @@ def update_permission(
     try:
         db.commit()
         db.refresh(permission)
-        build_access_index_cache(get_redis()).invalidate_global()
-        RevisionService(SqlTenantRepository(db)).bump_revision(tenant_key=DEFAULT_TENANT_KEY)
+        services.access_index_cache.invalidate_global()
+        RevisionService(services.tenant_repo).bump_revision(tenant_key=access.tenant_key)
     except SQLAlchemyError as e:
         db.rollback()
         raise ApiError(status_code=500, code=ApiErrorCode.DATABASE_ERROR, message="db error") from e
@@ -136,9 +134,10 @@ def update_permission(
 def delete_permission(
     permission_id: int,
     request: Request,
-    db: Session = Depends(get_db),
-    _: AdminAccess = Depends(require_management_role("admin")),
+    services: ServiceContainer = Depends(build_services),
+    access: AdminAccess = Depends(require_management_role("admin")),
 ) -> dict[str, object]:
+    db = services.db
     permission = (
         db.execute(select(Permission).where(Permission.id == permission_id).options())
         .scalars()
@@ -152,8 +151,8 @@ def delete_permission(
         )
         db.delete(permission)
         db.commit()
-        build_access_index_cache(get_redis()).invalidate_global()
-        RevisionService(SqlTenantRepository(db)).bump_revision(tenant_key=DEFAULT_TENANT_KEY)
+        services.access_index_cache.invalidate_global()
+        RevisionService(services.tenant_repo).bump_revision(tenant_key=access.tenant_key)
     except SQLAlchemyError as e:
         db.rollback()
         raise ApiError(status_code=500, code=ApiErrorCode.DATABASE_ERROR, message="db error") from e
@@ -166,9 +165,10 @@ def delete_permission(
 def list_permission_roles(
     permission_id: int,
     request: Request,
-    db: Session = Depends(get_db),
+    services: ServiceContainer = Depends(build_services),
     _: AdminAccess = Depends(require_management_role("viewer")),
 ) -> dict[str, object]:
+    db = services.db
     permission = db.get(Permission, permission_id)
     if permission is None:
         raise ApiError(status_code=404, code=ApiErrorCode.NOT_FOUND, message="permission not found")

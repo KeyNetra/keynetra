@@ -1,0 +1,17 @@
+-r requirements.lock
+
+black==26.3.1
+build==1.4.2
+coverage[toml]==7.13.5
+isort==8.0.1
+pytest-cov==7.1.0
+pytest==9.0.2
+locust==2.43.4
+mypy==1.20.0
+pip-audit==2.9.0
+pre-commit==4.3.0
+ruff==0.15.9
+safety==3.7.0
+streamlit==1.56.0
+import-linter==2.7
+pip-tools==7.5.1

@@ -58,6 +58,8 @@ class Settings(BaseSettings):
     auto_seed_sample_data: bool = Field(default=False)
     server_host: str = Field(default="0.0.0.0")
     server_port: int = Field(default=8000)
+    async_authorization_enabled: bool = Field(default=False)
+    strict_tenancy: bool = Field(default=False)
 
     # Policy distribution
     policy_events_channel: str = Field(default="keynetra:policy_events")
@@ -130,8 +132,10 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def _validate_security_profile(self) -> Settings:
-        auth_enabled = bool(self.parsed_api_key_hashes()) or bool(self.oidc_jwks_url) or (
-            bool(self.jwt_secret) and self.jwt_secret.strip() != "change-me"
+        auth_enabled = (
+            bool(self.parsed_api_key_hashes())
+            or bool(self.oidc_jwks_url)
+            or (bool(self.jwt_secret) and self.jwt_secret.strip() != "change-me")
         )
         non_dev = self.environment not in _DEV_ENVIRONMENTS
         if non_dev and not auth_enabled:
@@ -215,9 +219,9 @@ class Settings(BaseSettings):
             parsed[key_hash] = {
                 "tenant": scopes.get("tenant"),
                 "role": scopes.get("role"),
-                "permissions": scopes.get("permissions")
-                if isinstance(scopes.get("permissions"), list)
-                else [],
+                "permissions": (
+                    scopes.get("permissions") if isinstance(scopes.get("permissions"), list) else []
+                ),
             }
         return parsed
 

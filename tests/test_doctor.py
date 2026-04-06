@@ -42,7 +42,7 @@ def test_run_core_doctor_reports_all_checks_healthy(
 ) -> None:
     database_url = f"sqlite+pysqlite:///{tmp_path}/core-doctor.db"
     _set_core_env(database_url)
-    _prepare_alembic_version(database_url, "20260406_000009")
+    _prepare_alembic_version(database_url, "20260407_000001")
     monkeypatch.setattr("keynetra.services.doctor.get_redis", lambda: _FakeRedis())
 
     result = run_core_doctor(Settings())

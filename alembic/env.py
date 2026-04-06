@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from logging.config import fileConfig
 
-from sqlalchemy import engine_from_config, pool
-
 from alembic import context
 from keynetra.config.settings import get_settings
 from keynetra.domain.models import acl as _acl  # noqa: F401
@@ -15,6 +13,7 @@ from keynetra.domain.models import rbac as _rbac  # noqa: F401
 from keynetra.domain.models import relationship as _relationship  # noqa: F401
 from keynetra.domain.models import tenant as _tenant  # noqa: F401
 from keynetra.domain.models.base import Base
+from sqlalchemy import engine_from_config, pool
 
 config = context.config
 

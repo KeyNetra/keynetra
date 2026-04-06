@@ -1,0 +1,57 @@
+name: keynetra
+
+services:
+  keynetra:
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      KEYNETRA_ENVIRONMENT: ${KEYNETRA_ENVIRONMENT:-development}
+      KEYNETRA_DATABASE_URL: ${KEYNETRA_DATABASE_URL:-postgresql+psycopg://keynetra:keynetra@postgres:5432/keynetra}
+      KEYNETRA_REDIS_URL: ${KEYNETRA_REDIS_URL:-redis://redis:6379/0}
+      KEYNETRA_API_KEYS: ${KEYNETRA_API_KEYS:-devkey}
+      KEYNETRA_JWT_SECRET: ${KEYNETRA_JWT_SECRET:-change-me}
+      KEYNETRA_STRICT_TENANCY: ${KEYNETRA_STRICT_TENANCY:-false}
+      KEYNETRA_AUTO_SEED_SAMPLE_DATA: ${KEYNETRA_AUTO_SEED_SAMPLE_DATA:-false}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/ready', timeout=3)"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${KEYNETRA_POSTGRES_USER:-keynetra}
+      POSTGRES_PASSWORD: ${KEYNETRA_POSTGRES_PASSWORD:-keynetra}
+      POSTGRES_DB: ${KEYNETRA_POSTGRES_DB:-keynetra}
+    volumes:
+      - keynetra_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  keynetra_postgres_data:

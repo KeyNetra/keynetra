@@ -124,7 +124,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                 return _BucketDecision(
                     limit=capacity, remaining=remaining_tokens, retry_after=retry_after_seconds
                 )
-            except (ConnectionError, OSError, RuntimeError, ValueError) as exc:
+            except (AttributeError, ConnectionError, OSError, RuntimeError, ValueError) as exc:
                 log_event(
                     _logger,
                     event="rate_limit_redis_fallback",

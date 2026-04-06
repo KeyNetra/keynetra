@@ -59,8 +59,12 @@ def _check_env(settings: Settings) -> DoctorCheck:
     auth_configured = has_api_key_auth or has_jwt_auth
     weak_jwt_secret = settings.jwt_secret.strip() == "change-me"
     profile = settings.environment
-    weak_admin_username = bool(settings.admin_username) and settings.admin_username.lower() == "admin"
-    missing_admin_password_hash = bool(settings.admin_username) and not bool(settings.admin_password_hash)
+    weak_admin_username = (
+        bool(settings.admin_username) and settings.admin_username.lower() == "admin"
+    )
+    missing_admin_password_hash = bool(settings.admin_username) and not bool(
+        settings.admin_password_hash
+    )
     ok = (
         all(required_env.values())
         and auth_configured
@@ -78,7 +82,9 @@ def _check_env(settings: Settings) -> DoctorCheck:
     if profile not in {"development", "dev", "local"} and weak_jwt_secret:
         remediation.append("Set KEYNETRA_JWT_SECRET to a strong non-default value.")
     if weak_admin_username:
-        remediation.append("Avoid default admin username; set KEYNETRA_ADMIN_USERNAME to a unique value.")
+        remediation.append(
+            "Avoid default admin username; set KEYNETRA_ADMIN_USERNAME to a unique value."
+        )
     if missing_admin_password_hash:
         remediation.append("Set KEYNETRA_ADMIN_PASSWORD_HASH and remove KEYNETRA_ADMIN_PASSWORD.")
     return DoctorCheck(

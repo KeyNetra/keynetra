@@ -7,11 +7,9 @@ from keynetra.api.dependencies import ServiceContainer, build_services
 from keynetra.api.errors import ApiError, ApiErrorCode
 from keynetra.api.responses import request_id_from_state, success_response
 from keynetra.config.admin_auth import AdminAccess, require_management_role
-from keynetra.config.redis_client import get_redis
 from keynetra.config.security import get_principal
 from keynetra.domain.schemas.api import SuccessResponse
 from keynetra.domain.schemas.management import ACLCreate, ACLOut
-from keynetra.infrastructure.cache.decision_cache import build_decision_cache
 from keynetra.services.revisions import RevisionService
 
 router = APIRouter(prefix="/acl", dependencies=[Depends(get_principal)])
@@ -47,7 +45,7 @@ def create_acl_entry(
             resource_type=payload.resource_type,
             resource_id=payload.resource_id,
         )
-        build_decision_cache(get_redis()).bump_namespace(tenant.tenant_key)
+        services.decision_cache.bump_namespace(tenant.tenant_key)
         RevisionService(services.tenant_repo).bump_revision(tenant_key=tenant.tenant_key)
     except SQLAlchemyError as error:
         raise ApiError(
@@ -117,7 +115,7 @@ def delete_acl_entry(
                 resource_type=target.resource_type,
                 resource_id=target.resource_id,
             )
-        build_decision_cache(get_redis()).bump_namespace(tenant.tenant_key)
+        services.decision_cache.bump_namespace(tenant.tenant_key)
         RevisionService(services.tenant_repo).bump_revision(tenant_key=tenant.tenant_key)
     except SQLAlchemyError as error:
         raise ApiError(
