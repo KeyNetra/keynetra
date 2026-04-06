@@ -76,7 +76,7 @@ jobs:
       - name: Security dependency scans
         run: |
           pip-audit
-          safety scan --policy-file .safety-policy.yml
+          safety check --policy-file .safety-policy.yml
           mkdir -p artifacts
           pip-audit -f cyclonedx-json -o artifacts/sbom.cdx.json
 
