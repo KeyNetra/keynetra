@@ -36,7 +36,7 @@ keynetra = "keynetra.cli:main"
 include-package-data = true
 
 [tool.setuptools.packages.find]
-include = ["keynetra*"]
+include = ["keynetra*", "integrations*"]
 
 [tool.black]
 line-length = 100
