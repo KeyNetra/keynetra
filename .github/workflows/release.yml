@@ -57,6 +57,7 @@ jobs:
             dist/*.whl
 
   docker:
+    needs: release
     runs-on: ubuntu-latest
     permissions:
       contents: read
