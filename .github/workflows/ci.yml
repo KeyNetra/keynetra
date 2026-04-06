@@ -2,6 +2,7 @@ name: CI
 
 on:
   push:
+    branches: [main]
   pull_request:
 
 permissions:
@@ -9,15 +10,19 @@ permissions:
 
 jobs:
   test:
+    name: CI / test (${{ matrix.python-version }})
     runs-on: ubuntu-latest
+
     strategy:
       fail-fast: false
       matrix:
         python-version: ["3.11", "3.12", "3.13", "3.14"]
+
     env:
       KEYNETRA_DATABASE_URL: sqlite+pysqlite:///./.keynetra-ci.db
       KEYNETRA_API_KEYS: testkey
       PYTHONUNBUFFERED: "1"
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -26,6 +31,7 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
+          cache: "pip"
 
       - name: Install dependencies
         run: |
@@ -48,4 +54,5 @@ jobs:
       - name: Tests and coverage
         env:
           PYTHONPATH: ${{ github.workspace }}
-        run: python -m pytest -q --cov=keynetra --cov-fail-under=80
+        run: |
+          python -m pytest -q --cov=keynetra --cov-fail-under=80
