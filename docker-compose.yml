@@ -1,0 +1,102 @@
+name: keynetra
+
+x-keynetra-common: &keynetra-common
+  build:
+    context: .
+    dockerfile: Dockerfile
+  restart: unless-stopped
+  environment:
+    KEYNETRA_DATABASE_URL: ${KEYNETRA_DATABASE_URL:-postgresql+psycopg://keynetra:keynetra@postgres:5432/keynetra}
+    KEYNETRA_REDIS_URL: ${KEYNETRA_REDIS_URL:-redis://redis:6379/0}
+    KEYNETRA_API_KEYS: ${KEYNETRA_API_KEYS:-devkey}
+    KEYNETRA_JWT_SECRET: ${KEYNETRA_JWT_SECRET:-change-me}
+    KEYNETRA_ADMIN_USERNAME: ${KEYNETRA_ADMIN_USERNAME:-admin}
+    KEYNETRA_ADMIN_PASSWORD: ${KEYNETRA_ADMIN_PASSWORD:-admin123}
+    KEYNETRA_RATE_LIMIT_PER_MINUTE: ${KEYNETRA_RATE_LIMIT_PER_MINUTE:-120}
+    KEYNETRA_RATE_LIMIT_BURST: ${KEYNETRA_RATE_LIMIT_BURST:-120}
+    KEYNETRA_RUN_MIGRATIONS: ${KEYNETRA_RUN_MIGRATIONS:-1}
+    KEYNETRA_AUTO_SEED_SAMPLE_DATA: ${KEYNETRA_AUTO_SEED_SAMPLE_DATA:-1}
+  depends_on:
+    postgres:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+
+services:
+  # Production/default API service.
+  keynetra:
+    <<: *keynetra-common
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/ready', timeout=3)"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${KEYNETRA_POSTGRES_USER:-keynetra}
+      POSTGRES_PASSWORD: ${KEYNETRA_POSTGRES_PASSWORD:-keynetra}
+      POSTGRES_DB: ${KEYNETRA_POSTGRES_DB:-keynetra}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  prometheus:
+    image: prom/prometheus:v2.55.0
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --web.enable-lifecycle
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./infra/docker/monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    depends_on:
+      keynetra:
+        condition: service_started
+
+  grafana:
+    image: grafana/grafana:11.2.0
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: ${KEYNETRA_GRAFANA_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${KEYNETRA_GRAFANA_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./infra/docker/monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./infra/docker/monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      prometheus:
+        condition: service_started
+
+volumes:
+  postgres_data:
+  prometheus_data:
+  grafana_data:

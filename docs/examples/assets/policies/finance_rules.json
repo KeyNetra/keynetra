@@ -1,0 +1,23 @@
+[
+  {
+    "action": "approve_payment",
+    "effect": "allow",
+    "priority": 35,
+    "policy_id": "payment-approve-manager",
+    "conditions": {
+      "role": "manager",
+      "department": "finance",
+      "max_amount": 10000
+    }
+  },
+  {
+    "action": "approve_payment",
+    "effect": "deny",
+    "priority": 95,
+    "policy_id": "payment-approve-high-risk",
+    "conditions": {
+      "department": "finance",
+      "risk_level": "high"
+    }
+  }
+]

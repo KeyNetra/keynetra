@@ -1,0 +1,17 @@
+database:
+  url: sqlite+pysqlite:///./keynetra.db
+
+redis:
+  url: redis://localhost:6379/0
+
+policies:
+  path: ./examples/policies
+
+models:
+  path: ./examples/auth-model.yaml
+
+seed_data: true
+
+server:
+  host: 0.0.0.0
+  port: 8080

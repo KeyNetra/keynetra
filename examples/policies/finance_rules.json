@@ -1,0 +1,12 @@
+[
+  {
+    "action": "approve_payment",
+    "effect": "allow",
+    "priority": 5,
+    "policy_id": "finance-approve-manager",
+    "conditions": {
+      "role": "manager",
+      "max_amount": 10000
+    }
+  }
+]

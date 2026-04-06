@@ -1,0 +1,13 @@
+policies:
+  - action: read
+    effect: allow
+    priority: 10
+    policy_id: document-read-admin
+    conditions:
+      role: admin
+  - action: read
+    effect: allow
+    priority: 20
+    policy_id: document-read-owner
+    conditions:
+      owner_only: true
