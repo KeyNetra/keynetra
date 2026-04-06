@@ -1,4 +1,4 @@
-name: CI
+name: CI Pipeline
 
 on:
   push:
@@ -8,42 +8,119 @@ on:
 permissions:
   contents: read
 
+env:
+  PYTHONUNBUFFERED: "1"
+  KEYNETRA_DATABASE_URL: sqlite+pysqlite:///./.keynetra-ci.db
+  KEYNETRA_API_KEYS: testkey
+
 jobs:
+
+  # -------------------------------
+  # Stage 1: Security Scan
+  # -------------------------------
   secret-scan:
-    name: 🔒 Secret Scan
+    name: 🔐 Secret Scan (Gitleaks)
     runs-on: ubuntu-latest
+
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: 🔍 Secret scanning (Gitleaks)
+      - name: 🔍 Run Gitleaks
         run: |
           docker run --rm \
             -v ${{ github.workspace }}:/repo \
             ghcr.io/gitleaks/gitleaks:latest \
             detect --source /repo --verbose --exit-code 1
 
-  test:
-    name: CI / test (${{ matrix.python-version }})
+
+  # -------------------------------
+  # Stage 2: Lint & Static Checks
+  # -------------------------------
+  lint:
+    name: 🧹 Lint & Formatting
     runs-on: ubuntu-latest
     needs: secret-scan
-    strategy:
-      fail-fast: true
-      matrix:
-        python-version: ["3.11", "3.12", "3.13"]
-
-    env:
-      KEYNETRA_DATABASE_URL: sqlite+pysqlite:///./.keynetra-ci.db
-      KEYNETRA_API_KEYS: testkey
-      PYTHONUNBUFFERED: "1"
 
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v4
 
-      - name: 🐍 Set up Python
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: 📦 Install dependencies
+        run: |
+          pip install -r requirements.lock
+          pip install -r requirements-dev.lock
+
+      - name: 🧪 Run linters
+        run: |
+          ruff check .
+          black --check .
+          isort --check-only .
+          lint-imports --config .importlinter
+
+
+  # -------------------------------
+  # Stage 3: Security Dependencies
+  # -------------------------------
+  security-deps:
+    name: 🛡 Dependency Security Scan
+    runs-on: ubuntu-latest
+    needs: lint
+
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: 📦 Install dependencies
+        run: |
+          pip install -r requirements.lock
+          pip install pip-audit
+
+      - name: 🔍 Run pip-audit
+        run: |
+          pip-audit
+          mkdir -p artifacts
+          pip-audit -f cyclonedx-json -o artifacts/sbom.cdx.json
+
+      - name: 📤 Upload SBOM
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: artifacts/sbom.cdx.json
+
+
+  # -------------------------------
+  # Stage 4: Tests (Matrix)
+  # -------------------------------
+  test:
+    name: CI / Test (${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    needs: security-deps
+
+    strategy:
+      fail-fast: true
+      matrix:
+        python-version: ["3.11", "3.12", "3.13", "3.14"]
+
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🐍 Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
@@ -51,86 +128,66 @@ jobs:
 
       - name: 📦 Install dependencies
         run: |
-          python -m pip install --upgrade pip
+          pip install --upgrade pip
           pip install -r requirements.lock
           pip install -r requirements-dev.lock
           pip install -e .
+
           if [ -d ./keynetra-client-python ]; then
             pip install -e ./keynetra-client-python
-          else
-            echo "SDK repo not present; skipping SDK install"
           fi
 
-      - name: 🔍 Lint
-        run: |
-          ruff check .
-          black --check .
-          isort --check-only .
-          lint-imports --config .importlinter.yaml
-
-      - name: 🛡️ Security dependency scans
-        run: |
-          pip-audit
-          safety check --policy-file .safety-policy.yml
-          mkdir -p artifacts
-          pip-audit -f cyclonedx-json -o artifacts/sbom.cdx.json
-
-      - name: 📋 OpenAPI contract drift check
-        env:
-          PYTHONPATH: ${{ github.workspace }}
+      - name: 🔄 OpenAPI drift check
         run: keynetra check-openapi
 
-      - name: 🗄️ Migration check
-        env:
-          PYTHONPATH: ${{ github.workspace }}
+      - name: 🗄 Migration check
         run: keynetra migrate --confirm-destructive
 
-      - name: ✅ Tests and coverage
-        env:
-          PYTHONPATH: ${{ github.workspace }}
+      - name: 🧪 Run tests with coverage
         run: |
           pytest -q \
             --cov=keynetra \
             --cov-fail-under=80 \
-            --cov-report=json:coverage.json \
-            --cov-report=term
+            --cov-report=term \
+            --cov-report=json
 
           if [ -d ./keynetra-client-python/tests ]; then
             pytest -q keynetra-client-python/tests
-          else
-            echo "SDK repo tests not present; skipping SDK tests."
           fi
 
           python scripts/check_coverage.py
 
-      - name: 📊 Coverage Summary
-        if: always()
-        run: |
-          echo "## 🧪 Test Coverage" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          if [ -f coverage.json ]; then
-            python -c "
-import json
-data = json.load(open('coverage.json'))['totals']
-print(f'### Overall: {data[\"percent_covered\"]:.1f}%')
-print('| Metric | % Covered |')
-print('|--------|-----------|')
-print(f'| Lines | {data[\"percent_covered\"]:.1f} |')
-print(f'| Branches | {data.get(\"percent_covered_branches\", 0):.1f} |')
-" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "### No coverage data found" >> $GITHUB_STEP_SUMMARY
-          fi
 
-      - name: 🚀 Load smoke budgets (Locust)
-        env:
-          PYTHONPATH: ${{ github.workspace }}
-          KEYNETRA_API_KEYS: devkey
+  # -------------------------------
+  # Stage 5: Load Test
+  # -------------------------------
+  load-test:
+    name: 🚦 Load Smoke Test
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: 📦 Install dependencies
+        run: |
+          pip install -r requirements.lock
+          pip install locust uvicorn
+
+      - name: 🚀 Start API
         run: |
           python -m uvicorn keynetra.api.main:app --host 127.0.0.1 --port 8000 &
-          UVICORN_PID=$!
-          sleep 5
+          sleep 3
 
+      - name: ⚡ Run Locust
+        run: |
           locust \
             -f locustfile.py \
             --host http://127.0.0.1:8000 \
@@ -138,30 +195,8 @@ print(f'| Branches | {data.get(\"percent_covered_branches\", 0):.1f} |')
             -u 10 \
             -r 2 \
             -t 20s \
-            --csv=/tmp/locust \
+            --csv /tmp/locust \
             --only-summary
 
-          python scripts/check_load_budget.py
-          kill $UVICORN_PID 2>/dev/null || true
-
-      - name: 📈 Locust Summary
-        if: always()
-        run: |
-          echo "## 🚀 Load Test Results" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          if [ -f /tmp/locust_stats_history.csv ]; then
-            echo "| Type | Requests | Failures | Median (s) | Avg (s) | Min (s) | Max (s) |" >> $GITHUB_STEP_SUMMARY
-            echo "|------|----------|----------|-------------|---------|---------|---------|" >> $GITHUB_STEP_SUMMARY
-            tail -n +2 /tmp/locust_stats_history.csv | head -n 10 | \
-            awk -F, '{printf "| %s | %s | %s | %s | %s | %s | %s |\n", $1,$2,$3,$4,$5,$6,$7}' \
-            >> $GITHUB_STEP_SUMMARY
-          else
-            echo "### No Locust data found" >> $GITHUB_STEP_SUMMARY
-          fi
-
-      - name: 📄 Upload SBOM artifact
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: sbom-${{ matrix.python-version }}
-          path: artifacts/sbom.cdx.json
+      - name: 📊 Validate load budget
+        run: python scripts/check_load_budget.py
