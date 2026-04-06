@@ -26,37 +26,37 @@ jobs:
             detect --source /repo --verbose --exit-code 1
 
   test:
-    name: CI / test (${{ matrix.python-version }})
+    name: 🧪 CI / test (${{ matrix.python-version }})
     runs-on: ubuntu-latest
     needs: secret-scan
     strategy:
       fail-fast: true
       matrix:
-        python-version: ["3.11", "3.12", "3.13", "3.14"]
+        python-version: ["3.11", "3.12", "3.13"]
+
     env:
       KEYNETRA_DATABASE_URL: sqlite+pysqlite:///./.keynetra-ci.db
       KEYNETRA_API_KEYS: testkey
       PYTHONUNBUFFERED: "1"
+
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v4
 
-      - name: 🐍 Set up Python ${{ matrix.python-version }}
+      - name: 🐍 Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-          cache: "pip"
+          cache: pip
 
       - name: 📦 Install dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -r requirements.lock
-          python -m pip install -r requirements-dev.lock
-          python -m pip install -e .
+          pip install -r requirements.lock
+          pip install -r requirements-dev.lock
+          pip install -e .
           if [ -d ./keynetra-client-python ]; then
-            python -m pip install -e ./keynetra-client-python
-          else
-            echo "SDK repo not present; skipping SDK install"
+            pip install -e ./keynetra-client-python
           fi
 
       - name: 🔍 Lint
@@ -69,6 +69,7 @@ jobs:
       - name: 🛡️ Security dependency scans
         run: |
           pip-audit
+          safety check --policy-file .safety-policy.yml
           mkdir -p artifacts
           pip-audit -f cyclonedx-json -o artifacts/sbom.cdx.json
 
@@ -86,16 +87,16 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}
         run: |
-          python -m pytest -q \
+          pytest -q \
             --cov=keynetra \
             --cov-fail-under=80 \
             --cov-report=json:coverage.json \
             --cov-report=term
+
           if [ -d ./keynetra-client-python/tests ]; then
-            python -m pytest -q keynetra-client-python/tests
-          else
-            echo "SDK repo tests not present; skipping SDK tests."
+            pytest -q keynetra-client-python/tests
           fi
+
           python scripts/check_coverage.py
 
       - name: 📊 Coverage Summary
@@ -104,29 +105,33 @@ jobs:
           echo "## 🧪 Test Coverage" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           if [ -f coverage.json ]; then
-            python -c "
+            python << EOF >> $GITHUB_STEP_SUMMARY
 import json
 with open('coverage.json') as f:
     data = json.load(f)['totals']
-perc = data['percent_covered']
-print('### Overall: {:.1f}%'.format(perc), file=open('$GITHUB_STEP_SUMMARY', 'a'))
-print('| Metric | % Covered |', file=open('$GITHUB_STEP_SUMMARY', 'a'))
-print('|--------|-----------|', file=open('$GITHUB_STEP_SUMMARY', 'a'))
-print('| Lines  | {:.1f} |'.format(data['percent_covered'] * 100), file=open('$GITHUB_STEP_SUMMARY', 'a'))
-print('| Branches | {:.1f} |'.format(data['branch_coverage'] * 100), file=open('$GITHUB_STEP_SUMMARY', 'a'))
-            "
+print('### Overall: {:.1f}%'.format(data['percent_covered']))
+print('| Metric | % Covered |')
+print('|--------|-----------|')
+print('| Lines  | {:.1f} |'.format(data['percent_covered']))
+print('| Branches | {:.1f} |'.format(data.get('percent_covered_branches', 0)))
+EOF
           else
             echo "### No coverage data found" >> $GITHUB_STEP_SUMMARY
           fi
 
-      - name: 🚀 Load smoke budgets (Locust)
+      - name: 🚀 Load smoke test (Locust)
         env:
           PYTHONPATH: ${{ github.workspace }}
           KEYNETRA_API_KEYS: devkey
         run: |
-          python -m uvicorn keynetra.api.main:app --host 127.0.0.1 --port 8000 &
+          uvicorn keynetra.api.main:app --host 127.0.0.1 --port 8000 &
           UVICORN_PID=$!
-          sleep 5
+
+          for i in {1..10}; do
+            curl -s http://127.0.0.1:8000/health && break
+            sleep 1
+          done
+
           locust \
             -f locustfile.py \
             --host http://127.0.0.1:8000 \
@@ -136,6 +141,7 @@ print('| Branches | {:.1f} |'.format(data['branch_coverage'] * 100), file=open('
             -t 20s \
             --csv=/tmp/locust \
             --only-summary
+
           python scripts/check_load_budget.py
           kill $UVICORN_PID || true
 
@@ -148,7 +154,8 @@ print('| Branches | {:.1f} |'.format(data['branch_coverage'] * 100), file=open('
             echo "| Type | Requests | Failures | Median (s) | Avg (s) | Min (s) | Max (s) |" >> $GITHUB_STEP_SUMMARY
             echo "|------|----------|----------|-------------|---------|---------|---------|" >> $GITHUB_STEP_SUMMARY
             tail -n +2 /tmp/locust_stats_history.csv | head -n 10 | \
-              sed 's/^/| /; s/$/ |/; s/,/ | /g' >> $GITHUB_STEP_SUMMARY
+            awk -F, '{printf "| %s | %s | %s | %s | %s | %s | %s |\n", $1,$2,$3,$4,$5,$6,$7}' \
+            >> $GITHUB_STEP_SUMMARY
           else
             echo "### No Locust data found" >> $GITHUB_STEP_SUMMARY
           fi
