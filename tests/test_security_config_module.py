@@ -1,15 +1,12 @@
 from __future__ import annotations
 
 import hashlib
-import hmac
 from types import SimpleNamespace
 
 import pytest
-from fastapi import Request
-from fastapi.security import HTTPAuthorizationCredentials
+from fastapi import HTTPException
 
-from keynetra.config.security import _matches_api_key, _scopes_are_defined, _unauthorized
-from keynetra.config.security import get_principal
+from keynetra.config.security import _matches_api_key, _scopes_are_defined, get_principal
 
 
 class DummyRequest(SimpleNamespace):
@@ -69,7 +66,7 @@ def test_get_principal_raises_without_credentials(monkeypatch):
     request = DummyRequest()
     settings = DummySettings()
     monkeypatch.setattr("keynetra.config.security.get_settings", lambda: settings)
-    with pytest.raises(Exception):
+    with pytest.raises(HTTPException):
         get_principal(request, settings=settings, authorization=None, x_api_key=None)
 
 
