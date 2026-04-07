@@ -112,6 +112,8 @@ jobs:
     name: CI / test (${{ matrix.python-version }})
     runs-on: ubuntu-latest
     needs: security-deps
+    env:
+      PYTHONPATH: ${{ github.workspace }}
 
     strategy:
       fail-fast: true
@@ -130,31 +132,31 @@ jobs:
 
       - name: 📦 Install dependencies
         run: |
-          pip install --upgrade pip
-          pip install -r requirements.lock
-          pip install -r requirements-dev.lock
-          pip install -e .
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.lock
+          python -m pip install -r requirements-dev.lock
+          python -m pip install -e .
 
           if [ -d ./keynetra-client-python ]; then
-            pip install -e ./keynetra-client-python
+            python -m pip install -e ./keynetra-client-python
           fi
 
       - name: 🔄 OpenAPI drift check
-        run: keynetra check-openapi
+        run: python -m keynetra.cli check-openapi
 
       - name: 🗄 Migration check
-        run: keynetra migrate --confirm-destructive
+        run: python -m keynetra.cli migrate --confirm-destructive
 
       - name: 🧪 Run tests with coverage
         run: |
-          pytest -q \
+          python -m pytest -q \
             --cov=keynetra \
             --cov-fail-under=80 \
             --cov-report=term \
             --cov-report=json
 
           if [ -d ./keynetra-client-python/tests ]; then
-            pytest -q keynetra-client-python/tests
+            python -m pytest -q keynetra-client-python/tests
           fi
 
           python scripts/check_coverage.py
@@ -167,6 +169,8 @@ jobs:
     name: 🚦 Load Smoke Test
     runs-on: ubuntu-latest
     needs: test
+    env:
+      PYTHONPATH: ${{ github.workspace }}
 
     steps:
       - name: 📥 Checkout repository
@@ -180,8 +184,10 @@ jobs:
 
       - name: 📦 Install dependencies
         run: |
-          pip install -r requirements.lock
-          pip install locust uvicorn
+          python -m pip install -r requirements.lock
+          python -m pip install -r requirements-dev.lock
+          python -m pip install -e .
+          python -m pip install locust uvicorn
 
       - name: 🚀 Start API
         run: |

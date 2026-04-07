@@ -17,6 +17,7 @@ jobs:
       KEYNETRA_DATABASE_URL: sqlite+pysqlite:///./.keynetra-release.db
       KEYNETRA_API_KEYS: testkey
       PYTHONUNBUFFERED: "1"
+      PYTHONPATH: ${{ github.workspace }}
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v4
@@ -34,6 +35,7 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt
           python -m pip install -r requirements-dev.txt
+          python -m pip install -e .
           python -m pip install build twine
 
       - name: 🔍 Lint & Security
@@ -44,7 +46,7 @@ jobs:
 
       - name: ✅ Run tests & coverage
         run: |
-          pytest -q \
+          python -m pytest -q \
             --cov=keynetra \
             --cov-fail-under=85 \
             --cov-report=term \
