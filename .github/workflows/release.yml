@@ -33,8 +33,8 @@ jobs:
       - name: 📦 Install dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -r requirements.txt
-          python -m pip install -r requirements-dev.txt
+          python -m pip install -r requirements.lock
+          python -m pip install -r requirements-dev.lock
           python -m pip install -e .
           python -m pip install build twine
           if [ -d ./keynetra-client-python ]; then
@@ -140,9 +140,6 @@ jobs:
     permissions:
       contents: read
       packages: write
-    strategy:
-      matrix:
-        platform: [linux/amd64, linux/arm64]
     steps:
       - name: 📥 Checkout repo
         uses: actions/checkout@v4
@@ -154,7 +151,7 @@ jobs:
 
       - name: 📦 Install build deps
         run: |
-          python -m pip install -r requirements.txt
+          python -m pip install -r requirements.lock
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -190,7 +187,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          platforms: ${{ matrix.platform }}
+          platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
@@ -204,5 +201,5 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Registry | Tags | Platforms |" >> $GITHUB_STEP_SUMMARY
           echo "|----------|------|-----------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Docker Hub | \`${{ steps.meta.outputs.tags }}\` | ${{ matrix.platform }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| GHCR | \`${{ steps.meta.outputs.tags }}\` | ${{ matrix.platform }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Docker Hub | \`${{ steps.meta.outputs.tags }}\` | linux/amd64, linux/arm64 |" >> $GITHUB_STEP_SUMMARY
+          echo "| GHCR | \`${{ steps.meta.outputs.tags }}\` | linux/amd64, linux/arm64 |" >> $GITHUB_STEP_SUMMARY
