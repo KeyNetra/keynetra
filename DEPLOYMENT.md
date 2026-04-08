@@ -1,6 +1,6 @@
 # Deployment Guide
 
-This guide documents supported deployment paths for KeyNetra v0.1.0-beta.
+This guide documents supported deployment paths for KeyNetra v0.1.1-beta.
 
 ## Prerequisites
 
