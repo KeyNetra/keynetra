@@ -106,7 +106,7 @@ keynetra doctor --service core
 OpenAPI contracts:
 
 - [`contracts/openapi/openapi.json`](./contracts/openapi/openapi.json)
-- [`contracts/openapi/keynetra-v0.1.0.yaml`](./contracts/openapi/keynetra-v0.1.0.yaml)
+- [`contracts/openapi/keynetra-v0.1.1.yaml`](./contracts/openapi/keynetra-v0.1.1.yaml)
 
 ## Multi-Tenant and Security
 
@@ -231,7 +231,7 @@ Apache-2.0. See [`LICENSE`](./LICENSE).
   title   = {KeyNetra},
   author  = {KeyNetra Community},
   year    = {2026},
-  version = {0.1.0-beta},
+  version = {0.1.1-beta},
   url     = {https://github.com/keynetra/keynetra}
 }
 ```

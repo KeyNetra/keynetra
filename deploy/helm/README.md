@@ -15,7 +15,7 @@ helm upgrade --install keynetra ./deploy/helm/keynetra
 ```bash
 helm upgrade --install keynetra ./deploy/helm/keynetra \
   --set image.repository=ghcr.io/keynetra/keynetra \
-  --set image.tag=v0.1.0 \
+  --set image.tag=v0.1.1 \
   --set env.KEYNETRA_DATABASE_URL=postgresql+psycopg://... \
   --set env.KEYNETRA_REDIS_URL=redis://... \
   --set env.KEYNETRA_STRICT_TENANCY=true \

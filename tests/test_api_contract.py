@@ -9,7 +9,7 @@ from keynetra.config.settings import reset_settings_cache
 from keynetra.main import create_app
 
 CONTRACT_PATH = (
-    Path(__file__).resolve().parents[1] / "contracts" / "openapi" / "keynetra-v0.1.0.yaml"
+    Path(__file__).resolve().parents[1] / "contracts" / "openapi" / "keynetra-v0.1.1.yaml"
 )
 
 

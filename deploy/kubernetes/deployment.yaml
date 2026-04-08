@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: keynetra
-          image: ghcr.io/keynetra/keynetra:v0.1.0
+          image: ghcr.io/keynetra/keynetra:v0.1.1
           imagePullPolicy: IfNotPresent
           args: ["keynetra", "serve", "--host", "0.0.0.0", "--port", "8000"]
           ports:
