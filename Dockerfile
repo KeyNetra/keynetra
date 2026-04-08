@@ -10,7 +10,8 @@ WORKDIR /app
 RUN useradd --create-home --uid 10001 appuser
 
 COPY requirements.lock /app/requirements.lock
-RUN pip install --no-cache-dir -r /app/requirements.lock
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r /app/requirements.lock
 
 COPY alembic.ini /app/alembic.ini
 COPY alembic /app/alembic
