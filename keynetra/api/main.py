@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from keynetra.api.middleware.errors import register_error_handlers
 from keynetra.api.middleware.idempotency import IdempotencyMiddleware
 from keynetra.api.middleware.logging import RequestLoggingMiddleware
+from keynetra.api.openapi import build_openapi_schema
 from keynetra.api.middleware.request_id import RequestIdMiddleware
 from keynetra.api.middleware.tenant import TenantResolverMiddleware
 from keynetra.api.middleware.versioning import ApiVersionMiddleware
@@ -47,12 +48,6 @@ def create_app() -> FastAPI:
     app = FastAPI(title="KeyNetra", version=keynetra_version, lifespan=_lifespan)
     settings = get_settings()
 
-    app.add_middleware(RequestIdMiddleware)
-    app.add_middleware(TenantResolverMiddleware)
-    app.add_middleware(ApiVersionMiddleware)
-    app.add_middleware(RequestLoggingMiddleware)
-    app.add_middleware(RateLimitMiddleware, settings=settings)
-    app.add_middleware(IdempotencyMiddleware, settings=settings)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.parsed_cors_allow_origins(),
@@ -61,6 +56,12 @@ def create_app() -> FastAPI:
         allow_methods=settings.parsed_cors_allow_methods(),
         allow_headers=settings.parsed_cors_allow_headers(),
     )
+    app.add_middleware(IdempotencyMiddleware, settings=settings)
+    app.add_middleware(RateLimitMiddleware, settings=settings)
+    app.add_middleware(RequestLoggingMiddleware)
+    app.add_middleware(TenantResolverMiddleware)
+    app.add_middleware(ApiVersionMiddleware)
+    app.add_middleware(RequestIdMiddleware)
     register_error_handlers(app, settings)
 
     mode = getattr(settings, "service_mode", "all")
@@ -79,6 +80,7 @@ def create_app() -> FastAPI:
             if settings.environment in {"prod", "production"}:
                 raise BootstrapError("failed to initialize OTel instrumentation") from exc
 
+    app.openapi = lambda: build_openapi_schema(app)
     return app
 
 

@@ -31,7 +31,7 @@ def test_permissions_roles_relationships_and_policies_management_paths(tmp_path)
 
     created_permission = client.post("/permissions", json={"action": "deploy"}, headers=headers)
     assert created_permission.status_code == 201
-    permission_id = created_permission.json()["id"]
+    permission_id = created_permission.json()["data"]["id"]
 
     duplicate_permission = client.post("/permissions", json={"action": "deploy"}, headers=headers)
     assert duplicate_permission.status_code == 409
@@ -49,12 +49,12 @@ def test_permissions_roles_relationships_and_policies_management_paths(tmp_path)
         headers=headers,
     )
     assert updated_permission.status_code == 200
-    assert updated_permission.json()["action"] == "deploy_v2"
+    assert updated_permission.json()["data"]["action"] == "deploy_v2"
 
     # Roles CRUD + permission assignment paths.
     created_role = client.post("/roles", json={"name": "operators"}, headers=headers)
     assert created_role.status_code == 201
-    role_id = created_role.json()["id"]
+    role_id = created_role.json()["data"]["id"]
 
     duplicate_role = client.post("/roles", json={"name": "operators"}, headers=headers)
     assert duplicate_role.status_code == 409
@@ -64,7 +64,7 @@ def test_permissions_roles_relationships_and_policies_management_paths(tmp_path)
 
     updated_role = client.put(f"/roles/{role_id}", json={"name": "ops"}, headers=headers)
     assert updated_role.status_code == 200
-    assert updated_role.json()["name"] == "ops"
+    assert updated_role.json()["data"]["name"] == "ops"
 
     add_permission = client.post(f"/roles/{role_id}/permissions/{permission_id}", headers=headers)
     assert add_permission.status_code == 201
@@ -147,7 +147,7 @@ def test_permissions_roles_relationships_and_policies_management_paths(tmp_path)
     assert updated_policy.status_code == 200
     assert updated_policy.json()["data"]["effect"] == "deny"
 
-    bad_dsl = client.post("/policies/dsl?dsl=invalid", headers=headers)
+    bad_dsl = client.post("/policies/dsl", json={"dsl": "invalid"}, headers=headers)
     assert bad_dsl.status_code == 422
 
     missing_rollback = client.post("/policies/read-admin/rollback/999", headers=headers)

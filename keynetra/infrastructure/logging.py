@@ -9,8 +9,14 @@ from contextvars import ContextVar, Token
 from datetime import UTC, datetime
 from typing import Any
 
+from keynetra.utils.datetime import isoformat_z
+
 _correlation_id_ctx: ContextVar[str | None] = ContextVar(
     "keynetra_correlation_id",
+    default=None,
+)
+_request_id_ctx: ContextVar[str | None] = ContextVar(
+    "keynetra_request_id",
     default=None,
 )
 
@@ -22,7 +28,7 @@ class JsonLogFormatter(logging.Formatter):
             payload = dict(record.msg)
         else:
             payload = {"message": record.getMessage()}
-        payload.setdefault("timestamp", datetime.now(UTC).isoformat())
+        payload.setdefault("timestamp", isoformat_z(datetime.now(UTC)))
         payload.setdefault("level", record.levelname)
         payload.setdefault("logger", record.name)
         return json.dumps(payload, default=str)
@@ -91,3 +97,15 @@ def reset_correlation_id(token: Token[str | None]) -> None:
 
 def get_correlation_id() -> str | None:
     return _correlation_id_ctx.get()
+
+
+def set_request_id(request_id: str | None) -> Token[str | None]:
+    return _request_id_ctx.set(request_id)
+
+
+def reset_request_id(token: Token[str | None]) -> None:
+    _request_id_ctx.reset(token)
+
+
+def get_request_id() -> str | None:
+    return _request_id_ctx.get()

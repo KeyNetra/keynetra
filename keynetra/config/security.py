@@ -13,6 +13,8 @@ from jose import JWTError, jwt
 
 from keynetra.config.settings import Settings, get_settings
 from keynetra.config.tenancy import DEFAULT_TENANT_KEY, tenant_for_logs
+from keynetra.infrastructure.repositories.api_keys import SqlApiKeyRepository
+from keynetra.infrastructure.storage.session import create_session_factory
 from keynetra.infrastructure.logging import log_event
 from keynetra.observability.metrics import record_auth_failure, record_jwks_fetch
 
@@ -72,6 +74,23 @@ def _scopes_are_defined(scopes: dict[str, Any]) -> bool:
     )
 
 
+def _load_persistent_api_key_scopes(settings: Settings, key_hash: str) -> dict[str, Any] | None:
+    try:
+        session_factory = create_session_factory(settings.database_url)
+        db = session_factory()
+    except Exception:
+        return None
+    try:
+        record = SqlApiKeyRepository(db).get_by_hash(key_hash=key_hash)
+        if record is None or record.revoked_at is not None:
+            return None
+        return record.scopes
+    except Exception:
+        return None
+    finally:
+        db.close()
+
+
 def _get_jwks(settings: Settings) -> dict[str, Any]:
     if not settings.oidc_jwks_url:
         raise JWTError("jwks url not configured")
@@ -122,9 +141,12 @@ def get_principal(
     parsed_scopes = settings.parsed_api_key_scopes()
     if x_api_key:
         key_hash = hashlib.sha256(x_api_key.encode("utf-8")).hexdigest()
-        if _matches_api_key(x_api_key, api_key_hashes):
+        persistent_scopes = _load_persistent_api_key_scopes(settings, key_hash)
+        if _matches_api_key(x_api_key, api_key_hashes) or persistent_scopes is not None:
             scopes = parsed_scopes.get(key_hash, {})
             has_explicit_scope_for_key = key_hash in parsed_scopes
+            if not _scopes_are_defined(scopes):
+                scopes = persistent_scopes or scopes
             if not _scopes_are_defined(scopes):
                 _log_failed_auth(
                     request,
@@ -139,11 +161,7 @@ def get_principal(
                     }
                 if not settings.is_development():
                     raise _unauthorized("api key scopes must include role or permissions")
-            return {
-                "type": "api_key",
-                "id": key_hash[:12],
-                "scopes": scopes,
-            }
+            return {"type": "api_key", "id": key_hash[:12], "scopes": scopes}
         _log_failed_auth(request, reason="invalid_api_key", api_key=x_api_key)
         raise _unauthorized("invalid api key")
 

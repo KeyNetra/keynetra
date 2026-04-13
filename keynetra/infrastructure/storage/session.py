@@ -68,6 +68,7 @@ def initialize_database(database_url: str) -> None:
 
     from keynetra.domain.models import acl as _acl  # noqa: F401
     from keynetra.domain.models import audit as _audit  # noqa: F401
+    from keynetra.domain.models import api_key as _api_key  # noqa: F401
     from keynetra.domain.models import auth_model as _auth_model  # noqa: F401
     from keynetra.domain.models import idempotency as _idempotency  # noqa: F401
     from keynetra.domain.models import policy_versioning as _policy_versioning  # noqa: F401

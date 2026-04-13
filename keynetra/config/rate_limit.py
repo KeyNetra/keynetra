@@ -10,10 +10,11 @@ from dataclasses import dataclass
 from threading import Lock
 
 from fastapi import Request, status
-from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
 
+from keynetra.api.errors import ApiErrorCode
+from keynetra.api.responses import error_json_response, request_id_from_state
 from keynetra.config.redis_client import get_redis
 from keynetra.config.settings import Settings
 from keynetra.infrastructure.logging import log_event
@@ -120,7 +121,11 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                 remaining_tokens = max(0, int(float(remaining)))
                 retry_after_seconds = max(0, int(retry_after))
                 if not allowed_bool:
-                    return self._limited_response(limit=capacity, retry_after=retry_after_seconds)
+                    return self._limited_response(
+                        request=request,
+                        limit=capacity,
+                        retry_after=retry_after_seconds,
+                    )
                 return _BucketDecision(
                     limit=capacity, remaining=remaining_tokens, retry_after=retry_after_seconds
                 )
@@ -142,27 +147,23 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             bucket.updated_at = now
             if bucket.tokens < 1.0:
                 retry_after = max(1, math.ceil((1.0 - bucket.tokens) / refill_rate))
-                return self._limited_response(limit=capacity, retry_after=retry_after)
+                return self._limited_response(request=request, limit=capacity, retry_after=retry_after)
             bucket.tokens -= 1.0
             remaining = max(0, int(bucket.tokens))
             return _BucketDecision(limit=capacity, remaining=remaining, retry_after=0)
 
-    def _limited_response(self, *, limit: int, retry_after: int) -> JSONResponse:
-        return JSONResponse(
+    def _limited_response(self, *, request: Request, limit: int, retry_after: int) -> Response:
+        return error_json_response(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            code=ApiErrorCode.TOO_MANY_REQUESTS,
+            message="rate limit exceeded",
+            details=None,
+            request_id=request_id_from_state(request.state),
             headers={
                 "Retry-After": str(max(1, retry_after)),
                 "X-RateLimit-Limit": str(limit),
                 "X-RateLimit-Remaining": "0",
                 "X-RateLimit-Reset": str(max(1, retry_after)),
-            },
-            content={
-                "data": None,
-                "error": {
-                    "code": "too_many_requests",
-                    "message": "rate limit exceeded",
-                    "details": None,
-                },
             },
         )
 

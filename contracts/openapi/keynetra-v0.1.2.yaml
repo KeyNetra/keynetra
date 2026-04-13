@@ -1,0 +1,6561 @@
+openapi: 3.0.3
+info:
+  title: KeyNetra
+  version: 0.1.2
+paths:
+  /health:
+    get:
+      tags:
+      - health
+      summary: Health
+      operationId: health
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_dict_str__str__'
+              examples:
+                success:
+                  summary: Standard success envelope
+                  value:
+                    data: {}
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          $ref: '#/components/responses/Error409'
+        '422':
+          $ref: '#/components/responses/Error422'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+      parameters:
+      - $ref: '#/components/parameters/ApiVersionHeader'
+  /health/live:
+    get:
+      tags:
+      - health
+      summary: Liveness
+      operationId: liveness
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_dict_str__str__'
+              examples:
+                success:
+                  summary: Standard success envelope
+                  value:
+                    data: {}
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          $ref: '#/components/responses/Error409'
+        '422':
+          $ref: '#/components/responses/Error422'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+      parameters:
+      - $ref: '#/components/parameters/ApiVersionHeader'
+  /health/ready:
+    get:
+      tags:
+      - health
+      summary: Readiness
+      operationId: readiness
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_dict_str__object__'
+              examples:
+                success:
+                  summary: Standard success envelope
+                  value:
+                    data: {}
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          $ref: '#/components/responses/Error409'
+        '422':
+          $ref: '#/components/responses/Error422'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+      parameters:
+      - $ref: '#/components/parameters/ApiVersionHeader'
+  /check-access:
+    post:
+      tags:
+      - access
+      summary: Check Access
+      operationId: check_access
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: policy_set
+        in: query
+        required: false
+        schema:
+          type: string
+          default: active
+          title: Policy Set
+      - $ref: '#/components/parameters/ApiVersionHeader'
+      - $ref: '#/components/parameters/TenantHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AccessRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_AccessDecisionResponse_'
+              examples:
+                success:
+                  summary: Standard success envelope
+                  value:
+                    data: {}
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                error:
+                  summary: Standard error envelope
+                  value:
+                    data: null
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error:
+                      code: validation_error
+                      message: request failed
+                      details: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          $ref: '#/components/responses/Error409'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+  /simulate:
+    post:
+      tags:
+      - access
+      summary: Simulate
+      operationId: simulate
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AccessRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_SimulationResponse_'
+              examples:
+                success:
+                  summary: Standard success envelope
+                  value:
+                    data: {}
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                error:
+                  summary: Standard error envelope
+                  value:
+                    data: null
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error:
+                      code: validation_error
+                      message: request failed
+                      details: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          $ref: '#/components/responses/Error409'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - $ref: '#/components/parameters/ApiVersionHeader'
+      - $ref: '#/components/parameters/TenantHeader'
+  /check-access-batch:
+    post:
+      tags:
+      - access
+      summary: Check Access Batch
+      operationId: check_access_batch
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: policy_set
+        in: query
+        required: false
+        schema:
+          type: string
+          default: active
+          title: Policy Set
+      - $ref: '#/components/parameters/ApiVersionHeader'
+      - $ref: '#/components/parameters/TenantHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BatchAccessRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_BatchAccessResponse_'
+              examples:
+                success:
+                  summary: Standard success envelope
+                  value:
+                    data: {}
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                error:
+                  summary: Standard error envelope
+                  value:
+                    data: null
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error:
+                      code: validation_error
+                      message: request failed
+                      details: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          $ref: '#/components/responses/Error409'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+  /admin/login:
+    post:
+      tags:
+      - auth
+      summary: Admin Login
+      operationId: admin_login
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminLoginRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_AdminLoginResponse_'
+              examples:
+                success:
+                  summary: Standard success envelope
+                  value:
+                    data: {}
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                error:
+                  summary: Standard error envelope
+                  value:
+                    data: null
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error:
+                      code: validation_error
+                      message: request failed
+                      details: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          $ref: '#/components/responses/Error409'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+      parameters:
+      - $ref: '#/components/parameters/ApiVersionHeader'
+  /tenants:
+    get:
+      tags:
+      - management
+      summary: List Tenants
+      operationId: list_tenants
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 50
+          title: Limit
+      - name: cursor
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - nullable: true
+          title: Cursor
+      - $ref: '#/components/parameters/ApiVersionHeader'
+      - $ref: '#/components/parameters/TenantHeader'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_list_TenantOut__'
+              examples:
+                success:
+                  summary: Standard success envelope
+                  value:
+                    data: {}
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                error:
+                  summary: Standard error envelope
+                  value:
+                    data: null
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error:
+                      code: validation_error
+                      message: request failed
+                      details: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          $ref: '#/components/responses/Error409'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+    post:
+      tags:
+      - management
+      summary: Create Tenant
+      operationId: create_tenant
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TenantCreate'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_TenantOut_'
+              examples:
+                success:
+                  summary: Standard success envelope
+                  value:
+                    data: {}
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                error:
+                  summary: Standard error envelope
+                  value:
+                    data: null
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error:
+                      code: validation_error
+                      message: request failed
+                      details: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          $ref: '#/components/responses/Error409'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+      parameters:
+      - $ref: '#/components/parameters/ApiVersionHeader'
+      - $ref: '#/components/parameters/TenantHeader'
+  /tenants/{tenant_key}:
+    get:
+      tags:
+      - management
+      summary: Get Tenant
+      operationId: get_tenant
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: tenant_key
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Tenant Key
+      - $ref: '#/components/parameters/ApiVersionHeader'
+      - $ref: '#/components/parameters/TenantHeader'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_TenantOut_'
+              examples:
+                success:
+                  summary: Standard success envelope
+                  value:
+                    data: {}
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                error:
+                  summary: Standard error envelope
+                  value:
+                    data: null
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error:
+                      code: validation_error
+                      message: request failed
+                      details: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          $ref: '#/components/responses/Error409'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+  /tenants/{tenant_key}/api-keys:
+    get:
+      tags:
+      - management
+      summary: List Api Keys
+      operationId: list_api_keys
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: tenant_key
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Tenant Key
+      - $ref: '#/components/parameters/ApiVersionHeader'
+      - $ref: '#/components/parameters/TenantHeader'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_list_ApiKeyOut__'
+              examples:
+                success:
+                  summary: Standard success envelope
+                  value:
+                    data: {}
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                error:
+                  summary: Standard error envelope
+                  value:
+                    data: null
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error:
+                      code: validation_error
+                      message: request failed
+                      details: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          $ref: '#/components/responses/Error409'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+    post:
+      tags:
+      - management
+      summary: Create Api Key
+      operationId: create_api_key
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: tenant_key
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Tenant Key
+      - $ref: '#/components/parameters/ApiVersionHeader'
+      - $ref: '#/components/parameters/TenantHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApiKeyCreate'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_ApiKeyCreatedOut_'
+              examples:
+                success:
+                  summary: Standard success envelope
+                  value:
+                    data: {}
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                error:
+                  summary: Standard error envelope
+                  value:
+                    data: null
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error:
+                      code: validation_error
+                      message: request failed
+                      details: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          $ref: '#/components/responses/Error409'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+  /tenants/{tenant_key}/api-keys/{key_id}:
+    delete:
+      tags:
+      - management
+      summary: Revoke Api Key
+      operationId: revoke_api_key
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: tenant_key
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Tenant Key
+      - name: key_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Key Id
+      - $ref: '#/components/parameters/ApiVersionHeader'
+      - $ref: '#/components/parameters/TenantHeader'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_dict_str__int__'
+              examples:
+                success:
+                  summary: Standard success envelope
+                  value:
+                    data: {}
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                error:
+                  summary: Standard error envelope
+                  value:
+                    data: null
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error:
+                      code: validation_error
+                      message: request failed
+                      details: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          $ref: '#/components/responses/Error409'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+  /users/{external_id}/roles:
+    get:
+      tags:
+      - management
+      summary: List User Roles
+      operationId: list_user_roles
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: external_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: External Id
+      - $ref: '#/components/parameters/ApiVersionHeader'
+      - $ref: '#/components/parameters/TenantHeader'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_list_UserRoleAssignmentOut__'
+              examples:
+                success:
+                  summary: Standard success envelope
+                  value:
+                    data: {}
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                error:
+                  summary: Standard error envelope
+                  value:
+                    data: null
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error:
+                      code: validation_error
+                      message: request failed
+                      details: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          $ref: '#/components/responses/Error409'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+  /users/{external_id}/roles/{role_id}:
+    post:
+      tags:
+      - management
+      summary: Assign User Role
+      operationId: assign_user_role
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: external_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: External Id
+      - name: role_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Role Id
+      - $ref: '#/components/parameters/ApiVersionHeader'
+      - $ref: '#/components/parameters/TenantHeader'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_UserRoleAssignmentOut_'
+              examples:
+                success:
+                  summary: Standard success envelope
+                  value:
+                    data: {}
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                error:
+                  summary: Standard error envelope
+                  value:
+                    data: null
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error:
+                      code: validation_error
+                      message: request failed
+                      details: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          $ref: '#/components/responses/Error409'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+    delete:
+      tags:
+      - management
+      summary: Remove User Role
+      operationId: remove_user_role
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: external_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: External Id
+      - name: role_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Role Id
+      - $ref: '#/components/parameters/ApiVersionHeader'
+      - $ref: '#/components/parameters/TenantHeader'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_UserRoleAssignmentOut_'
+              examples:
+                success:
+                  summary: Standard success envelope
+                  value:
+                    data: {}
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                error:
+                  summary: Standard error envelope
+                  value:
+                    data: null
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error:
+                      code: validation_error
+                      message: request failed
+                      details: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          $ref: '#/components/responses/Error409'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+  /policies/{policy_key}/versions:
+    get:
+      tags:
+      - management
+      summary: List Policy Versions
+      operationId: list_policy_versions
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: policy_key
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Policy Key
+      - $ref: '#/components/parameters/ApiVersionHeader'
+      - $ref: '#/components/parameters/TenantHeader'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_list_PolicyVersionOut__'
+              examples:
+                success:
+                  summary: Standard success envelope
+                  value:
+                    data: {}
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                error:
+                  summary: Standard error envelope
+                  value:
+                    data: null
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error:
+                      code: validation_error
+                      message: request failed
+                      details: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          $ref: '#/components/responses/Error409'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+  /policies/{policy_key}/versions/{version}:
+    get:
+      tags:
+      - management
+      summary: Get Policy Version
+      operationId: get_policy_version
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: policy_key
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Policy Key
+      - name: version
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Version
+      - $ref: '#/components/parameters/ApiVersionHeader'
+      - $ref: '#/components/parameters/TenantHeader'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_PolicyVersionOut_'
+              examples:
+                success:
+                  summary: Standard success envelope
+                  value:
+                    data: {}
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                error:
+                  summary: Standard error envelope
+                  value:
+                    data: null
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error:
+                      code: validation_error
+                      message: request failed
+                      details: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          $ref: '#/components/responses/Error409'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+  /policies/{policy_key}/versions/{from_version}/diff/{to_version}:
+    get:
+      tags:
+      - management
+      summary: Diff Policy Versions
+      operationId: diff_policy_versions
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: policy_key
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Policy Key
+      - name: from_version
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: From Version
+      - name: to_version
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: To Version
+      - $ref: '#/components/parameters/ApiVersionHeader'
+      - $ref: '#/components/parameters/TenantHeader'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_PolicyVersionDiffOut_'
+              examples:
+                success:
+                  summary: Standard success envelope
+                  value:
+                    data: {}
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                error:
+                  summary: Standard error envelope
+                  value:
+                    data: null
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error:
+                      code: validation_error
+                      message: request failed
+                      details: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          $ref: '#/components/responses/Error409'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+  /policies/{policy_key}/versions/{version}/restore:
+    post:
+      tags:
+      - management
+      summary: Restore Policy Version
+      operationId: restore_policy_version
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: policy_key
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Policy Key
+      - name: version
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Version
+      - $ref: '#/components/parameters/ApiVersionHeader'
+      - $ref: '#/components/parameters/TenantHeader'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_dict_str__Union_int__str___'
+              examples:
+                success:
+                  summary: Standard success envelope
+                  value:
+                    data: {}
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                error:
+                  summary: Standard error envelope
+                  value:
+                    data: null
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error:
+                      code: validation_error
+                      message: request failed
+                      details: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          $ref: '#/components/responses/Error409'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+  /policy-tests/run:
+    post:
+      tags:
+      - management
+      summary: Run Policy Tests
+      operationId: run_policy_tests
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PolicyTestSuiteRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_list_PolicyTestResultOut__'
+              examples:
+                success:
+                  summary: Standard success envelope
+                  value:
+                    data: {}
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                error:
+                  summary: Standard error envelope
+                  value:
+                    data: null
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error:
+                      code: validation_error
+                      message: request failed
+                      details: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          $ref: '#/components/responses/Error409'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - $ref: '#/components/parameters/ApiVersionHeader'
+      - $ref: '#/components/parameters/TenantHeader'
+  /audit/export:
+    get:
+      tags:
+      - management
+      summary: Export Audit
+      operationId: export_audit
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 1000
+          title: Limit
+      - name: principal_type
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - nullable: true
+          title: Principal Type
+      - name: principal_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - nullable: true
+          title: Principal Id
+      - name: user_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - nullable: true
+          title: User Id
+      - name: action
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - nullable: true
+          title: Action
+      - name: resource_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - nullable: true
+          title: Resource Id
+      - name: decision
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - nullable: true
+          title: Decision
+      - name: correlation_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - nullable: true
+          title: Correlation Id
+      - name: start_time
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: date-time
+          - nullable: true
+          title: Start Time
+      - name: end_time
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: date-time
+          - nullable: true
+          title: End Time
+      - $ref: '#/components/parameters/ApiVersionHeader'
+      - $ref: '#/components/parameters/TenantHeader'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_list_AuditRecordOut__'
+              examples:
+                success:
+                  summary: Standard success envelope
+                  value:
+                    data: {}
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                error:
+                  summary: Standard error envelope
+                  value:
+                    data: null
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error:
+                      code: validation_error
+                      message: request failed
+                      details: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          $ref: '#/components/responses/Error409'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+  /bulk/export/{resource}:
+    get:
+      tags:
+      - management
+      summary: Bulk Export
+      operationId: bulk_export
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: resource
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Resource
+      - $ref: '#/components/parameters/ApiVersionHeader'
+      - $ref: '#/components/parameters/TenantHeader'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_BulkExportOut_'
+              examples:
+                success:
+                  summary: Standard success envelope
+                  value:
+                    data: {}
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                error:
+                  summary: Standard error envelope
+                  value:
+                    data: null
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error:
+                      code: validation_error
+                      message: request failed
+                      details: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          $ref: '#/components/responses/Error409'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+  /bulk/import:
+    post:
+      tags:
+      - management
+      summary: Bulk Import
+      operationId: bulk_import
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BulkImportRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_BulkImportOut_'
+              examples:
+                success:
+                  summary: Standard success envelope
+                  value:
+                    data: {}
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                error:
+                  summary: Standard error envelope
+                  value:
+                    data: null
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error:
+                      code: validation_error
+                      message: request failed
+                      details: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          $ref: '#/components/responses/Error409'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - $ref: '#/components/parameters/ApiVersionHeader'
+      - $ref: '#/components/parameters/TenantHeader'
+  /policies:
+    get:
+      tags:
+      - management
+      summary: List Policies
+      operationId: list_policies
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 50
+          title: Limit
+      - name: cursor
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - nullable: true
+          title: Cursor
+      - $ref: '#/components/parameters/ApiVersionHeader'
+      - $ref: '#/components/parameters/TenantHeader'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_list_PolicyOut__'
+              examples:
+                success:
+                  summary: Standard success envelope
+                  value:
+                    data: {}
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                error:
+                  summary: Standard error envelope
+                  value:
+                    data: null
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error:
+                      code: validation_error
+                      message: request failed
+                      details: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          $ref: '#/components/responses/Error409'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+    post:
+      tags:
+      - management
+      summary: Create Policy
+      operationId: create_policy
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PolicyCreate'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_PolicyOut_'
+              examples:
+                success:
+                  summary: Standard success envelope
+                  value:
+                    data: {}
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                error:
+                  summary: Standard error envelope
+                  value:
+                    data: null
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error:
+                      code: validation_error
+                      message: request failed
+                      details: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          $ref: '#/components/responses/Error409'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+      parameters:
+      - $ref: '#/components/parameters/ApiVersionHeader'
+      - $ref: '#/components/parameters/TenantHeader'
+  /policies/{policy_key}:
+    put:
+      tags:
+      - management
+      summary: Update Policy
+      operationId: update_policy
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: policy_key
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Policy Key
+      - $ref: '#/components/parameters/ApiVersionHeader'
+      - $ref: '#/components/parameters/TenantHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PolicyCreate'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_PolicyOut_'
+              examples:
+                success:
+                  summary: Standard success envelope
+                  value:
+                    data: {}
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                error:
+                  summary: Standard error envelope
+                  value:
+                    data: null
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error:
+                      code: validation_error
+                      message: request failed
+                      details: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          $ref: '#/components/responses/Error409'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+    delete:
+      tags:
+      - management
+      summary: Delete Policy
+      operationId: delete_policy
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: policy_key
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Policy Key
+      - $ref: '#/components/parameters/ApiVersionHeader'
+      - $ref: '#/components/parameters/TenantHeader'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_dict_str__str__'
+              examples:
+                success:
+                  summary: Standard success envelope
+                  value:
+                    data: {}
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                error:
+                  summary: Standard error envelope
+                  value:
+                    data: null
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error:
+                      code: validation_error
+                      message: request failed
+                      details: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          $ref: '#/components/responses/Error409'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+  /policies/dsl:
+    post:
+      tags:
+      - management
+      summary: Create Policy From Dsl
+      operationId: create_policy_from_dsl
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PolicyDslCreate'
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_PolicyOut_'
+              examples:
+                success:
+                  summary: Standard success envelope
+                  value:
+                    data: {}
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                error:
+                  summary: Standard error envelope
+                  value:
+                    data: null
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error:
+                      code: validation_error
+                      message: request failed
+                      details: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          $ref: '#/components/responses/Error409'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - $ref: '#/components/parameters/ApiVersionHeader'
+      - $ref: '#/components/parameters/TenantHeader'
+  /policies/{policy_key}/rollback/{version}:
+    post:
+      tags:
+      - management
+      summary: Rollback Policy
+      operationId: rollback_policy
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: policy_key
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Policy Key
+      - name: version
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Version
+      - $ref: '#/components/parameters/ApiVersionHeader'
+      - $ref: '#/components/parameters/TenantHeader'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_dict_str__Union_int__str___'
+              examples:
+                success:
+                  summary: Standard success envelope
+                  value:
+                    data: {}
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                error:
+                  summary: Standard error envelope
+                  value:
+                    data: null
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error:
+                      code: validation_error
+                      message: request failed
+                      details: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          $ref: '#/components/responses/Error409'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+  /acl:
+    post:
+      tags:
+      - management
+      summary: Create Acl Entry
+      operationId: create_acl_entry
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ACLCreate'
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_ACLOut_'
+              examples:
+                success:
+                  summary: Standard success envelope
+                  value:
+                    data: {}
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                error:
+                  summary: Standard error envelope
+                  value:
+                    data: null
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error:
+                      code: validation_error
+                      message: request failed
+                      details: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          $ref: '#/components/responses/Error409'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - $ref: '#/components/parameters/ApiVersionHeader'
+  /acl/{resource_type}/{resource_id}:
+    get:
+      tags:
+      - management
+      summary: List Acl Entries
+      operationId: list_acl_entries
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: resource_type
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Resource Type
+      - name: resource_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Resource Id
+      - $ref: '#/components/parameters/ApiVersionHeader'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_list_ACLOut__'
+              examples:
+                success:
+                  summary: Standard success envelope
+                  value:
+                    data: {}
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                error:
+                  summary: Standard error envelope
+                  value:
+                    data: null
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error:
+                      code: validation_error
+                      message: request failed
+                      details: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          $ref: '#/components/responses/Error409'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+  /acl/{acl_id}:
+    delete:
+      tags:
+      - management
+      summary: Delete Acl Entry
+      operationId: delete_acl_entry
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: acl_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Acl Id
+      - $ref: '#/components/parameters/ApiVersionHeader'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_dict_str__int__'
+              examples:
+                success:
+                  summary: Standard success envelope
+                  value:
+                    data: {}
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                error:
+                  summary: Standard error envelope
+                  value:
+                    data: null
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error:
+                      code: validation_error
+                      message: request failed
+                      details: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          $ref: '#/components/responses/Error409'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+  /auth-model:
+    get:
+      tags:
+      - management
+      summary: Get Auth Model
+      operationId: get_auth_model
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_AuthModelOut_'
+              examples:
+                success:
+                  summary: Standard success envelope
+                  value:
+                    data: {}
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          $ref: '#/components/responses/Error409'
+        '422':
+          $ref: '#/components/responses/Error422'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - $ref: '#/components/parameters/ApiVersionHeader'
+    post:
+      tags:
+      - management
+      summary: Create Auth Model
+      operationId: create_auth_model
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthModelCreate'
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_AuthModelOut_'
+              examples:
+                success:
+                  summary: Standard success envelope
+                  value:
+                    data: {}
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                error:
+                  summary: Standard error envelope
+                  value:
+                    data: null
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error:
+                      code: validation_error
+                      message: request failed
+                      details: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          $ref: '#/components/responses/Error409'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - $ref: '#/components/parameters/ApiVersionHeader'
+  /simulate-policy:
+    post:
+      tags:
+      - management
+      summary: Simulate Policy
+      operationId: simulate_policy
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PolicySimulationRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_PolicySimulationResponse_'
+              examples:
+                success:
+                  summary: Standard success envelope
+                  value:
+                    data: {}
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                error:
+                  summary: Standard error envelope
+                  value:
+                    data: null
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error:
+                      code: validation_error
+                      message: request failed
+                      details: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          $ref: '#/components/responses/Error409'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - $ref: '#/components/parameters/ApiVersionHeader'
+      - $ref: '#/components/parameters/TenantHeader'
+  /impact-analysis:
+    post:
+      tags:
+      - management
+      summary: Impact Analysis
+      operationId: impact_analysis
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ImpactAnalysisRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_ImpactAnalysisResponse_'
+              examples:
+                success:
+                  summary: Standard success envelope
+                  value:
+                    data: {}
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                error:
+                  summary: Standard error envelope
+                  value:
+                    data: null
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error:
+                      code: validation_error
+                      message: request failed
+                      details: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          $ref: '#/components/responses/Error409'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - $ref: '#/components/parameters/ApiVersionHeader'
+  /roles:
+    get:
+      tags:
+      - management
+      summary: List Roles
+      operationId: list_roles
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 50
+          title: Limit
+      - name: cursor
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - nullable: true
+          title: Cursor
+      - $ref: '#/components/parameters/ApiVersionHeader'
+      - $ref: '#/components/parameters/TenantHeader'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_list_RoleOut__'
+              examples:
+                success:
+                  summary: Standard success envelope
+                  value:
+                    data: {}
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                error:
+                  summary: Standard error envelope
+                  value:
+                    data: null
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error:
+                      code: validation_error
+                      message: request failed
+                      details: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          $ref: '#/components/responses/Error409'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+    post:
+      tags:
+      - management
+      summary: Create Role
+      operationId: create_role
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RoleCreate'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_RoleOut_'
+              examples:
+                success:
+                  summary: Standard success envelope
+                  value:
+                    data: {}
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                error:
+                  summary: Standard error envelope
+                  value:
+                    data: null
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error:
+                      code: validation_error
+                      message: request failed
+                      details: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          $ref: '#/components/responses/Error409'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+      parameters:
+      - $ref: '#/components/parameters/ApiVersionHeader'
+      - $ref: '#/components/parameters/TenantHeader'
+  /roles/{role_id}:
+    put:
+      tags:
+      - management
+      summary: Update Role
+      operationId: update_role
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: role_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Role Id
+      - $ref: '#/components/parameters/ApiVersionHeader'
+      - $ref: '#/components/parameters/TenantHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RoleUpdate'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_RoleOut_'
+              examples:
+                success:
+                  summary: Standard success envelope
+                  value:
+                    data: {}
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                error:
+                  summary: Standard error envelope
+                  value:
+                    data: null
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error:
+                      code: validation_error
+                      message: request failed
+                      details: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          $ref: '#/components/responses/Error409'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+    delete:
+      tags:
+      - management
+      summary: Delete Role
+      operationId: delete_role
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: role_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Role Id
+      - $ref: '#/components/parameters/ApiVersionHeader'
+      - $ref: '#/components/parameters/TenantHeader'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_dict_str__int__'
+              examples:
+                success:
+                  summary: Standard success envelope
+                  value:
+                    data: {}
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                error:
+                  summary: Standard error envelope
+                  value:
+                    data: null
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error:
+                      code: validation_error
+                      message: request failed
+                      details: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          $ref: '#/components/responses/Error409'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+  /roles/{role_id}/permissions:
+    get:
+      tags:
+      - management
+      summary: List Role Permissions
+      operationId: list_role_permissions
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: role_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Role Id
+      - $ref: '#/components/parameters/ApiVersionHeader'
+      - $ref: '#/components/parameters/TenantHeader'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_list_PermissionOut__'
+              examples:
+                success:
+                  summary: Standard success envelope
+                  value:
+                    data: {}
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                error:
+                  summary: Standard error envelope
+                  value:
+                    data: null
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error:
+                      code: validation_error
+                      message: request failed
+                      details: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          $ref: '#/components/responses/Error409'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+  /roles/{role_id}/permissions/{permission_id}:
+    post:
+      tags:
+      - management
+      summary: Add Permission To Role
+      operationId: add_permission_to_role
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: role_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Role Id
+      - name: permission_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Permission Id
+      - $ref: '#/components/parameters/ApiVersionHeader'
+      - $ref: '#/components/parameters/TenantHeader'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_PermissionOut_'
+              examples:
+                success:
+                  summary: Standard success envelope
+                  value:
+                    data: {}
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                error:
+                  summary: Standard error envelope
+                  value:
+                    data: null
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error:
+                      code: validation_error
+                      message: request failed
+                      details: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          $ref: '#/components/responses/Error409'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+    delete:
+      tags:
+      - management
+      summary: Remove Permission From Role
+      operationId: remove_permission_from_role
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: role_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Role Id
+      - name: permission_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Permission Id
+      - $ref: '#/components/parameters/ApiVersionHeader'
+      - $ref: '#/components/parameters/TenantHeader'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_dict_str__int__'
+              examples:
+                success:
+                  summary: Standard success envelope
+                  value:
+                    data: {}
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                error:
+                  summary: Standard error envelope
+                  value:
+                    data: null
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error:
+                      code: validation_error
+                      message: request failed
+                      details: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          $ref: '#/components/responses/Error409'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+  /permissions:
+    get:
+      tags:
+      - management
+      summary: List Permissions
+      operationId: list_permissions
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 50
+          title: Limit
+      - name: cursor
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - nullable: true
+          title: Cursor
+      - $ref: '#/components/parameters/ApiVersionHeader'
+      - $ref: '#/components/parameters/TenantHeader'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_list_PermissionOut__'
+              examples:
+                success:
+                  summary: Standard success envelope
+                  value:
+                    data: {}
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                error:
+                  summary: Standard error envelope
+                  value:
+                    data: null
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error:
+                      code: validation_error
+                      message: request failed
+                      details: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          $ref: '#/components/responses/Error409'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+    post:
+      tags:
+      - management
+      summary: Create Permission
+      operationId: create_permission
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PermissionCreate'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_PermissionOut_'
+              examples:
+                success:
+                  summary: Standard success envelope
+                  value:
+                    data: {}
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                error:
+                  summary: Standard error envelope
+                  value:
+                    data: null
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error:
+                      code: validation_error
+                      message: request failed
+                      details: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          $ref: '#/components/responses/Error409'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+      parameters:
+      - $ref: '#/components/parameters/ApiVersionHeader'
+      - $ref: '#/components/parameters/TenantHeader'
+  /permissions/{permission_id}:
+    put:
+      tags:
+      - management
+      summary: Update Permission
+      operationId: update_permission
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: permission_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Permission Id
+      - $ref: '#/components/parameters/ApiVersionHeader'
+      - $ref: '#/components/parameters/TenantHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PermissionUpdate'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_PermissionOut_'
+              examples:
+                success:
+                  summary: Standard success envelope
+                  value:
+                    data: {}
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                error:
+                  summary: Standard error envelope
+                  value:
+                    data: null
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error:
+                      code: validation_error
+                      message: request failed
+                      details: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          $ref: '#/components/responses/Error409'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+    delete:
+      tags:
+      - management
+      summary: Delete Permission
+      operationId: delete_permission
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: permission_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Permission Id
+      - $ref: '#/components/parameters/ApiVersionHeader'
+      - $ref: '#/components/parameters/TenantHeader'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_dict_str__int__'
+              examples:
+                success:
+                  summary: Standard success envelope
+                  value:
+                    data: {}
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                error:
+                  summary: Standard error envelope
+                  value:
+                    data: null
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error:
+                      code: validation_error
+                      message: request failed
+                      details: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          $ref: '#/components/responses/Error409'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+  /permissions/{permission_id}/roles:
+    get:
+      tags:
+      - management
+      summary: List Permission Roles
+      operationId: list_permission_roles
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: permission_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Permission Id
+      - $ref: '#/components/parameters/ApiVersionHeader'
+      - $ref: '#/components/parameters/TenantHeader'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_list_RoleOut__'
+              examples:
+                success:
+                  summary: Standard success envelope
+                  value:
+                    data: {}
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                error:
+                  summary: Standard error envelope
+                  value:
+                    data: null
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error:
+                      code: validation_error
+                      message: request failed
+                      details: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          $ref: '#/components/responses/Error409'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+  /relationships:
+    get:
+      tags:
+      - management
+      summary: List Relationships
+      operationId: list_relationships
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: subject_type
+        in: query
+        required: true
+        schema:
+          type: string
+          title: Subject Type
+      - name: subject_id
+        in: query
+        required: true
+        schema:
+          type: string
+          title: Subject Id
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 50
+          title: Limit
+      - name: cursor
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - nullable: true
+          title: Cursor
+      - $ref: '#/components/parameters/ApiVersionHeader'
+      - $ref: '#/components/parameters/TenantHeader'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_list_dict_str__str___'
+              examples:
+                success:
+                  summary: Standard success envelope
+                  value:
+                    data: {}
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                error:
+                  summary: Standard error envelope
+                  value:
+                    data: null
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error:
+                      code: validation_error
+                      message: request failed
+                      details: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          $ref: '#/components/responses/Error409'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+    post:
+      tags:
+      - management
+      summary: Create Relationship
+      operationId: create_relationship
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RelationshipCreate'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_RelationshipOut_'
+              examples:
+                success:
+                  summary: Standard success envelope
+                  value:
+                    data: {}
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                error:
+                  summary: Standard error envelope
+                  value:
+                    data: null
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error:
+                      code: validation_error
+                      message: request failed
+                      details: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          $ref: '#/components/responses/Error409'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+      parameters:
+      - $ref: '#/components/parameters/ApiVersionHeader'
+      - $ref: '#/components/parameters/TenantHeader'
+  /audit:
+    get:
+      tags:
+      - management
+      summary: List Audit Logs
+      operationId: list_audit_logs
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 50
+          title: Limit
+      - name: cursor
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - nullable: true
+          title: Cursor
+      - name: principal_type
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - nullable: true
+          title: Principal Type
+      - name: principal_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - nullable: true
+          title: Principal Id
+      - name: user_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - nullable: true
+          title: User Id
+      - name: action
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - nullable: true
+          title: Action
+      - name: resource_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - nullable: true
+          title: Resource Id
+      - name: decision
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - nullable: true
+          title: Decision
+      - name: correlation_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - nullable: true
+          title: Correlation Id
+      - name: start_time
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: date-time
+          - nullable: true
+          title: Start Time
+      - name: end_time
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: date-time
+          - nullable: true
+          title: End Time
+      - $ref: '#/components/parameters/ApiVersionHeader'
+      - $ref: '#/components/parameters/TenantHeader'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_list_AuditRecordOut__'
+              examples:
+                success:
+                  summary: Standard success envelope
+                  value:
+                    data: {}
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                error:
+                  summary: Standard error envelope
+                  value:
+                    data: null
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error:
+                      code: validation_error
+                      message: request failed
+                      details: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          $ref: '#/components/responses/Error409'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+  /playground/evaluate:
+    post:
+      tags:
+      - playground
+      summary: Evaluate
+      operationId: evaluate
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlaygroundEvaluateRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_dict_str__Any__'
+              examples:
+                success:
+                  summary: Standard success envelope
+                  value:
+                    data: {}
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                error:
+                  summary: Standard error envelope
+                  value:
+                    data: null
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error:
+                      code: validation_error
+                      message: request failed
+                      details: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          $ref: '#/components/responses/Error409'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - $ref: '#/components/parameters/ApiVersionHeader'
+      - $ref: '#/components/parameters/TenantHeader'
+  /dev/sample-data:
+    get:
+      tags:
+      - dev
+      summary: Get Sample Data
+      operationId: get_sample_data
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_dict_str__object__'
+              examples:
+                success:
+                  summary: Standard success envelope
+                  value:
+                    data: {}
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          $ref: '#/components/responses/Error409'
+        '422':
+          $ref: '#/components/responses/Error422'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+      parameters:
+      - $ref: '#/components/parameters/ApiVersionHeader'
+  /dev/sample-data/seed:
+    post:
+      tags:
+      - dev
+      summary: Seed Sample Data
+      operationId: seed_sample_data
+      parameters:
+      - name: reset
+        in: query
+        required: false
+        schema:
+          type: boolean
+          description: Clear the sample dataset before reseeding it.
+          default: false
+          title: Reset
+        description: Clear the sample dataset before reseeding it.
+      - $ref: '#/components/parameters/ApiVersionHeader'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_dict_str__object__'
+              examples:
+                success:
+                  summary: Standard success envelope
+                  value:
+                    data: {}
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                error:
+                  summary: Standard error envelope
+                  value:
+                    data: null
+                    meta:
+                      request_id: req_example_123
+                      limit: null
+                      next_cursor: null
+                      extra: {}
+                    error:
+                      code: validation_error
+                      message: request failed
+                      details: null
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          $ref: '#/components/responses/Error409'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+  /metrics:
+    get:
+      tags:
+      - observability
+      summary: Metrics
+      description: Prometheus scrape endpoint. This is intentionally not wrapped in
+        the JSON API envelope.
+      operationId: metrics
+      parameters:
+      - $ref: '#/components/parameters/ApiVersionHeader'
+      responses:
+        '200':
+          description: Prometheus metrics payload
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestIdHeader'
+            X-API-Version:
+              $ref: '#/components/headers/ApiVersionHeader'
+          content:
+            text/plain:
+              schema:
+                type: string
+              examples:
+                prometheus:
+                  summary: Prometheus exposition format
+                  value: '# HELP keynetra_requests_total Total requests
+
+                    # TYPE keynetra_requests_total counter'
+components:
+  schemas:
+    ACLCreate:
+      properties:
+        subject_type:
+          type: string
+          title: Subject Type
+        subject_id:
+          type: string
+          title: Subject Id
+        resource_type:
+          type: string
+          title: Resource Type
+        resource_id:
+          type: string
+          title: Resource Id
+        action:
+          type: string
+          title: Action
+        effect:
+          type: string
+          title: Effect
+      additionalProperties: false
+      type: object
+      required:
+      - subject_type
+      - subject_id
+      - resource_type
+      - resource_id
+      - action
+      - effect
+      title: ACLCreate
+    ACLOut:
+      properties:
+        subject_type:
+          type: string
+          title: Subject Type
+        subject_id:
+          type: string
+          title: Subject Id
+        resource_type:
+          type: string
+          title: Resource Type
+        resource_id:
+          type: string
+          title: Resource Id
+        action:
+          type: string
+          title: Action
+        effect:
+          type: string
+          title: Effect
+        id:
+          type: integer
+          title: Id
+        tenant_id:
+          type: integer
+          title: Tenant Id
+        created_at:
+          anyOf:
+          - type: string
+          - nullable: true
+          title: Created At
+      additionalProperties: false
+      type: object
+      required:
+      - subject_type
+      - subject_id
+      - resource_type
+      - resource_id
+      - action
+      - effect
+      - id
+      - tenant_id
+      title: ACLOut
+    AccessDecisionResponse:
+      properties:
+        allowed:
+          type: boolean
+          title: Allowed
+        decision:
+          type: string
+          title: Decision
+        matched_policies:
+          items:
+            type: string
+          type: array
+          title: Matched Policies
+        reason:
+          anyOf:
+          - type: string
+          - nullable: true
+          title: Reason
+        policy_id:
+          anyOf:
+          - type: string
+          - nullable: true
+          title: Policy Id
+        explain_trace:
+          items:
+            additionalProperties: true
+            type: object
+          type: array
+          title: Explain Trace
+        revision:
+          anyOf:
+          - type: integer
+          - nullable: true
+          title: Revision
+      additionalProperties: false
+      type: object
+      required:
+      - allowed
+      - decision
+      title: AccessDecisionResponse
+    AccessRequest:
+      properties:
+        user:
+          additionalProperties: true
+          type: object
+          title: User
+        action:
+          type: string
+          title: Action
+        resource:
+          additionalProperties: true
+          type: object
+          title: Resource
+        context:
+          additionalProperties: true
+          type: object
+          title: Context
+        consistency:
+          type: string
+          title: Consistency
+          default: eventual
+        revision:
+          anyOf:
+          - type: integer
+          - nullable: true
+          title: Revision
+      additionalProperties: false
+      type: object
+      required:
+      - action
+      title: AccessRequest
+      description: Explicit authorization request passed through the API boundary.
+    AdminLoginRequest:
+      properties:
+        username:
+          type: string
+          title: Username
+        password:
+          type: string
+          title: Password
+      additionalProperties: false
+      type: object
+      required:
+      - username
+      - password
+      title: AdminLoginRequest
+    AdminLoginResponse:
+      properties:
+        access_token:
+          type: string
+          title: Access Token
+        token_type:
+          type: string
+          title: Token Type
+          default: bearer
+        expires_in:
+          type: integer
+          title: Expires In
+        role:
+          type: string
+          title: Role
+          default: admin
+        tenant_key:
+          type: string
+          title: Tenant Key
+      additionalProperties: false
+      type: object
+      required:
+      - access_token
+      - expires_in
+      - tenant_key
+      title: AdminLoginResponse
+    ApiKeyCreate:
+      properties:
+        name:
+          type: string
+          title: Name
+        scopes:
+          $ref: '#/components/schemas/ApiKeyScope'
+      additionalProperties: false
+      type: object
+      required:
+      - name
+      title: ApiKeyCreate
+    ApiKeyCreatedOut:
+      properties:
+        id:
+          type: integer
+          title: Id
+        tenant_id:
+          type: integer
+          title: Tenant Id
+        name:
+          type: string
+          title: Name
+        key_prefix:
+          type: string
+          title: Key Prefix
+        scopes:
+          additionalProperties: true
+          type: object
+          title: Scopes
+        created_at:
+          type: string
+          title: Created At
+        revoked_at:
+          anyOf:
+          - type: string
+          - nullable: true
+          title: Revoked At
+        secret:
+          type: string
+          title: Secret
+      additionalProperties: false
+      type: object
+      required:
+      - id
+      - tenant_id
+      - name
+      - key_prefix
+      - scopes
+      - created_at
+      - secret
+      title: ApiKeyCreatedOut
+    ApiKeyOut:
+      properties:
+        id:
+          type: integer
+          title: Id
+        tenant_id:
+          type: integer
+          title: Tenant Id
+        name:
+          type: string
+          title: Name
+        key_prefix:
+          type: string
+          title: Key Prefix
+        scopes:
+          additionalProperties: true
+          type: object
+          title: Scopes
+        created_at:
+          type: string
+          title: Created At
+        revoked_at:
+          anyOf:
+          - type: string
+          - nullable: true
+          title: Revoked At
+      additionalProperties: false
+      type: object
+      required:
+      - id
+      - tenant_id
+      - name
+      - key_prefix
+      - scopes
+      - created_at
+      title: ApiKeyOut
+    ApiKeyScope:
+      properties:
+        tenant:
+          anyOf:
+          - type: string
+          - nullable: true
+          title: Tenant
+        role:
+          anyOf:
+          - type: string
+          - nullable: true
+          title: Role
+        permissions:
+          items:
+            type: string
+          type: array
+          title: Permissions
+      additionalProperties: false
+      type: object
+      title: ApiKeyScope
+    AuditRecordOut:
+      properties:
+        id:
+          type: integer
+          title: Id
+        principal_type:
+          type: string
+          title: Principal Type
+        principal_id:
+          type: string
+          title: Principal Id
+        correlation_id:
+          anyOf:
+          - type: string
+          - nullable: true
+          title: Correlation Id
+        user:
+          additionalProperties: true
+          type: object
+          title: User
+        action:
+          type: string
+          title: Action
+        resource:
+          additionalProperties: true
+          type: object
+          title: Resource
+        decision:
+          type: string
+          title: Decision
+        matched_policies:
+          items: {}
+          type: array
+          title: Matched Policies
+        reason:
+          anyOf:
+          - type: string
+          - nullable: true
+          title: Reason
+        evaluated_rules:
+          items: {}
+          type: array
+          title: Evaluated Rules
+        failed_conditions:
+          items: {}
+          type: array
+          title: Failed Conditions
+        created_at:
+          type: string
+          title: Created At
+      additionalProperties: false
+      type: object
+      required:
+      - id
+      - principal_type
+      - principal_id
+      - user
+      - action
+      - resource
+      - decision
+      - matched_policies
+      - evaluated_rules
+      - failed_conditions
+      - created_at
+      title: AuditRecordOut
+    AuthModelCreate:
+      properties:
+        schema:
+          type: string
+          title: Schema
+      additionalProperties: false
+      type: object
+      required:
+      - schema
+      title: AuthModelCreate
+    AuthModelOut:
+      properties:
+        id:
+          type: integer
+          title: Id
+        tenant_id:
+          type: integer
+          title: Tenant Id
+        schema:
+          type: string
+          title: Schema
+        parsed:
+          additionalProperties: true
+          type: object
+          title: Parsed
+        compiled:
+          additionalProperties: true
+          type: object
+          title: Compiled
+      additionalProperties: false
+      type: object
+      required:
+      - id
+      - tenant_id
+      - schema
+      - parsed
+      - compiled
+      title: AuthModelOut
+    BatchAccessItem:
+      properties:
+        action:
+          type: string
+          title: Action
+        resource:
+          additionalProperties: true
+          type: object
+          title: Resource
+      additionalProperties: false
+      type: object
+      required:
+      - action
+      title: BatchAccessItem
+    BatchAccessRequest:
+      properties:
+        user:
+          additionalProperties: true
+          type: object
+          title: User
+        items:
+          items:
+            $ref: '#/components/schemas/BatchAccessItem'
+          type: array
+          title: Items
+        consistency:
+          type: string
+          title: Consistency
+          default: eventual
+        revision:
+          anyOf:
+          - type: integer
+          - nullable: true
+          title: Revision
+      additionalProperties: false
+      type: object
+      required:
+      - items
+      title: BatchAccessRequest
+    BatchAccessResponse:
+      properties:
+        results:
+          items:
+            $ref: '#/components/schemas/BatchAccessResult'
+          type: array
+          title: Results
+        revision:
+          anyOf:
+          - type: integer
+          - nullable: true
+          title: Revision
+      additionalProperties: false
+      type: object
+      required:
+      - results
+      title: BatchAccessResponse
+    BatchAccessResult:
+      properties:
+        action:
+          type: string
+          title: Action
+        allowed:
+          type: boolean
+          title: Allowed
+        revision:
+          anyOf:
+          - type: integer
+          - nullable: true
+          title: Revision
+      additionalProperties: false
+      type: object
+      required:
+      - action
+      - allowed
+      title: BatchAccessResult
+    BulkExportOut:
+      properties:
+        resource:
+          type: string
+          title: Resource
+        data:
+          title: Data
+      additionalProperties: false
+      type: object
+      required:
+      - resource
+      - data
+      title: BulkExportOut
+    BulkImportOut:
+      properties:
+        resource:
+          type: string
+          title: Resource
+        imported:
+          type: integer
+          title: Imported
+      additionalProperties: false
+      type: object
+      required:
+      - resource
+      - imported
+      title: BulkImportOut
+    BulkImportRequest:
+      properties:
+        resource:
+          type: string
+          title: Resource
+        payload:
+          title: Payload
+      additionalProperties: false
+      type: object
+      required:
+      - resource
+      - payload
+      title: BulkImportRequest
+    HTTPValidationError:
+      title: HTTPValidationError
+      type: object
+      properties:
+        detail:
+          title: Detail
+          type: array
+          items:
+            $ref: '#/components/schemas/ValidationError'
+    ImpactAnalysisRequest:
+      properties:
+        policy_change:
+          type: string
+          title: Policy Change
+      additionalProperties: false
+      type: object
+      required:
+      - policy_change
+      title: ImpactAnalysisRequest
+    ImpactAnalysisResponse:
+      properties:
+        gained_access:
+          items:
+            type: integer
+          type: array
+          title: Gained Access
+        lost_access:
+          items:
+            type: integer
+          type: array
+          title: Lost Access
+      additionalProperties: false
+      type: object
+      title: ImpactAnalysisResponse
+    MetaBody:
+      properties:
+        request_id:
+          anyOf:
+          - type: string
+          - nullable: true
+          title: Request Id
+        limit:
+          anyOf:
+          - type: integer
+          - nullable: true
+          title: Limit
+        next_cursor:
+          anyOf:
+          - type: string
+          - nullable: true
+          title: Next Cursor
+        extra:
+          additionalProperties: true
+          type: object
+          title: Extra
+      additionalProperties: false
+      type: object
+      title: MetaBody
+    PermissionCreate:
+      properties:
+        action:
+          type: string
+          title: Action
+      additionalProperties: false
+      type: object
+      required:
+      - action
+      title: PermissionCreate
+    PermissionOut:
+      properties:
+        id:
+          type: integer
+          title: Id
+        action:
+          type: string
+          title: Action
+      additionalProperties: false
+      type: object
+      required:
+      - id
+      - action
+      title: PermissionOut
+    PermissionUpdate:
+      properties:
+        action:
+          type: string
+          title: Action
+      additionalProperties: false
+      type: object
+      required:
+      - action
+      title: PermissionUpdate
+    PlaygroundEvaluateRequest:
+      properties:
+        policies:
+          items:
+            $ref: '#/components/schemas/PlaygroundPolicy'
+          type: array
+          title: Policies
+        input:
+          $ref: '#/components/schemas/PlaygroundInput'
+      additionalProperties: false
+      type: object
+      required:
+      - policies
+      - input
+      title: PlaygroundEvaluateRequest
+    PlaygroundInput:
+      properties:
+        user:
+          additionalProperties: true
+          type: object
+          title: User
+        resource:
+          additionalProperties: true
+          type: object
+          title: Resource
+        action:
+          type: string
+          title: Action
+          default: ''
+        context:
+          additionalProperties: true
+          type: object
+          title: Context
+      additionalProperties: false
+      type: object
+      title: PlaygroundInput
+    PlaygroundPolicy:
+      properties:
+        action:
+          type: string
+          title: Action
+        effect:
+          type: string
+          title: Effect
+          default: allow
+        priority:
+          type: integer
+          title: Priority
+          default: 100
+        policy_id:
+          anyOf:
+          - type: string
+          - nullable: true
+          title: Policy Id
+        conditions:
+          additionalProperties: true
+          type: object
+          title: Conditions
+      additionalProperties: false
+      type: object
+      required:
+      - action
+      title: PlaygroundPolicy
+    PolicyCreate:
+      properties:
+        action:
+          type: string
+          title: Action
+        effect:
+          type: string
+          title: Effect
+          default: allow
+        priority:
+          type: integer
+          title: Priority
+          default: 100
+        state:
+          type: string
+          title: State
+          default: active
+        conditions:
+          additionalProperties: true
+          type: object
+          title: Conditions
+      additionalProperties: false
+      type: object
+      required:
+      - action
+      title: PolicyCreate
+    PolicyDslCreate:
+      properties:
+        dsl:
+          type: string
+          title: Dsl
+      additionalProperties: false
+      type: object
+      required:
+      - dsl
+      title: PolicyDslCreate
+    PolicyOut:
+      properties:
+        id:
+          type: integer
+          title: Id
+        action:
+          type: string
+          title: Action
+        effect:
+          type: string
+          title: Effect
+        priority:
+          type: integer
+          title: Priority
+        state:
+          type: string
+          title: State
+          default: active
+        conditions:
+          additionalProperties: true
+          type: object
+          title: Conditions
+      additionalProperties: false
+      type: object
+      required:
+      - id
+      - action
+      - effect
+      - priority
+      - conditions
+      title: PolicyOut
+    PolicySimulationInput:
+      properties:
+        policy_change:
+          anyOf:
+          - type: string
+          - nullable: true
+          title: Policy Change
+        relationship_change:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - nullable: true
+          title: Relationship Change
+        role_change:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - nullable: true
+          title: Role Change
+      additionalProperties: false
+      type: object
+      title: PolicySimulationInput
+    PolicySimulationRequest:
+      properties:
+        simulate:
+          $ref: '#/components/schemas/PolicySimulationInput'
+        request:
+          additionalProperties: true
+          type: object
+          title: Request
+      additionalProperties: false
+      type: object
+      title: PolicySimulationRequest
+    PolicySimulationResponse:
+      properties:
+        decision_before:
+          additionalProperties: true
+          type: object
+          title: Decision Before
+        decision_after:
+          additionalProperties: true
+          type: object
+          title: Decision After
+      additionalProperties: false
+      type: object
+      required:
+      - decision_before
+      - decision_after
+      title: PolicySimulationResponse
+    PolicyTestResultOut:
+      properties:
+        name:
+          type: string
+          title: Name
+        passed:
+          type: boolean
+          title: Passed
+        expected:
+          type: string
+          title: Expected
+        actual:
+          type: string
+          title: Actual
+        reason:
+          anyOf:
+          - type: string
+          - nullable: true
+          title: Reason
+        policy_id:
+          anyOf:
+          - type: string
+          - nullable: true
+          title: Policy Id
+        explain_trace:
+          items:
+            additionalProperties: true
+            type: object
+          type: array
+          title: Explain Trace
+      additionalProperties: false
+      type: object
+      required:
+      - name
+      - passed
+      - expected
+      - actual
+      title: PolicyTestResultOut
+    PolicyTestSuiteRequest:
+      properties:
+        document:
+          type: string
+          title: Document
+      additionalProperties: false
+      type: object
+      required:
+      - document
+      title: PolicyTestSuiteRequest
+    PolicyVersionDiffOut:
+      properties:
+        policy_key:
+          type: string
+          title: Policy Key
+        from_version:
+          type: integer
+          title: From Version
+        to_version:
+          type: integer
+          title: To Version
+        changes:
+          additionalProperties: true
+          type: object
+          title: Changes
+      additionalProperties: false
+      type: object
+      required:
+      - policy_key
+      - from_version
+      - to_version
+      - changes
+      title: PolicyVersionDiffOut
+    PolicyVersionOut:
+      properties:
+        id:
+          type: integer
+          title: Id
+        version:
+          type: integer
+          title: Version
+        action:
+          type: string
+          title: Action
+        effect:
+          type: string
+          title: Effect
+        priority:
+          type: integer
+          title: Priority
+        state:
+          type: string
+          title: State
+        conditions:
+          additionalProperties: true
+          type: object
+          title: Conditions
+        created_at:
+          type: string
+          title: Created At
+        created_by:
+          anyOf:
+          - type: string
+          - nullable: true
+          title: Created By
+      additionalProperties: false
+      type: object
+      required:
+      - id
+      - version
+      - action
+      - effect
+      - priority
+      - state
+      - conditions
+      - created_at
+      title: PolicyVersionOut
+    RelationshipCreate:
+      properties:
+        subject_type:
+          type: string
+          title: Subject Type
+        subject_id:
+          type: string
+          title: Subject Id
+        relation:
+          type: string
+          title: Relation
+        object_type:
+          type: string
+          title: Object Type
+        object_id:
+          type: string
+          title: Object Id
+      additionalProperties: false
+      type: object
+      required:
+      - subject_type
+      - subject_id
+      - relation
+      - object_type
+      - object_id
+      title: RelationshipCreate
+    RelationshipOut:
+      properties:
+        subject_type:
+          type: string
+          title: Subject Type
+        subject_id:
+          type: string
+          title: Subject Id
+        relation:
+          type: string
+          title: Relation
+        object_type:
+          type: string
+          title: Object Type
+        object_id:
+          type: string
+          title: Object Id
+        id:
+          type: integer
+          title: Id
+      additionalProperties: false
+      type: object
+      required:
+      - subject_type
+      - subject_id
+      - relation
+      - object_type
+      - object_id
+      - id
+      title: RelationshipOut
+    RoleCreate:
+      properties:
+        name:
+          type: string
+          title: Name
+      additionalProperties: false
+      type: object
+      required:
+      - name
+      title: RoleCreate
+    RoleOut:
+      properties:
+        id:
+          type: integer
+          title: Id
+        name:
+          type: string
+          title: Name
+      additionalProperties: false
+      type: object
+      required:
+      - id
+      - name
+      title: RoleOut
+    RoleUpdate:
+      properties:
+        name:
+          type: string
+          title: Name
+      additionalProperties: false
+      type: object
+      required:
+      - name
+      title: RoleUpdate
+    SimulationResponse:
+      properties:
+        decision:
+          type: string
+          title: Decision
+        matched_policies:
+          items:
+            type: string
+          type: array
+          title: Matched Policies
+        reason:
+          anyOf:
+          - type: string
+          - nullable: true
+          title: Reason
+        policy_id:
+          anyOf:
+          - type: string
+          - nullable: true
+          title: Policy Id
+        explain_trace:
+          items:
+            additionalProperties: true
+            type: object
+          type: array
+          title: Explain Trace
+        failed_conditions:
+          items:
+            type: string
+          type: array
+          title: Failed Conditions
+        revision:
+          anyOf:
+          - type: integer
+          - nullable: true
+          title: Revision
+      additionalProperties: false
+      type: object
+      required:
+      - decision
+      - matched_policies
+      title: SimulationResponse
+    SuccessResponse_ACLOut_:
+      properties:
+        data:
+          $ref: '#/components/schemas/ACLOut'
+        meta:
+          $ref: '#/components/schemas/MetaBody'
+        error:
+          allOf:
+          - $ref: '#/components/schemas/ErrorBody'
+          nullable: true
+          title: Error
+      additionalProperties: false
+      type: object
+      required:
+      - data
+      title: SuccessResponse[ACLOut]
+    SuccessResponse_AccessDecisionResponse_:
+      properties:
+        data:
+          $ref: '#/components/schemas/AccessDecisionResponse'
+        meta:
+          $ref: '#/components/schemas/MetaBody'
+        error:
+          allOf:
+          - $ref: '#/components/schemas/ErrorBody'
+          nullable: true
+          title: Error
+      additionalProperties: false
+      type: object
+      required:
+      - data
+      title: SuccessResponse[AccessDecisionResponse]
+    SuccessResponse_AdminLoginResponse_:
+      properties:
+        data:
+          $ref: '#/components/schemas/AdminLoginResponse'
+        meta:
+          $ref: '#/components/schemas/MetaBody'
+        error:
+          allOf:
+          - $ref: '#/components/schemas/ErrorBody'
+          nullable: true
+          title: Error
+      additionalProperties: false
+      type: object
+      required:
+      - data
+      title: SuccessResponse[AdminLoginResponse]
+    SuccessResponse_ApiKeyCreatedOut_:
+      properties:
+        data:
+          $ref: '#/components/schemas/ApiKeyCreatedOut'
+        meta:
+          $ref: '#/components/schemas/MetaBody'
+        error:
+          allOf:
+          - $ref: '#/components/schemas/ErrorBody'
+          nullable: true
+          title: Error
+      additionalProperties: false
+      type: object
+      required:
+      - data
+      title: SuccessResponse[ApiKeyCreatedOut]
+    SuccessResponse_AuthModelOut_:
+      properties:
+        data:
+          $ref: '#/components/schemas/AuthModelOut'
+        meta:
+          $ref: '#/components/schemas/MetaBody'
+        error:
+          allOf:
+          - $ref: '#/components/schemas/ErrorBody'
+          nullable: true
+          title: Error
+      additionalProperties: false
+      type: object
+      required:
+      - data
+      title: SuccessResponse[AuthModelOut]
+    SuccessResponse_BatchAccessResponse_:
+      properties:
+        data:
+          $ref: '#/components/schemas/BatchAccessResponse'
+        meta:
+          $ref: '#/components/schemas/MetaBody'
+        error:
+          allOf:
+          - $ref: '#/components/schemas/ErrorBody'
+          nullable: true
+          title: Error
+      additionalProperties: false
+      type: object
+      required:
+      - data
+      title: SuccessResponse[BatchAccessResponse]
+    SuccessResponse_BulkExportOut_:
+      properties:
+        data:
+          $ref: '#/components/schemas/BulkExportOut'
+        meta:
+          $ref: '#/components/schemas/MetaBody'
+        error:
+          allOf:
+          - $ref: '#/components/schemas/ErrorBody'
+          nullable: true
+          title: Error
+      additionalProperties: false
+      type: object
+      required:
+      - data
+      title: SuccessResponse[BulkExportOut]
+    SuccessResponse_BulkImportOut_:
+      properties:
+        data:
+          $ref: '#/components/schemas/BulkImportOut'
+        meta:
+          $ref: '#/components/schemas/MetaBody'
+        error:
+          allOf:
+          - $ref: '#/components/schemas/ErrorBody'
+          nullable: true
+          title: Error
+      additionalProperties: false
+      type: object
+      required:
+      - data
+      title: SuccessResponse[BulkImportOut]
+    SuccessResponse_ImpactAnalysisResponse_:
+      properties:
+        data:
+          $ref: '#/components/schemas/ImpactAnalysisResponse'
+        meta:
+          $ref: '#/components/schemas/MetaBody'
+        error:
+          allOf:
+          - $ref: '#/components/schemas/ErrorBody'
+          nullable: true
+          title: Error
+      additionalProperties: false
+      type: object
+      required:
+      - data
+      title: SuccessResponse[ImpactAnalysisResponse]
+    SuccessResponse_PermissionOut_:
+      properties:
+        data:
+          $ref: '#/components/schemas/PermissionOut'
+        meta:
+          $ref: '#/components/schemas/MetaBody'
+        error:
+          allOf:
+          - $ref: '#/components/schemas/ErrorBody'
+          nullable: true
+          title: Error
+      additionalProperties: false
+      type: object
+      required:
+      - data
+      title: SuccessResponse[PermissionOut]
+    SuccessResponse_PolicyOut_:
+      properties:
+        data:
+          $ref: '#/components/schemas/PolicyOut'
+        meta:
+          $ref: '#/components/schemas/MetaBody'
+        error:
+          allOf:
+          - $ref: '#/components/schemas/ErrorBody'
+          nullable: true
+          title: Error
+      additionalProperties: false
+      type: object
+      required:
+      - data
+      title: SuccessResponse[PolicyOut]
+    SuccessResponse_PolicySimulationResponse_:
+      properties:
+        data:
+          $ref: '#/components/schemas/PolicySimulationResponse'
+        meta:
+          $ref: '#/components/schemas/MetaBody'
+        error:
+          allOf:
+          - $ref: '#/components/schemas/ErrorBody'
+          nullable: true
+          title: Error
+      additionalProperties: false
+      type: object
+      required:
+      - data
+      title: SuccessResponse[PolicySimulationResponse]
+    SuccessResponse_PolicyVersionDiffOut_:
+      properties:
+        data:
+          $ref: '#/components/schemas/PolicyVersionDiffOut'
+        meta:
+          $ref: '#/components/schemas/MetaBody'
+        error:
+          allOf:
+          - $ref: '#/components/schemas/ErrorBody'
+          nullable: true
+          title: Error
+      additionalProperties: false
+      type: object
+      required:
+      - data
+      title: SuccessResponse[PolicyVersionDiffOut]
+    SuccessResponse_PolicyVersionOut_:
+      properties:
+        data:
+          $ref: '#/components/schemas/PolicyVersionOut'
+        meta:
+          $ref: '#/components/schemas/MetaBody'
+        error:
+          allOf:
+          - $ref: '#/components/schemas/ErrorBody'
+          nullable: true
+          title: Error
+      additionalProperties: false
+      type: object
+      required:
+      - data
+      title: SuccessResponse[PolicyVersionOut]
+    SuccessResponse_RelationshipOut_:
+      properties:
+        data:
+          $ref: '#/components/schemas/RelationshipOut'
+        meta:
+          $ref: '#/components/schemas/MetaBody'
+        error:
+          allOf:
+          - $ref: '#/components/schemas/ErrorBody'
+          nullable: true
+          title: Error
+      additionalProperties: false
+      type: object
+      required:
+      - data
+      title: SuccessResponse[RelationshipOut]
+    SuccessResponse_RoleOut_:
+      properties:
+        data:
+          $ref: '#/components/schemas/RoleOut'
+        meta:
+          $ref: '#/components/schemas/MetaBody'
+        error:
+          allOf:
+          - $ref: '#/components/schemas/ErrorBody'
+          nullable: true
+          title: Error
+      additionalProperties: false
+      type: object
+      required:
+      - data
+      title: SuccessResponse[RoleOut]
+    SuccessResponse_SimulationResponse_:
+      properties:
+        data:
+          $ref: '#/components/schemas/SimulationResponse'
+        meta:
+          $ref: '#/components/schemas/MetaBody'
+        error:
+          allOf:
+          - $ref: '#/components/schemas/ErrorBody'
+          nullable: true
+          title: Error
+      additionalProperties: false
+      type: object
+      required:
+      - data
+      title: SuccessResponse[SimulationResponse]
+    SuccessResponse_TenantOut_:
+      properties:
+        data:
+          $ref: '#/components/schemas/TenantOut'
+        meta:
+          $ref: '#/components/schemas/MetaBody'
+        error:
+          allOf:
+          - $ref: '#/components/schemas/ErrorBody'
+          nullable: true
+          title: Error
+      additionalProperties: false
+      type: object
+      required:
+      - data
+      title: SuccessResponse[TenantOut]
+    SuccessResponse_UserRoleAssignmentOut_:
+      properties:
+        data:
+          $ref: '#/components/schemas/UserRoleAssignmentOut'
+        meta:
+          $ref: '#/components/schemas/MetaBody'
+        error:
+          allOf:
+          - $ref: '#/components/schemas/ErrorBody'
+          nullable: true
+          title: Error
+      additionalProperties: false
+      type: object
+      required:
+      - data
+      title: SuccessResponse[UserRoleAssignmentOut]
+    SuccessResponse_dict_str__Any__:
+      properties:
+        data:
+          additionalProperties: true
+          type: object
+          title: Data
+        meta:
+          $ref: '#/components/schemas/MetaBody'
+        error:
+          allOf:
+          - $ref: '#/components/schemas/ErrorBody'
+          nullable: true
+          title: Error
+      additionalProperties: false
+      type: object
+      required:
+      - data
+      title: SuccessResponse[dict[str, Any]]
+    SuccessResponse_dict_str__Union_int__str___:
+      properties:
+        data:
+          additionalProperties:
+            anyOf:
+            - type: integer
+            - type: string
+          type: object
+          title: Data
+        meta:
+          $ref: '#/components/schemas/MetaBody'
+        error:
+          allOf:
+          - $ref: '#/components/schemas/ErrorBody'
+          nullable: true
+          title: Error
+      additionalProperties: false
+      type: object
+      required:
+      - data
+      title: SuccessResponse[dict[str, Union[int, str]]]
+    SuccessResponse_dict_str__int__:
+      properties:
+        data:
+          additionalProperties:
+            type: integer
+          type: object
+          title: Data
+        meta:
+          $ref: '#/components/schemas/MetaBody'
+        error:
+          allOf:
+          - $ref: '#/components/schemas/ErrorBody'
+          nullable: true
+          title: Error
+      additionalProperties: false
+      type: object
+      required:
+      - data
+      title: SuccessResponse[dict[str, int]]
+    SuccessResponse_dict_str__object__:
+      properties:
+        data:
+          additionalProperties: true
+          type: object
+          title: Data
+        meta:
+          $ref: '#/components/schemas/MetaBody'
+        error:
+          allOf:
+          - $ref: '#/components/schemas/ErrorBody'
+          nullable: true
+          title: Error
+      additionalProperties: false
+      type: object
+      required:
+      - data
+      title: SuccessResponse[dict[str, object]]
+    SuccessResponse_dict_str__str__:
+      properties:
+        data:
+          additionalProperties:
+            type: string
+          type: object
+          title: Data
+        meta:
+          $ref: '#/components/schemas/MetaBody'
+        error:
+          allOf:
+          - $ref: '#/components/schemas/ErrorBody'
+          nullable: true
+          title: Error
+      additionalProperties: false
+      type: object
+      required:
+      - data
+      title: SuccessResponse[dict[str, str]]
+    SuccessResponse_list_ACLOut__:
+      properties:
+        data:
+          items:
+            $ref: '#/components/schemas/ACLOut'
+          type: array
+          title: Data
+        meta:
+          $ref: '#/components/schemas/MetaBody'
+        error:
+          allOf:
+          - $ref: '#/components/schemas/ErrorBody'
+          nullable: true
+          title: Error
+      additionalProperties: false
+      type: object
+      required:
+      - data
+      title: SuccessResponse[list[ACLOut]]
+    SuccessResponse_list_ApiKeyOut__:
+      properties:
+        data:
+          items:
+            $ref: '#/components/schemas/ApiKeyOut'
+          type: array
+          title: Data
+        meta:
+          $ref: '#/components/schemas/MetaBody'
+        error:
+          allOf:
+          - $ref: '#/components/schemas/ErrorBody'
+          nullable: true
+          title: Error
+      additionalProperties: false
+      type: object
+      required:
+      - data
+      title: SuccessResponse[list[ApiKeyOut]]
+    SuccessResponse_list_AuditRecordOut__:
+      properties:
+        data:
+          items:
+            $ref: '#/components/schemas/AuditRecordOut'
+          type: array
+          title: Data
+        meta:
+          $ref: '#/components/schemas/MetaBody'
+        error:
+          allOf:
+          - $ref: '#/components/schemas/ErrorBody'
+          nullable: true
+          title: Error
+      additionalProperties: false
+      type: object
+      required:
+      - data
+      title: SuccessResponse[list[AuditRecordOut]]
+    SuccessResponse_list_PermissionOut__:
+      properties:
+        data:
+          items:
+            $ref: '#/components/schemas/PermissionOut'
+          type: array
+          title: Data
+        meta:
+          $ref: '#/components/schemas/MetaBody'
+        error:
+          allOf:
+          - $ref: '#/components/schemas/ErrorBody'
+          nullable: true
+          title: Error
+      additionalProperties: false
+      type: object
+      required:
+      - data
+      title: SuccessResponse[list[PermissionOut]]
+    SuccessResponse_list_PolicyOut__:
+      properties:
+        data:
+          items:
+            $ref: '#/components/schemas/PolicyOut'
+          type: array
+          title: Data
+        meta:
+          $ref: '#/components/schemas/MetaBody'
+        error:
+          allOf:
+          - $ref: '#/components/schemas/ErrorBody'
+          nullable: true
+          title: Error
+      additionalProperties: false
+      type: object
+      required:
+      - data
+      title: SuccessResponse[list[PolicyOut]]
+    SuccessResponse_list_PolicyTestResultOut__:
+      properties:
+        data:
+          items:
+            $ref: '#/components/schemas/PolicyTestResultOut'
+          type: array
+          title: Data
+        meta:
+          $ref: '#/components/schemas/MetaBody'
+        error:
+          allOf:
+          - $ref: '#/components/schemas/ErrorBody'
+          nullable: true
+          title: Error
+      additionalProperties: false
+      type: object
+      required:
+      - data
+      title: SuccessResponse[list[PolicyTestResultOut]]
+    SuccessResponse_list_PolicyVersionOut__:
+      properties:
+        data:
+          items:
+            $ref: '#/components/schemas/PolicyVersionOut'
+          type: array
+          title: Data
+        meta:
+          $ref: '#/components/schemas/MetaBody'
+        error:
+          allOf:
+          - $ref: '#/components/schemas/ErrorBody'
+          nullable: true
+          title: Error
+      additionalProperties: false
+      type: object
+      required:
+      - data
+      title: SuccessResponse[list[PolicyVersionOut]]
+    SuccessResponse_list_RoleOut__:
+      properties:
+        data:
+          items:
+            $ref: '#/components/schemas/RoleOut'
+          type: array
+          title: Data
+        meta:
+          $ref: '#/components/schemas/MetaBody'
+        error:
+          allOf:
+          - $ref: '#/components/schemas/ErrorBody'
+          nullable: true
+          title: Error
+      additionalProperties: false
+      type: object
+      required:
+      - data
+      title: SuccessResponse[list[RoleOut]]
+    SuccessResponse_list_TenantOut__:
+      properties:
+        data:
+          items:
+            $ref: '#/components/schemas/TenantOut'
+          type: array
+          title: Data
+        meta:
+          $ref: '#/components/schemas/MetaBody'
+        error:
+          allOf:
+          - $ref: '#/components/schemas/ErrorBody'
+          nullable: true
+          title: Error
+      additionalProperties: false
+      type: object
+      required:
+      - data
+      title: SuccessResponse[list[TenantOut]]
+    SuccessResponse_list_UserRoleAssignmentOut__:
+      properties:
+        data:
+          items:
+            $ref: '#/components/schemas/UserRoleAssignmentOut'
+          type: array
+          title: Data
+        meta:
+          $ref: '#/components/schemas/MetaBody'
+        error:
+          allOf:
+          - $ref: '#/components/schemas/ErrorBody'
+          nullable: true
+          title: Error
+      additionalProperties: false
+      type: object
+      required:
+      - data
+      title: SuccessResponse[list[UserRoleAssignmentOut]]
+    SuccessResponse_list_dict_str__str___:
+      properties:
+        data:
+          items:
+            additionalProperties:
+              type: string
+            type: object
+          type: array
+          title: Data
+        meta:
+          $ref: '#/components/schemas/MetaBody'
+        error:
+          allOf:
+          - $ref: '#/components/schemas/ErrorBody'
+          nullable: true
+          title: Error
+      additionalProperties: false
+      type: object
+      required:
+      - data
+      title: SuccessResponse[list[dict[str, str]]]
+    TenantCreate:
+      properties:
+        tenant_key:
+          type: string
+          title: Tenant Key
+      additionalProperties: false
+      type: object
+      required:
+      - tenant_key
+      title: TenantCreate
+    TenantOut:
+      properties:
+        id:
+          type: integer
+          title: Id
+        tenant_key:
+          type: string
+          title: Tenant Key
+        policy_version:
+          type: integer
+          title: Policy Version
+        revision:
+          type: integer
+          title: Revision
+      additionalProperties: false
+      type: object
+      required:
+      - id
+      - tenant_key
+      - policy_version
+      - revision
+      title: TenantOut
+    UserRoleAssignmentOut:
+      properties:
+        user_id:
+          type: integer
+          title: User Id
+        external_id:
+          anyOf:
+          - type: string
+          - nullable: true
+          title: External Id
+        roles:
+          items:
+            type: string
+          type: array
+          title: Roles
+      additionalProperties: false
+      type: object
+      required:
+      - user_id
+      title: UserRoleAssignmentOut
+    ValidationError:
+      title: ValidationError
+      type: object
+      required:
+      - loc
+      - msg
+      - type
+      properties:
+        loc:
+          title: Location
+          type: array
+          items:
+            anyOf:
+            - type: string
+            - type: integer
+        msg:
+          title: Message
+          type: string
+        type:
+          title: Error Type
+          type: string
+        input:
+          title: Input
+          nullable: true
+        ctx:
+          title: Context
+          type: object
+          nullable: true
+    ApiErrorCode:
+      title: ApiErrorCode
+      type: string
+      enum:
+      - bad_request
+      - unauthorized
+      - forbidden
+      - not_found
+      - conflict
+      - too_many_requests
+      - validation_error
+      - database_error
+      - internal_error
+    ErrorBody:
+      title: ErrorBody
+      type: object
+      required:
+      - code
+      - message
+      properties:
+        code:
+          $ref: '#/components/schemas/ApiErrorCode'
+        message:
+          title: Message
+          type: string
+        details:
+          title: Details
+          nullable: true
+    ErrorResponse:
+      title: ErrorResponse
+      type: object
+      required:
+      - error
+      properties:
+        data:
+          nullable: true
+          title: Data
+        meta:
+          $ref: '#/components/schemas/MetaBody'
+        error:
+          $ref: '#/components/schemas/ErrorBody'
+  securitySchemes:
+    HTTPBearer:
+      type: http
+      scheme: bearer
+    APIKeyHeader:
+      type: apiKey
+      in: header
+      name: X-API-Key
+  parameters:
+    ApiVersionHeader:
+      name: X-API-Version
+      in: header
+      required: false
+      schema:
+        type: string
+        default: v1
+      description: 'Requested API version. Supported values: v1.'
+    TenantHeader:
+      name: X-Tenant-Id
+      in: header
+      required: false
+      schema:
+        type: string
+      description: Tenant key for strict tenancy and management operations.
+  headers:
+    ApiVersionHeader:
+      description: Resolved API version for the response.
+      schema:
+        type: string
+        default: v1
+    RequestIdHeader:
+      description: Correlation id for the request.
+      schema:
+        type: string
+  responses:
+    Error400:
+      description: Bad Request
+      content:
+        application/json:
+          schema: &id001
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            error:
+              summary: Standard error envelope
+              value:
+                data: null
+                meta:
+                  request_id: req_example_123
+                  limit: null
+                  next_cursor: null
+                  extra: {}
+                error:
+                  code: bad_request
+                  message: request failed
+                  details: null
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestIdHeader'
+        X-API-Version:
+          $ref: '#/components/headers/ApiVersionHeader'
+    Error401:
+      description: Unauthorized
+      content:
+        application/json:
+          schema: *id001
+          examples:
+            error:
+              summary: Standard error envelope
+              value:
+                data: null
+                meta:
+                  request_id: req_example_123
+                  limit: null
+                  next_cursor: null
+                  extra: {}
+                error:
+                  code: unauthorized
+                  message: request failed
+                  details: null
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestIdHeader'
+        X-API-Version:
+          $ref: '#/components/headers/ApiVersionHeader'
+    Error403:
+      description: Forbidden
+      content:
+        application/json:
+          schema: *id001
+          examples:
+            error:
+              summary: Standard error envelope
+              value:
+                data: null
+                meta:
+                  request_id: req_example_123
+                  limit: null
+                  next_cursor: null
+                  extra: {}
+                error:
+                  code: forbidden
+                  message: request failed
+                  details: null
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestIdHeader'
+        X-API-Version:
+          $ref: '#/components/headers/ApiVersionHeader'
+    Error404:
+      description: Not Found
+      content:
+        application/json:
+          schema: *id001
+          examples:
+            error:
+              summary: Standard error envelope
+              value:
+                data: null
+                meta:
+                  request_id: req_example_123
+                  limit: null
+                  next_cursor: null
+                  extra: {}
+                error:
+                  code: not_found
+                  message: request failed
+                  details: null
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestIdHeader'
+        X-API-Version:
+          $ref: '#/components/headers/ApiVersionHeader'
+    Error409:
+      description: Conflict
+      content:
+        application/json:
+          schema: *id001
+          examples:
+            error:
+              summary: Standard error envelope
+              value:
+                data: null
+                meta:
+                  request_id: req_example_123
+                  limit: null
+                  next_cursor: null
+                  extra: {}
+                error:
+                  code: conflict
+                  message: request failed
+                  details: null
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestIdHeader'
+        X-API-Version:
+          $ref: '#/components/headers/ApiVersionHeader'
+    Error422:
+      description: Validation Error
+      content:
+        application/json:
+          schema: *id001
+          examples:
+            error:
+              summary: Standard error envelope
+              value:
+                data: null
+                meta:
+                  request_id: req_example_123
+                  limit: null
+                  next_cursor: null
+                  extra: {}
+                error:
+                  code: validation_error
+                  message: request failed
+                  details: null
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestIdHeader'
+        X-API-Version:
+          $ref: '#/components/headers/ApiVersionHeader'
+    Error429:
+      description: Too Many Requests
+      content:
+        application/json:
+          schema: *id001
+          examples:
+            error:
+              summary: Standard error envelope
+              value:
+                data: null
+                meta:
+                  request_id: req_example_123
+                  limit: null
+                  next_cursor: null
+                  extra: {}
+                error:
+                  code: too_many_requests
+                  message: request failed
+                  details: null
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestIdHeader'
+        X-API-Version:
+          $ref: '#/components/headers/ApiVersionHeader'
+    Error500:
+      description: Internal Server Error
+      content:
+        application/json:
+          schema: *id001
+          examples:
+            error:
+              summary: Standard error envelope
+              value:
+                data: null
+                meta:
+                  request_id: req_example_123
+                  limit: null
+                  next_cursor: null
+                  extra: {}
+                error:
+                  code: internal_error
+                  message: request failed
+                  details: null
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestIdHeader'
+        X-API-Version:
+          $ref: '#/components/headers/ApiVersionHeader'
+servers:
+- url: /
+  description: Relative base URL. Configure the SDK/client host per environment.

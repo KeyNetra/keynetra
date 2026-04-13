@@ -1,69 +1,80 @@
-# Python bytecode and caches
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
-
-# Build and packaging artifacts
-build/
-dist/
-site/
-*.egg-info/
-.eggs/
-pip-wheel-metadata/
-
-# Virtual environments
-.venv/
-venv/
+*.so
+.Python
 env/
-ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
 
-# Test/coverage/type/lint caches
+# Testing & Coverage
+.pytest_cache/
 .coverage
 .coverage.*
-coverage.xml
 htmlcov/
-.pytest_cache/
-.mypy_cache/
-.ruff_cache/
-.import_linter_cache/
+coverage.xml
 .tox/
 .nox/
-coverage/
+.cache/
+nosetests.xml
+coverage.json
+.hypothesis/
 
-# Local environment files
+# Type Checking & Linting
+.mypy_cache/
+.ruff_cache/
+.pytype/
+
+# Environments
 .env
-.env.local
+.venv/
+venv/
+ENV/
+env.bak/
+venv.bak/
 
-# Logs and temp files
-*.log
-*.tmp
+# OS Artifacts
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDEs
+.vscode/
+.idea/
 *.swp
+*.swo
 
-# Local databases
+# Logs
+*.log
+
+# Databases
 *.db
 *.sqlite
 *.sqlite3
 
-# Terraform state and overrides
-.terraform/
-*.tfstate
-*.tfstate.*
-override.tf
-override.tf.json
-*_override.tf
-*_override.tf.json
-.terraform.lock.hcl
-
-# Editor/IDE settings
-.vscode/
-.idea/
-
-# OS artifacts
-.DS_Store
-Thumbs.db
-
-# JS/build cache
-node_modules/
-
 # Project-specific
-docs-site
+docs-site/
+/sdks/
+/keynetra-sdks/
+/sdk_info/
+artifacts/
+.keynetra-ci.db
+.keynetra-release.db

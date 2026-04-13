@@ -2,10 +2,12 @@ from __future__ import annotations
 
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import Field
+
+from keynetra.domain.schemas.api import StrictSchemaModel
 
 
-class AccessRequest(BaseModel):
+class AccessRequest(StrictSchemaModel):
     """Explicit authorization request passed through the API boundary."""
 
     user: dict[str, Any] = Field(default_factory=dict)
@@ -16,11 +18,11 @@ class AccessRequest(BaseModel):
     revision: int | None = None
 
 
-class AccessResponse(BaseModel):
+class AccessResponse(StrictSchemaModel):
     allowed: bool
 
 
-class AccessDecisionResponse(BaseModel):
+class AccessDecisionResponse(StrictSchemaModel):
     allowed: bool
     decision: str
     matched_policies: list[str] = Field(default_factory=list)
@@ -30,7 +32,7 @@ class AccessDecisionResponse(BaseModel):
     revision: int | None = None
 
 
-class SimulationResponse(BaseModel):
+class SimulationResponse(StrictSchemaModel):
     decision: str
     matched_policies: list[str]
     reason: str | None = None
@@ -40,24 +42,24 @@ class SimulationResponse(BaseModel):
     revision: int | None = None
 
 
-class BatchAccessItem(BaseModel):
+class BatchAccessItem(StrictSchemaModel):
     action: str
     resource: dict[str, Any] = Field(default_factory=dict)
 
 
-class BatchAccessRequest(BaseModel):
+class BatchAccessRequest(StrictSchemaModel):
     user: dict[str, Any] = Field(default_factory=dict)
     items: list[BatchAccessItem]
     consistency: str = "eventual"
     revision: int | None = None
 
 
-class BatchAccessResult(BaseModel):
+class BatchAccessResult(StrictSchemaModel):
     action: str
     allowed: bool
     revision: int | None = None
 
 
-class BatchAccessResponse(BaseModel):
+class BatchAccessResponse(StrictSchemaModel):
     results: list[BatchAccessResult]
     revision: int | None = None

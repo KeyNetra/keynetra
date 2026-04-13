@@ -12,7 +12,7 @@ from keynetra.api.responses import request_id_from_state, success_response
 from keynetra.config.admin_auth import AdminAccess, require_management_role
 from keynetra.config.security import get_principal
 from keynetra.domain.schemas.api import SuccessResponse
-from keynetra.domain.schemas.management import PolicyCreate, PolicyOut
+from keynetra.domain.schemas.management import PolicyCreate, PolicyDslCreate, PolicyOut
 from keynetra.services.policy_dsl import dsl_to_policy
 
 router = APIRouter(prefix="/policies", dependencies=[Depends(get_principal)])
@@ -160,14 +160,14 @@ def update_policy(
 
 @router.post("/dsl", response_model=SuccessResponse[PolicyOut], status_code=status.HTTP_201_CREATED)
 def create_policy_from_dsl(
-    dsl: str,
+    payload: PolicyDslCreate,
     request: Request,
     services: ServiceContainer = Depends(build_services),
     principal: dict[str, str] = Depends(get_principal),
     access: AdminAccess = Depends(require_management_role("developer")),
 ) -> dict[str, object]:
     try:
-        policy = dsl_to_policy(dsl)
+        policy = dsl_to_policy(payload.dsl)
     except ValueError as error:
         raise ApiError(
             status_code=422, code=ApiErrorCode.VALIDATION_ERROR, message=str(error)

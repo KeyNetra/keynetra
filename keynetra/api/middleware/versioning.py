@@ -7,8 +7,10 @@ from collections.abc import Callable
 
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
-from starlette.responses import JSONResponse, Response
+from starlette.responses import Response
 
+from keynetra.api.errors import ApiErrorCode
+from keynetra.api.responses import ensure_request_id, error_json_response
 from keynetra.config.tenancy import TENANT_HEADER_NAME, normalize_tenant_key, tenant_for_logs
 from keynetra.infrastructure.logging import log_event
 
@@ -23,24 +25,22 @@ class ApiVersionMiddleware(BaseHTTPMiddleware):
     async def dispatch(
         self, request: Request, call_next: Callable[[Request], Response]
     ) -> Response:
+        request_id = ensure_request_id(request)
         requested_version = (
             request.headers.get(self.header_name, self.latest_version).strip()
             or self.latest_version
         )
         if requested_version not in self.supported_versions:
-            return JSONResponse(
+            return error_json_response(
                 status_code=400,
-                content={
-                    "data": None,
-                    "error": {
-                        "code": "bad_request",
-                        "message": "unsupported api version",
-                        "details": {
-                            "requested_version": requested_version,
-                            "supported_versions": sorted(self.supported_versions),
-                        },
-                    },
+                code=ApiErrorCode.BAD_REQUEST,
+                message="unsupported api version",
+                details={
+                    "requested_version": requested_version,
+                    "supported_versions": sorted(self.supported_versions),
                 },
+                request_id=request_id,
+                headers={self.header_name: self.latest_version},
             )
 
         request.state.api_version = requested_version

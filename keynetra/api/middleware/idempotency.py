@@ -7,9 +7,10 @@ from collections.abc import Callable
 
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
-from starlette.responses import JSONResponse, Response
+from starlette.responses import Response
 
-from keynetra.api.responses import request_id_from_state
+from keynetra.api.errors import ApiErrorCode
+from keynetra.api.responses import error_json_response, request_id_from_state
 from keynetra.config.settings import Settings
 from keynetra.infrastructure.repositories.idempotency import SqlIdempotencyRepository
 from keynetra.infrastructure.storage.session import create_session_factory, initialize_database
@@ -50,28 +51,20 @@ class IdempotencyMiddleware(BaseHTTPMiddleware):
                 scope=scope, idempotency_key=idempotency_key, request_hash=request_hash
             )
             if start.outcome == "mismatch":
-                return JSONResponse(
+                return error_json_response(
                     status_code=409,
-                    content={
-                        "data": None,
-                        "error": {
-                            "code": "conflict",
-                            "message": "idempotency key reused with a different request",
-                            "details": {"idempotency_key": idempotency_key},
-                        },
-                    },
+                    code=ApiErrorCode.CONFLICT,
+                    message="idempotency key reused with a different request",
+                    details={"idempotency_key": idempotency_key},
+                    request_id=request_id_from_state(request.state),
                 )
             if start.outcome == "pending":
-                return JSONResponse(
+                return error_json_response(
                     status_code=409,
-                    content={
-                        "data": None,
-                        "error": {
-                            "code": "conflict",
-                            "message": "request with this idempotency key is still in progress",
-                            "details": {"idempotency_key": idempotency_key},
-                        },
-                    },
+                    code=ApiErrorCode.CONFLICT,
+                    message="request with this idempotency key is still in progress",
+                    details={"idempotency_key": idempotency_key},
+                    request_id=request_id_from_state(request.state),
                 )
             if start.outcome == "replay":
                 response = Response(

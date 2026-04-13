@@ -6,6 +6,7 @@ from sqlalchemy import JSON, DateTime, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from keynetra.domain.models.base import Base
+from keynetra.utils.datetime import utc_now
 
 
 class AuditLog(Base):
@@ -29,5 +30,5 @@ class AuditLog(Base):
     failed_conditions: Mapped[list] = mapped_column(JSON, nullable=False, default=list)
 
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, default=datetime.utcnow
+        DateTime(timezone=True), nullable=False, default=utc_now
     )

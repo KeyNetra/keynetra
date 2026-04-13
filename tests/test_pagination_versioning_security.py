@@ -108,4 +108,5 @@ def test_unsupported_api_version_rejected(tmp_path) -> None:
     response = client.get("/health", headers={"X-API-Version": "v2"})
 
     assert response.status_code == 400
+    assert response.json()["meta"]["request_id"]
     assert response.json()["error"]["message"] == "unsupported api version"

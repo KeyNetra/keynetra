@@ -4,11 +4,29 @@ KeyNetra SDKs are versioned independently from the core engine.
 
 ## Repository Scope
 
-This repository contains the authorization engine, API server, CLI, and deployment assets.
+This repository contains the authorization engine, API server, CLI, embedded facade, and deployment assets.
 
 SDK implementations are maintained in separate repositories and released on their own cadence.
 
-## Python SDK
+## Embedded Python Facade
+
+For local or offline use, import the embedded facade directly:
+
+```python
+from keynetra import KeyNetra
+
+engine = KeyNetra.from_config("examples/keynetra.yaml")
+decision = engine.check_access(
+    subject={"id": "alice", "role": "admin"},
+    action="read",
+    resource="document:doc-1",
+)
+print(decision.allowed)
+```
+
+The same facade works with config files, raw policy files, or direct engine inputs.
+
+## HTTP Python SDK
 
 - Package: `keynetra-client`
 - Install: `pip install keynetra-client`

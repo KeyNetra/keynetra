@@ -5,6 +5,7 @@ from fastapi import APIRouter
 from keynetra.api.routes.access import router as access_router
 from keynetra.api.routes.acl import router as acl_router
 from keynetra.api.routes.admin_auth import router as admin_auth_router
+from keynetra.api.routes.admin_tools import router as admin_tools_router
 from keynetra.api.routes.audit import router as audit_router
 from keynetra.api.routes.auth_model import router as auth_model_router
 from keynetra.api.routes.dev import router as dev_router
@@ -28,6 +29,7 @@ def router_for_mode(mode: str) -> APIRouter:
         router.include_router(access_router, tags=["access"])
     if mode in {"all", "policy-store"}:
         router.include_router(admin_auth_router, tags=["auth"])
+        router.include_router(admin_tools_router, tags=["management"])
         router.include_router(policies_router, tags=["management"])
         router.include_router(acl_router, tags=["management"])
         router.include_router(auth_model_router, tags=["management"])

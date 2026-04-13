@@ -6,6 +6,7 @@ from sqlalchemy import JSON, DateTime, ForeignKey, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from keynetra.domain.models.base import Base
+from keynetra.utils.datetime import utc_now
 
 
 class AuthorizationModel(Base):
@@ -19,10 +20,10 @@ class AuthorizationModel(Base):
     schema_json: Mapped[dict] = mapped_column(JSON, nullable=False)
     compiled_json: Mapped[dict] = mapped_column(JSON, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=False), nullable=False, default=datetime.utcnow
+        DateTime(timezone=True), nullable=False, default=utc_now
     )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=False), nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow
+        DateTime(timezone=True), nullable=False, default=utc_now, onupdate=utc_now
     )
 
     __table_args__ = (UniqueConstraint("tenant_id", name="uq_auth_models_tenant"),)

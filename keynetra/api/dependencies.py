@@ -15,6 +15,7 @@ from keynetra.infrastructure.cache.policy_distribution import RedisPolicyEventPu
 from keynetra.infrastructure.cache.relationship_cache import build_relationship_cache
 from keynetra.infrastructure.repositories.acl import SqlACLRepository
 from keynetra.infrastructure.repositories.audit import SqlAuditRepository
+from keynetra.infrastructure.repositories.api_keys import SqlApiKeyRepository
 from keynetra.infrastructure.repositories.auth_models import SqlAuthModelRepository
 from keynetra.infrastructure.repositories.policies import SqlPolicyRepository
 from keynetra.infrastructure.repositories.relationships import SqlRelationshipRepository
@@ -41,6 +42,7 @@ class ServiceContainer:
     relationship_repo: SqlRelationshipRepository
     acl_repo: SqlACLRepository
     audit_repo: SqlAuditRepository
+    api_key_repo: SqlApiKeyRepository
     auth_model_repo: SqlAuthModelRepository
     authorization_service: AuthorizationService
     policy_service: PolicyService
@@ -70,6 +72,7 @@ def build_services(
     relationship_repo = SqlRelationshipRepository(db)
     acl_repo = SqlACLRepository(db)
     audit_repo = SqlAuditRepository(db)
+    api_key_repo = SqlApiKeyRepository(db)
     auth_model_repo = SqlAuthModelRepository(db)
     access_indexer = AccessIndexer(
         acl_repository=acl_repo,
@@ -121,6 +124,7 @@ def build_services(
         relationship_repo=relationship_repo,
         acl_repo=acl_repo,
         audit_repo=audit_repo,
+        api_key_repo=api_key_repo,
         auth_model_repo=auth_model_repo,
         authorization_service=authorization_service,
         policy_service=policy_service,

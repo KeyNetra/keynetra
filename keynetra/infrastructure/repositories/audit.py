@@ -11,6 +11,7 @@ from keynetra.domain.models.audit import AuditLog
 from keynetra.domain.pagination import encode_cursor
 from keynetra.engine.keynetra_engine import AuthorizationDecision, AuthorizationInput
 from keynetra.services.interfaces import AuditListItem
+from keynetra.utils.datetime import isoformat_z
 
 
 class SqlAuditRepository:
@@ -52,15 +53,25 @@ class SqlAuditRepository:
         tenant_id: int,
         limit: int,
         cursor: dict | None,
+        principal_type: str | None,
+        principal_id: str | None,
         user_id: str | None,
+        action: str | None,
         resource_id: str | None,
         decision: str | None,
+        correlation_id: str | None,
         start_time: datetime | None,
         end_time: datetime | None,
     ) -> tuple[list[AuditListItem], str | None]:
         query = select(AuditLog).where(AuditLog.tenant_id == tenant_id)
+        if principal_type:
+            query = query.where(AuditLog.principal_type == principal_type)
+        if principal_id:
+            query = query.where(AuditLog.principal_id == principal_id)
         if user_id:
             query = query.where(self._json_field(AuditLog.user, "id") == user_id)
+        if action:
+            query = query.where(AuditLog.action == action)
         if resource_id:
             query = query.where(
                 or_(
@@ -70,12 +81,14 @@ class SqlAuditRepository:
             )
         if decision:
             query = query.where(AuditLog.decision == decision.upper())
+        if correlation_id:
+            query = query.where(AuditLog.correlation_id == correlation_id)
         if start_time:
             query = query.where(AuditLog.created_at >= start_time)
         if end_time:
             query = query.where(AuditLog.created_at <= end_time)
         if cursor is not None:
-            cursor_created_at = datetime.fromisoformat(str(cursor["created_at"]))
+            cursor_created_at = datetime.fromisoformat(str(cursor["created_at"]).replace("Z", "+00:00"))
             cursor_id = int(cursor["id"])
             query = query.where(
                 or_(
@@ -94,7 +107,7 @@ class SqlAuditRepository:
         has_next = len(rows) > limit
         page = rows[:limit]
         next_cursor = (
-            encode_cursor({"created_at": page[-1].created_at.isoformat(), "id": page[-1].id})
+            encode_cursor({"created_at": isoformat_z(page[-1].created_at), "id": page[-1].id})
             if has_next and page
             else None
         )

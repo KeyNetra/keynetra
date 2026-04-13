@@ -59,12 +59,13 @@ def list_roles(
     )
 
 
-@router.post("", response_model=RoleOut, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=SuccessResponse[RoleOut], status_code=status.HTTP_201_CREATED)
 def create_role(
     payload: RoleCreate,
+    request: Request,
     services: ServiceContainer = Depends(build_services),
     access: AdminAccess = Depends(require_management_role("admin")),
-) -> RoleOut:
+) -> dict[str, object]:
     db = services.db
     existing = db.execute(select(Role).where(Role.name == payload.name)).scalars().first()
     if existing:
@@ -79,16 +80,20 @@ def create_role(
     except SQLAlchemyError as e:
         db.rollback()
         raise ApiError(status_code=500, code=ApiErrorCode.DATABASE_ERROR, message="db error") from e
-    return RoleOut(id=role.id, name=role.name)
+    return success_response(
+        data=RoleOut(id=role.id, name=role.name).model_dump(),
+        request_id=request_id_from_state(request.state),
+    )
 
 
-@router.put("/{role_id}", response_model=RoleOut)
+@router.put("/{role_id}", response_model=SuccessResponse[RoleOut])
 def update_role(
     role_id: int,
     payload: RoleUpdate,
+    request: Request,
     services: ServiceContainer = Depends(build_services),
     access: AdminAccess = Depends(require_management_role("developer")),
-) -> RoleOut:
+) -> dict[str, object]:
     db = services.db
     role = db.get(Role, role_id)
     if role is None:
@@ -109,7 +114,10 @@ def update_role(
     except SQLAlchemyError as e:
         db.rollback()
         raise ApiError(status_code=500, code=ApiErrorCode.DATABASE_ERROR, message="db error") from e
-    return RoleOut(id=role.id, name=role.name)
+    return success_response(
+        data=RoleOut(id=role.id, name=role.name).model_dump(),
+        request_id=request_id_from_state(request.state),
+    )
 
 
 @router.delete("/{role_id}", response_model=SuccessResponse[dict[str, int]])

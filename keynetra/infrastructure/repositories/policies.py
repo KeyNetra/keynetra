@@ -240,6 +240,38 @@ class SqlPolicyRepository:
         self._session.refresh(policy)
         return policy.policy_key, int(policy.current_version)
 
+    def list_policy_versions(self, *, tenant_id: int, policy_key: str) -> list[dict[str, Any]]:
+        rows = (
+            self._session.execute(
+                select(PolicyVersion)
+                .join(Policy, Policy.id == PolicyVersion.policy_id)
+                .where(PolicyVersion.tenant_id == tenant_id)
+                .where(Policy.tenant_id == tenant_id)
+                .where(Policy.policy_key == policy_key)
+                .order_by(PolicyVersion.version.asc())
+            )
+            .scalars()
+            .all()
+        )
+        return [self._version_to_dict(row) for row in rows]
+
+    def get_policy_version(
+        self, *, tenant_id: int, policy_key: str, version: int
+    ) -> dict[str, Any] | None:
+        row = (
+            self._session.execute(
+                select(PolicyVersion)
+                .join(Policy, Policy.id == PolicyVersion.policy_id)
+                .where(PolicyVersion.tenant_id == tenant_id)
+                .where(Policy.tenant_id == tenant_id)
+                .where(Policy.policy_key == policy_key)
+                .where(PolicyVersion.version == version)
+            )
+            .scalars()
+            .first()
+        )
+        return None if row is None else self._version_to_dict(row)
+
     def delete_policy(self, *, tenant_id: int, policy_key: str) -> None:
         policy = (
             self._session.execute(
@@ -314,3 +346,17 @@ class SqlPolicyRepository:
                 }
             )
         return normalized
+
+    @staticmethod
+    def _version_to_dict(row: PolicyVersion) -> dict[str, Any]:
+        return {
+            "id": row.id,
+            "version": row.version,
+            "action": row.action,
+            "effect": row.effect,
+            "priority": row.priority,
+            "state": row.state,
+            "conditions": dict(row.conditions or {}),
+            "created_at": row.created_at,
+            "created_by": row.created_by,
+        }

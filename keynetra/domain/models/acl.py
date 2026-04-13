@@ -6,6 +6,7 @@ from sqlalchemy import DateTime, ForeignKey, Index, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from keynetra.domain.models.base import Base
+from keynetra.utils.datetime import utc_now
 
 
 class ResourceACL(Base):
@@ -21,7 +22,7 @@ class ResourceACL(Base):
     action: Mapped[str] = mapped_column(String(128), nullable=False)
     effect: Mapped[str] = mapped_column(String(16), nullable=False)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=False), nullable=False, default=datetime.utcnow
+        DateTime(timezone=True), nullable=False, default=utc_now
     )
 
     __table_args__ = (

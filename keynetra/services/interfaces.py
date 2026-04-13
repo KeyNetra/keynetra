@@ -14,6 +14,7 @@ from keynetra.engine.keynetra_engine import (
     AuthorizationInput,
     PolicyDefinition,
 )
+from keynetra.utils.datetime import isoformat_z
 
 
 @dataclass(frozen=True)
@@ -24,6 +25,19 @@ class TenantRecord:
     tenant_key: str
     policy_version: int
     revision: int = 1
+
+
+@dataclass(frozen=True)
+class ApiKeyRecord:
+    """Persisted API key metadata."""
+
+    id: int
+    tenant_id: int
+    name: str
+    key_hash: str
+    scopes: dict[str, Any]
+    created_at: Any
+    revoked_at: Any | None = None
 
 
 @dataclass(frozen=True)
@@ -71,7 +85,7 @@ class ACLRecord:
             "action": self.action,
             "effect": self.effect,
             "created_at": (
-                self.created_at.isoformat()
+                isoformat_z(self.created_at)
                 if hasattr(self.created_at, "isoformat")
                 else self.created_at
             ),
@@ -211,6 +225,14 @@ class PolicyRepository(Protocol):
         self, *, tenant_id: int, policy_key: str, version: int
     ) -> tuple[str, int]: ...
 
+    def list_policy_versions(
+        self, *, tenant_id: int, policy_key: str
+    ) -> list[dict[str, Any]]: ...
+
+    def get_policy_version(
+        self, *, tenant_id: int, policy_key: str, version: int
+    ) -> dict[str, Any] | None: ...
+
     def delete_policy(self, *, tenant_id: int, policy_key: str) -> None: ...
 
 
@@ -294,12 +316,37 @@ class AuditRepository(Protocol):
         tenant_id: int,
         limit: int,
         cursor: dict[str, Any] | None,
+        principal_type: str | None,
+        principal_id: str | None,
         user_id: str | None,
+        action: str | None,
         resource_id: str | None,
         decision: str | None,
+        correlation_id: str | None,
         start_time: Any | None,
         end_time: Any | None,
     ) -> tuple[list[AuditListItem], str | None]: ...
+
+
+class ApiKeyRepository(Protocol):
+    """Persistence boundary for API key lifecycle management."""
+
+    def list_keys(self, *, tenant_id: int) -> list[ApiKeyRecord]: ...
+
+    def get_key(self, *, tenant_id: int, key_id: int) -> ApiKeyRecord | None: ...
+
+    def get_by_hash(self, *, key_hash: str) -> ApiKeyRecord | None: ...
+
+    def create_key(
+        self,
+        *,
+        tenant_id: int,
+        name: str,
+        key_hash: str,
+        scopes: dict[str, Any],
+    ) -> ApiKeyRecord: ...
+
+    def revoke_key(self, *, tenant_id: int, key_id: int) -> None: ...
 
 
 class PolicyCache(Protocol):

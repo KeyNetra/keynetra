@@ -104,6 +104,52 @@ jobs:
           name: sbom
           path: artifacts/sbom.cdx.json
 
+  sdk-contracts:
+    name: 📦 SDK Contract Export
+    runs-on: ubuntu-latest
+    needs: security-deps
+
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: 📦 Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.lock
+          pip install -r requirements-dev.lock
+          pip install -e .
+
+      - name: 🔒 Contract freeze guard
+        run: |
+          # python3.12 scripts/check_contract_freeze.py
+          echo "Contract freeze guard disabled - scripts removed."
+
+      - name: 🧾 Export SDK OpenAPI contracts
+        run: |
+          # keynetra generate-openapi --output contracts/openapi/openapi.json --yaml-output contracts/openapi/openapi.yaml
+          echo "Contract export is handled manually or via dedicated workflow for standalone SDK repo."
+
+      - name: 🧭 SDK breaking-change guard
+        if: github.event_name == 'pull_request'
+        run: |
+          # python3.12 scripts/check_sdk_breaking_changes.py origin/${{ github.base_ref }}
+          echo "SDK breaking-change guard disabled - moved to standalone SDK repo."
+
+      - name: 📤 Upload SDK contracts
+        uses: actions/upload-artifact@v4
+        with:
+          name: sdk-contracts
+          path: |
+            contracts/openapi/openapi.json
+            contracts/openapi/openapi.yaml
+
 
   # -------------------------------
   # Stage 4: Tests (Matrix)
@@ -121,6 +167,8 @@ jobs:
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: 🐍 Setup Python
         uses: actions/setup-python@v5
@@ -134,10 +182,6 @@ jobs:
           pip install -r requirements.lock
           pip install -r requirements-dev.lock
           pip install -e .
-
-          if [ -d ./keynetra-client-python ]; then
-            pip install -e ./keynetra-client-python
-          fi
 
       - name: 🔄 OpenAPI drift check
         run: keynetra check-openapi

@@ -670,6 +670,9 @@ def generate_openapi(
     output: str = typer.Option(
         "contracts/openapi/openapi.json", "--output", help="OpenAPI output file path."
     ),
+    yaml_output: str | None = typer.Option(
+        None, "--yaml-output", help="Optional YAML OpenAPI output file path."
+    ),
 ) -> None:
     """Generate OpenAPI contract directly from the FastAPI app."""
     from keynetra.main import create_app
@@ -681,13 +684,18 @@ def generate_openapi(
     except ModuleNotFoundError as exc:
         raise typer.BadParameter("pyyaml is required to generate yaml contracts") from exc
 
-    out_path = Path(output)
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    if out_path.suffix.lower() == ".json":
-        out_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
-    else:
-        out_path.write_text(yaml.safe_dump(payload, sort_keys=False), encoding="utf-8")
-    typer.echo(str(out_path))
+    written_paths: list[str] = []
+    for raw_path in [output, yaml_output]:
+        if raw_path is None:
+            continue
+        out_path = Path(raw_path)
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        if out_path.suffix.lower() == ".json":
+            out_path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        else:
+            out_path.write_text(yaml.safe_dump(payload, sort_keys=False), encoding="utf-8")
+        written_paths.append(str(out_path))
+    typer.echo(json.dumps({"written": written_paths}, indent=2))
 
 
 @app.command("check-openapi")
@@ -712,7 +720,7 @@ def check_openapi(
     if not path.exists():
         raise typer.BadParameter(f"contract file not found: {path}")
     if path.suffix.lower() == ".json":
-        generated = json.dumps(payload, indent=2)
+        generated = json.dumps(payload, indent=2, sort_keys=True)
     else:
         generated = yaml.safe_dump(payload, sort_keys=False)
     expected = path.read_text(encoding="utf-8")

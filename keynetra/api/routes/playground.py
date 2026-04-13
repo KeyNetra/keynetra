@@ -5,16 +5,16 @@ from __future__ import annotations
 from typing import Any
 
 from fastapi import APIRouter, Depends, Request
-from pydantic import BaseModel, Field
+from pydantic import Field
 
 from keynetra.api.responses import request_id_from_state, success_response
 from keynetra.config.admin_auth import AdminAccess, require_management_role
 from keynetra.config.security import get_principal
-from keynetra.domain.schemas.api import SuccessResponse
+from keynetra.domain.schemas.api import StrictSchemaModel, SuccessResponse
 from keynetra.engine.keynetra_engine import AuthorizationInput, KeyNetraEngine
 
 
-class PlaygroundPolicy(BaseModel):
+class PlaygroundPolicy(StrictSchemaModel):
     action: str
     effect: str = "allow"
     priority: int = 100
@@ -22,14 +22,14 @@ class PlaygroundPolicy(BaseModel):
     conditions: dict[str, Any] = Field(default_factory=dict)
 
 
-class PlaygroundInput(BaseModel):
+class PlaygroundInput(StrictSchemaModel):
     user: dict[str, Any] = Field(default_factory=dict)
     resource: dict[str, Any] = Field(default_factory=dict)
     action: str = ""
     context: dict[str, Any] = Field(default_factory=dict)
 
 
-class PlaygroundEvaluateRequest(BaseModel):
+class PlaygroundEvaluateRequest(StrictSchemaModel):
     policies: list[PlaygroundPolicy]
     input: PlaygroundInput
 

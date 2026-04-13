@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Request, status
-from pydantic import BaseModel
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from keynetra.api.dependencies import ServiceContainer, build_services
@@ -12,12 +11,12 @@ from keynetra.api.pagination import decode_cursor
 from keynetra.api.responses import request_id_from_state, success_response
 from keynetra.config.admin_auth import AdminAccess, require_management_role
 from keynetra.config.security import get_principal
-from keynetra.domain.schemas.api import SuccessResponse
+from keynetra.domain.schemas.api import StrictSchemaModel, SuccessResponse
 
 router = APIRouter(prefix="/relationships", dependencies=[Depends(get_principal)])
 
 
-class RelationshipCreate(BaseModel):
+class RelationshipCreate(StrictSchemaModel):
     subject_type: str
     subject_id: str
     relation: str

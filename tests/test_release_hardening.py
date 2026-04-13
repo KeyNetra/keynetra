@@ -269,7 +269,7 @@ def test_cli_surface_commands_cover_release_paths(
 
     result = runner.invoke(app, ["version"])
     assert result.exit_code == 0
-    assert "0.1.1" in result.stdout
+    assert "0.1.2" in result.stdout
 
     recorded: dict[str, object] = {}
 
@@ -918,7 +918,7 @@ def test_management_routes_cover_permissions_roles_and_acl(
         headers=headers,
     )
     assert created_permission.status_code == 201
-    created_permission_id = created_permission.json()["id"]
+    created_permission_id = created_permission.json()["data"]["id"]
 
     updated_permission = client.put(
         f"/permissions/{created_permission_id}",
@@ -939,7 +939,7 @@ def test_management_routes_cover_permissions_roles_and_acl(
         headers=headers,
     )
     assert created_role.status_code == 201
-    created_role_id = created_role.json()["id"]
+    created_role_id = created_role.json()["data"]["id"]
 
     updated_role = client.put(
         f"/roles/{created_role_id}",

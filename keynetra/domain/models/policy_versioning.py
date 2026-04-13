@@ -6,6 +6,7 @@ from sqlalchemy import JSON, DateTime, ForeignKey, Index, Integer, String, Uniqu
 from sqlalchemy.orm import Mapped, mapped_column
 
 from keynetra.domain.models.base import Base
+from keynetra.utils.datetime import utc_now
 
 
 class Policy(Base):
@@ -36,7 +37,7 @@ class PolicyVersion(Base):
     conditions: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
 
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, default=datetime.utcnow
+        DateTime(timezone=True), nullable=False, default=utc_now
     )
     created_by: Mapped[str | None] = mapped_column(String(128), nullable=True)
     state: Mapped[str] = mapped_column(String(16), nullable=False, default="active")

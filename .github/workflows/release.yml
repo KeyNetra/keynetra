@@ -37,9 +37,6 @@ jobs:
           python -m pip install -r requirements-dev.lock
           python -m pip install -e .
           python -m pip install build twine
-          if [ -d ./keynetra-client-python ]; then
-            pip install -e ./keynetra-client-python
-          fi
 
       - name: 🔎 Verify package import
         run: |
@@ -60,10 +57,6 @@ jobs:
             --cov-fail-under=85 \
             --cov-report=term \
             --cov-report=json:coverage.json
-
-          if [ -d ./keynetra-client-python/tests ]; then
-            pytest -q keynetra-client-python/tests
-          fi
 
       - name: 📊 Coverage Summary
         if: always()

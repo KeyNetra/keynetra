@@ -3,41 +3,43 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import Field
+
+from keynetra.domain.schemas.api import StrictSchemaModel, UtcDateTime
 
 
-class RoleCreate(BaseModel):
+class RoleCreate(StrictSchemaModel):
     name: str
 
 
-class RoleUpdate(BaseModel):
+class RoleUpdate(StrictSchemaModel):
     name: str
 
 
-class RoleOut(BaseModel):
+class RoleOut(StrictSchemaModel):
     id: int
     name: str
 
 
-class PermissionCreate(BaseModel):
+class PermissionCreate(StrictSchemaModel):
     action: str
 
 
-class PermissionUpdate(BaseModel):
+class PermissionUpdate(StrictSchemaModel):
     action: str
 
 
-class PermissionOut(BaseModel):
+class PermissionOut(StrictSchemaModel):
     id: int
     action: str
 
 
-class RolePermissionOut(BaseModel):
+class RolePermissionOut(StrictSchemaModel):
     id: int
     action: str
 
 
-class PolicyCreate(BaseModel):
+class PolicyCreate(StrictSchemaModel):
     action: str
     effect: str = "allow"
     priority: int = 100
@@ -45,7 +47,7 @@ class PolicyCreate(BaseModel):
     conditions: dict[str, Any] = Field(default_factory=dict)
 
 
-class PolicyOut(BaseModel):
+class PolicyOut(StrictSchemaModel):
     id: int
     action: str
     effect: str
@@ -54,7 +56,11 @@ class PolicyOut(BaseModel):
     conditions: dict[str, Any]
 
 
-class ACLCreate(BaseModel):
+class PolicyDslCreate(StrictSchemaModel):
+    dsl: str
+
+
+class ACLCreate(StrictSchemaModel):
     subject_type: str
     subject_id: str
     resource_type: str
@@ -66,10 +72,10 @@ class ACLCreate(BaseModel):
 class ACLOut(ACLCreate):
     id: int
     tenant_id: int
-    created_at: datetime | None = None
+    created_at: UtcDateTime | None = None
 
 
-class AuditRecordOut(BaseModel):
+class AuditRecordOut(StrictSchemaModel):
     id: int
     principal_type: str
     principal_id: str
@@ -82,15 +88,15 @@ class AuditRecordOut(BaseModel):
     reason: str | None = None
     evaluated_rules: list[Any]
     failed_conditions: list[Any]
-    created_at: datetime
+    created_at: UtcDateTime
 
 
-class AdminLoginRequest(BaseModel):
+class AdminLoginRequest(StrictSchemaModel):
     username: str
     password: str
 
 
-class AdminLoginResponse(BaseModel):
+class AdminLoginResponse(StrictSchemaModel):
     access_token: str
     token_type: str = "bearer"
     expires_in: int

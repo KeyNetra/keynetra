@@ -6,6 +6,7 @@ from sqlalchemy import DateTime, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from keynetra.domain.models.base import Base
+from keynetra.utils.datetime import utc_now
 
 
 class IdempotencyRecord(Base):
@@ -21,7 +22,7 @@ class IdempotencyRecord(Base):
     response_body: Mapped[str | None] = mapped_column(Text, nullable=True)
     response_content_type: Mapped[str | None] = mapped_column(String(128), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, default=datetime.utcnow
+        DateTime(timezone=True), nullable=False, default=utc_now
     )
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 

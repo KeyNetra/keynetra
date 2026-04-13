@@ -67,12 +67,13 @@ def list_permissions(
     )
 
 
-@router.post("", response_model=PermissionOut, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=SuccessResponse[PermissionOut], status_code=status.HTTP_201_CREATED)
 def create_permission(
     payload: PermissionCreate,
+    request: Request,
     services: ServiceContainer = Depends(build_services),
     access: AdminAccess = Depends(require_management_role("admin")),
-) -> PermissionOut:
+) -> dict[str, object]:
     db = services.db
     existing = (
         db.execute(select(Permission).where(Permission.action == payload.action)).scalars().first()
@@ -91,16 +92,20 @@ def create_permission(
     except SQLAlchemyError as e:
         db.rollback()
         raise ApiError(status_code=500, code=ApiErrorCode.DATABASE_ERROR, message="db error") from e
-    return PermissionOut(id=perm.id, action=perm.action)
+    return success_response(
+        data=PermissionOut(id=perm.id, action=perm.action).model_dump(),
+        request_id=request_id_from_state(request.state),
+    )
 
 
-@router.put("/{permission_id}", response_model=PermissionOut)
+@router.put("/{permission_id}", response_model=SuccessResponse[PermissionOut])
 def update_permission(
     permission_id: int,
     payload: PermissionUpdate,
+    request: Request,
     services: ServiceContainer = Depends(build_services),
     access: AdminAccess = Depends(require_management_role("developer")),
-) -> PermissionOut:
+) -> dict[str, object]:
     db = services.db
     permission = db.get(Permission, permission_id)
     if permission is None:
@@ -127,7 +132,10 @@ def update_permission(
     except SQLAlchemyError as e:
         db.rollback()
         raise ApiError(status_code=500, code=ApiErrorCode.DATABASE_ERROR, message="db error") from e
-    return PermissionOut(id=permission.id, action=permission.action)
+    return success_response(
+        data=PermissionOut(id=permission.id, action=permission.action).model_dump(),
+        request_id=request_id_from_state(request.state),
+    )
 
 
 @router.delete("/{permission_id}", response_model=SuccessResponse[dict[str, int]])

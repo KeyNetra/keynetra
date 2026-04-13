@@ -116,6 +116,7 @@ def test_check_access_requires_auth() -> None:
     resp = client.post("/check-access", json={"user": {}, "action": "x", "resource": {}})
     assert resp.status_code == 401
     assert resp.json()["data"] is None
+    assert resp.json()["meta"]["request_id"]
     assert resp.json()["error"]["code"] == "unauthorized"
 
 

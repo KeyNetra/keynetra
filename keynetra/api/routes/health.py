@@ -1,11 +1,10 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Request, status
-from fastapi.responses import JSONResponse
 from sqlalchemy import text
 
 from keynetra.api.dependencies import ServiceContainer, build_services
-from keynetra.api.responses import request_id_from_state, success_response
+from keynetra.api.responses import envelope_json_response, request_id_from_state, success_response
 from keynetra.config.redis_client import get_redis
 from keynetra.config.settings import Settings, get_settings
 from keynetra.domain.schemas.api import SuccessResponse
@@ -28,14 +27,15 @@ def readiness(
     request: Request,
     settings: Settings = Depends(get_settings),
     services: ServiceContainer = Depends(build_services),
-) -> JSONResponse:
+) -> dict[str, object]:
     database_status = _check_database(services)
     redis_status = _check_redis(settings)
     healthy = database_status["status"] == "ok" and redis_status["status"] in {
         "ok",
         "not_configured",
     }
-    payload = success_response(
+    return envelope_json_response(
+        status_code=status.HTTP_200_OK if healthy else status.HTTP_503_SERVICE_UNAVAILABLE,
         data={
             "status": "ok" if healthy else "degraded",
             "checks": {
@@ -44,10 +44,6 @@ def readiness(
             },
         },
         request_id=request_id_from_state(request.state),
-    )
-    return JSONResponse(
-        status_code=status.HTTP_200_OK if healthy else status.HTTP_503_SERVICE_UNAVAILABLE,
-        content=payload,
     )
 
 

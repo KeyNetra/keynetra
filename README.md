@@ -11,7 +11,7 @@
 [![Docker Hub](https://img.shields.io/docker/pulls/keynetra/keynetra?label=docker%20pulls)](https://hub.docker.com/r/keynetra/keynetra)
 [![Python](https://img.shields.io/badge/python-3.11%2B-blue)](./pyproject.toml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-green)](./LICENSE)
-[![OpenAPI](https://img.shields.io/badge/OpenAPI-3.1-orange)](./contracts/openapi/openapi.json)
+[![OpenAPI](https://img.shields.io/badge/OpenAPI-3.0.3-orange)](./contracts/openapi/openapi.json)
 
 </div>
 
@@ -23,6 +23,8 @@ Policy-driven authorization control plane for applications that need determinist
 
 - Authorization engine with deterministic evaluation and explain traces
 - FastAPI API server and operational CLI
+- Embedded engine facade via `from keynetra import KeyNetra`
+- Config-driven bootstrap for local engine or server startup
 - Multi-tenant policy evaluation with strict tenancy controls
 - Policy lifecycle operations (validation, compile, simulation, impact analysis)
 - Caching and access indexing for low-latency checks
@@ -106,7 +108,7 @@ keynetra doctor --service core
 OpenAPI contracts:
 
 - [`contracts/openapi/openapi.json`](./contracts/openapi/openapi.json)
-- [`contracts/openapi/keynetra-v0.1.1.yaml`](./contracts/openapi/keynetra-v0.1.1.yaml)
+- [`contracts/openapi/keynetra-v0.1.0.yaml`](./contracts/openapi/keynetra-v0.1.0.yaml)
 
 ## Multi-Tenant and Security
 
@@ -175,10 +177,25 @@ More deployment detail: [`DEPLOYMENT.md`](./DEPLOYMENT.md)
 
 ## SDKs
 
-SDKs are maintained separately from this engine repository.
+SDKs are maintained separately from this engine repository, but the core package also
+ships an embedded facade for local execution.
 
 - Python SDK package: `keynetra-client`
 - SDK guide: [`SDK_GUIDE.md`](./SDK_GUIDE.md)
+
+Embedded usage:
+
+```python
+from keynetra import KeyNetra
+
+engine = KeyNetra.from_config("examples/keynetra.yaml")
+decision = engine.check_access(
+    subject={"id": "alice", "role": "admin"},
+    action="read",
+    resource="document:doc-1",
+)
+print(decision.allowed)
+```
 
 Example (Python SDK):
 
@@ -231,7 +248,7 @@ Apache-2.0. See [`LICENSE`](./LICENSE).
   title   = {KeyNetra},
   author  = {KeyNetra Community},
   year    = {2026},
-  version = {0.1.1-beta},
+  version = {0.1.0-beta},
   url     = {https://github.com/keynetra/keynetra}
 }
 ```
