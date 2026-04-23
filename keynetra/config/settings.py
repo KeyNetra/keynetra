@@ -13,6 +13,8 @@ from keynetra.config.policies import DEFAULT_POLICIES
 
 _DEV_ENVIRONMENTS = {"development", "dev", "local"}
 _VALID_ENVIRONMENTS = _DEV_ENVIRONMENTS | {"ci", "prod", "production"}
+DEFAULT_JWT_SECRET = "change-me"  # nosec B105 - intentional sentinel rejected outside development
+DEFAULT_SERVER_HOST = "0.0.0.0"  # nosec B104 - explicit service listen default for containers
 
 
 class Settings(BaseSettings):
@@ -29,7 +31,7 @@ class Settings(BaseSettings):
     api_keys: str | None = Field(default=None)
     api_key_hashes: str | None = Field(default=None)
     api_key_scopes_json: str | None = Field(default=None)
-    jwt_secret: str = Field(default="change-me")
+    jwt_secret: str = Field(default=DEFAULT_JWT_SECRET)
     jwt_algorithm: str = Field(default="HS256")
     admin_username: str | None = Field(default=None)
     admin_password: str | None = Field(default=None)
@@ -56,12 +58,13 @@ class Settings(BaseSettings):
     rate_limit_per_minute: int = Field(default=60)
     rate_limit_burst: int | None = Field(default=None)
     rate_limit_window_seconds: int = Field(default=60)
+    rate_limit_disabled: bool = Field(default=False)
     rate_limit_redis_unavailable_mode: str = Field(default="degraded_local")
     otel_enabled: bool = Field(default=False)
     service_mode: str = Field(default="all")
     auto_seed_sample_data: bool = Field(default=False)
     run_migrations: bool = Field(default=False)
-    server_host: str = Field(default="0.0.0.0")
+    server_host: str = Field(default=DEFAULT_SERVER_HOST)
     server_port: int = Field(default=8000)
     async_authorization_enabled: bool = Field(default=False)
     strict_tenancy: bool = Field(default=False)
@@ -166,14 +169,14 @@ class Settings(BaseSettings):
         auth_enabled = (
             bool(self.parsed_api_key_hashes())
             or bool(self.oidc_jwks_url)
-            or (bool(self.jwt_secret) and self.jwt_secret.strip() != "change-me")
+            or (bool(self.jwt_secret) and self.jwt_secret.strip() != DEFAULT_JWT_SECRET)
         )
         non_dev = self.environment not in _DEV_ENVIRONMENTS
         if non_dev and not auth_enabled:
             raise ValueError(
                 "configure at least one auth method: api_keys/api_key_hashes or jwt/oidc"
             )
-        if self.environment == "prod" and self.jwt_secret.strip() == "change-me":
+        if self.environment == "prod" and self.jwt_secret.strip() == DEFAULT_JWT_SECRET:
             raise ValueError("rejecting weak KEYNETRA_JWT_SECRET=change-me outside development")
         if non_dev and self.admin_password and not self.admin_password_hash:
             raise ValueError(

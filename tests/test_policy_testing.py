@@ -13,7 +13,8 @@ from keynetra.services.policy_testing import parse_policy_test_suite, validate_p
 
 
 def test_parse_policy_test_suite_supports_embedded_policy_dsl() -> None:
-    suite = parse_policy_test_suite("""
+    suite = parse_policy_test_suite(
+        """
 policies:
   - allow:
       action: read
@@ -29,7 +30,8 @@ tests:
       action: read
       resource: {}
     expect: allow
-""")
+"""
+    )
 
     assert len(suite.policies) == 1
     assert suite.policies[0]["policy_id"] == "read-admin"
@@ -37,7 +39,8 @@ tests:
 
 
 def test_validate_policy_test_suite_runs_expected_decisions() -> None:
-    results = validate_policy_test_suite("""
+    results = validate_policy_test_suite(
+        """
 policies:
   - action: read
     effect: allow
@@ -59,7 +62,8 @@ tests:
       action: read
       resource: {}
     expect: deny
-""")
+"""
+    )
 
     assert [result.passed for result in results] == [True, True]
     assert results[0].policy_id == "read-admin"

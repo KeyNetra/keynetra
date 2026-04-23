@@ -3,12 +3,19 @@ from __future__ import annotations
 import json
 import tomllib
 from pathlib import Path
-from typing import Any
+from typing import Any, Protocol, cast
+
+
+class _YamlModule(Protocol):
+    def safe_load(self, stream: str) -> Any: ...
+
 
 try:
-    import yaml
+    import yaml as _yaml
 except ModuleNotFoundError:  # pragma: no cover - optional parser dependency
-    yaml = None  # type: ignore[assignment]
+    yaml: _YamlModule | None = None
+else:
+    yaml = cast(_YamlModule, _yaml)
 
 
 def load_policies_from_paths(paths: list[str]) -> list[dict[str, Any]]:

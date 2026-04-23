@@ -141,6 +141,16 @@ require_tool() {
   log "  • $label: $path"
 }
 
+require_python_module() {
+  local module="$1"
+  local label="$2"
+  if ! "$PYTHON_BIN" -c "import $module" >/dev/null 2>&1; then
+    log "${COLOR_RED}Missing required Python module:${COLOR_RESET} $module ($label)"
+    exit 1
+  fi
+  log "  • $label: python module $module"
+}
+
 start_stage() {
   CURRENT_STAGE="$1"
   CURRENT_STAGE_STARTED_AT="$(date +%s)"
@@ -225,6 +235,16 @@ stage_environment() {
   require_tool "isort" "isort"
   require_tool "mypy" "mypy"
   require_tool "pytest" "pytest"
+  require_tool "bandit" "bandit"
+  require_tool "detect-secrets" "detect-secrets"
+  require_tool "detect-secrets-hook" "detect-secrets-hook"
+  require_tool "docker" "docker"
+  require_tool "helm" "helm"
+  require_tool "locust" "locust"
+  require_tool "curl" "curl"
+  require_python_module "build" "build"
+  require_python_module "twine" "twine"
+  require_python_module "pip_audit" "pip-audit"
   if [ -f "$REPO_ROOT/.importlinter" ]; then
     require_tool "lint-imports" "import-linter"
   fi
@@ -276,31 +296,21 @@ stage_build() {
 }
 
 stage_twine() {
-  if ! "$PYTHON_BIN" -c "import twine" >/dev/null 2>&1; then
-    log "Twine is not installed in the active Python environment."
-    return 1
-  fi
   run_python_module twine check dist/*
 }
 
 stage_docker() {
-  require_tool "docker" "docker"
   docker compose config >/tmp/keynetra-docker-compose.rendered.yaml
   docker build -t keynetra:test .
 }
 
 stage_helm() {
-  require_tool "helm" "helm"
   helm lint deploy/helm/keynetra
   helm template keynetra-local deploy/helm/keynetra >/tmp/keynetra-helm-template.yaml
 }
 
 stage_pip_audit() {
-  if ! "$PYTHON_BIN" -c "import pip_audit" >/dev/null 2>&1; then
-    log "pip-audit is not installed in the active Python environment."
-    return 1
-  fi
-  run_python_module pip_audit
+  run_python_module pip_audit -r requirements.lock -r requirements-dev.lock
 }
 
 stage_flaky() {
@@ -308,17 +318,61 @@ stage_flaky() {
   "$(find_tool pytest)" --no-cov
 }
 
-stage_secret_scan() {
-  if command -v gitleaks >/dev/null 2>&1; then
-    gitleaks detect --no-banner --source .
-    return
+stage_bandit() {
+  "$(find_tool bandit)" -r keynetra
+}
+
+stage_detect_secrets() {
+  local hook
+  hook="$(find_tool detect-secrets-hook)"
+  if [ ! -f "$REPO_ROOT/.secrets.baseline" ]; then
+    log "${COLOR_RED}Missing required baseline:${COLOR_RESET} .secrets.baseline"
+    return 1
   fi
-  if command -v trufflehog >/dev/null 2>&1; then
-    trufflehog filesystem --no-update .
-    return
+  mapfile -t tracked_files < <(git ls-files)
+  "$hook" --baseline .secrets.baseline "${tracked_files[@]}"
+}
+
+cleanup_locust_server() {
+  if [ -n "${KEYNETRA_SMOKE_SERVER_PID:-}" ] && kill -0 "$KEYNETRA_SMOKE_SERVER_PID" >/dev/null 2>&1; then
+    kill "$KEYNETRA_SMOKE_SERVER_PID" >/dev/null 2>&1 || true
+    wait "$KEYNETRA_SMOKE_SERVER_PID" >/dev/null 2>&1 || true
   fi
-  log "No supported secret scanner found (checked gitleaks, trufflehog)."
-  return 0
+  KEYNETRA_SMOKE_SERVER_PID=""
+}
+
+stage_locust() {
+  local smoke_db="$REPO_ROOT/.keynetra-locust-smoke.db"
+  local smoke_log="/tmp/keynetra-locust-smoke.log"
+
+  rm -f "$smoke_db" "$smoke_log"
+  cleanup_locust_server
+
+  KEYNETRA_API_KEYS=devkey \
+  KEYNETRA_DATABASE_URL="sqlite+pysqlite:///$smoke_db" \
+  KEYNETRA_POLICY_PATHS=./examples/policies \
+  KEYNETRA_MODEL_PATHS=./examples/auth-model.yaml \
+  KEYNETRA_AUTO_SEED_SAMPLE_DATA=1 \
+  KEYNETRA_RATE_LIMIT_DISABLED=true \
+  KEYNETRA_SERVER_HOST=127.0.0.1 \
+  KEYNETRA_SERVER_PORT=8080 \
+  run_keynetra_cli serve --host 127.0.0.1 --port 8080 >"$smoke_log" 2>&1 &
+  KEYNETRA_SMOKE_SERVER_PID="$!"
+
+  for _ in $(seq 1 30); do
+    if curl -fsS http://127.0.0.1:8080/health >/dev/null; then
+      KEYNETRA_LOCUST_API_KEY=devkey \
+      KEYNETRA_LOCUST_TENANT_ID=default \
+      locust -f locustfile.py --host http://127.0.0.1:8080 --headless -u 1 -r 1 -t 10s --only-summary
+      cleanup_locust_server
+      return 0
+    fi
+    sleep 1
+  done
+
+  cat "$smoke_log"
+  cleanup_locust_server
+  return 1
 }
 
 run_stage "🧰 Environment Checks" stage_environment
@@ -327,15 +381,16 @@ run_stage "🎨 Formatting" stage_format
 run_stage "🧠 Mypy" stage_mypy
 run_stage "🧱 Import Linter" stage_import_linter
 run_stage "🧪 Pytest" stage_pytest
-run_optional_stage "🎲 Flaky Test Probe" "${FLAKY:-${FULL:-0}}" stage_flaky
 run_stage "📊 Coverage" stage_coverage
 run_stage "📜 OpenAPI" stage_openapi
+run_stage "🛡️ pip-audit" stage_pip_audit
+run_stage "🛡️ Bandit" stage_bandit
+run_stage "🔐 detect-secrets" stage_detect_secrets
 run_stage "📦 Package Build" stage_build
-run_optional_stage "📮 Twine Check" "${TWINE:-${FULL:-0}}" stage_twine
-run_optional_stage "🐳 Docker Build" "${DOCKER:-${FULL:-0}}" stage_docker
-run_optional_stage "⛵ Helm Checks" "${HELM:-${FULL:-0}}" stage_helm
-run_optional_stage "🛡️ pip-audit" "${SECURITY:-0}" stage_pip_audit
-run_optional_stage "🔐 Secret Scan" "${SECURITY:-0}" stage_secret_scan
+run_stage "📮 Twine Check" stage_twine
+run_stage "🐳 Docker Build" stage_docker
+run_stage "⛵ Helm Checks" stage_helm
+run_stage "🚦 Locust Smoke" stage_locust
 
 log ""
-log "${COLOR_GREEN}${COLOR_BOLD}All enabled stages passed.${COLOR_RESET}"
+log "${COLOR_GREEN}${COLOR_BOLD}All validation stages passed.${COLOR_RESET}"

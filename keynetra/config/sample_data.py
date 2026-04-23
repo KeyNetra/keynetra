@@ -65,7 +65,7 @@ def sample_bootstrap_document() -> dict[str, Any]:
             "KEYNETRA_DATABASE_URL": "sqlite+pysqlite:///./keynetra.db",
             "KEYNETRA_REDIS_URL": "redis://localhost:6379/0",
             "KEYNETRA_API_KEYS": "devkey",
-            "KEYNETRA_JWT_SECRET": "change-me",
+            "KEYNETRA_JWT_SECRET": "change-me",  # nosec B105 - documented development bootstrap value
             "KEYNETRA_JWT_ALGORITHM": "HS256",
             "KEYNETRA_CORS_ALLOW_ORIGINS": "http://localhost:5173,http://127.0.0.1:5173",
             "KEYNETRA_CORS_ALLOW_CREDENTIALS": "true",

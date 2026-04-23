@@ -1,12 +1,19 @@
 from __future__ import annotations
 
 import json
-from typing import Any
+from typing import Any, Protocol, cast
+
+
+class _YamlModule(Protocol):
+    def safe_load(self, stream: str) -> Any: ...
+
 
 try:
-    import yaml
+    import yaml as _yaml
 except ModuleNotFoundError:  # pragma: no cover - optional parser dependency
-    yaml = None  # type: ignore[assignment]
+    yaml: _YamlModule | None = None
+else:
+    yaml = cast(_YamlModule, _yaml)
 
 
 def dsl_to_policy(dsl_text: str) -> dict[str, Any]:

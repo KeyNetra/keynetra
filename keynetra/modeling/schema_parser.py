@@ -150,7 +150,7 @@ def _parse_factor(tokens: list[str], index: int) -> tuple[Expr, int]:
     if lowered == "not":
         value, next_index = _parse_factor(tokens, index + 1)
         return NotExpr(value=value), next_index
-    if token == "(":
+    if token == "(":  # nosec B105 - parser token, not a credential
         expr, next_index = _parse_expr(tokens, index + 1)
         if next_index >= len(tokens) or tokens[next_index] != ")":
             raise ValueError("missing closing parenthesis")

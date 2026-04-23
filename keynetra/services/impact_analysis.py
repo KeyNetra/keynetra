@@ -104,8 +104,9 @@ class ImpactAnalyzer:
                 candidate_resources = self._candidate_resources(
                     tenant_id=tenant.id, user_id=user_id
                 )
-            except Exception:
-                continue
+            except (AttributeError, RuntimeError, TimeoutError, ValueError):
+                candidate_resources = []
+                user = dict(context)
             for resource in candidate_resources:
                 before = before_engine.decide(
                     AuthorizationInput(

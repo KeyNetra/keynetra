@@ -36,17 +36,21 @@ jobs:
           python -m pip install -r requirements.lock
           python -m pip install -r requirements-dev.lock
           python -m pip install -e .
-          python -m pip install build twine
+          python -m pip install build twine bandit detect-secrets
 
       - name: 🔎 Verify package import
         run: |
           python -c "import keynetra; print('KeyNetra import OK')"
 
-      - name: 🔍 Lint & Security
+      - name: 🔍 Lint, Typing & Security
         run: |
           ruff check .
           black --check .
-          pip-audit
+          isort --check-only .
+          mypy keynetra
+          pip-audit -r requirements.lock -r requirements-dev.lock
+          bandit -r keynetra
+          git ls-files -z | xargs -0 detect-secrets-hook --baseline .secrets.baseline
 
       - name: ✅ Run tests & coverage
         env:
@@ -54,9 +58,10 @@ jobs:
         run: |
           python -m pytest -q \
             --cov=keynetra \
-            --cov-fail-under=85 \
+            --cov-fail-under=90 \
             --cov-report=term \
             --cov-report=json:coverage.json
+          python scripts/check_coverage.py
 
       - name: 📊 Coverage Summary
         if: always()
@@ -104,7 +109,7 @@ jobs:
             - Python wheel & sdist
             - Docker images (below)
 
-            **Changelog:** [See commits](https://github.com/keynetra/keynetra/compare/${{ github.ref_previous }}...${{ github.ref }})
+            **Changelog:** https://github.com/keynetra/keynetra/blob/main/CHANGELOG.md
           files: |
             dist/*.tar.gz
             dist/*.whl

@@ -83,6 +83,8 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
     async def dispatch(
         self, request: Request, call_next: Callable[[Request], Awaitable[Response]]
     ) -> Response:
+        if self._settings.rate_limit_disabled:
+            return await call_next(request)
         if request.method.upper() == "OPTIONS" or request.url.path in _EXEMPT_PATHS:
             return await call_next(request)
 

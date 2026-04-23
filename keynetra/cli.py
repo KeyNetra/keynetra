@@ -20,7 +20,7 @@ from sqlalchemy.orm import Session
 from keynetra.config.config_loader import apply_config_to_environment, load_config_file
 from keynetra.config.file_loaders import load_policies_from_paths
 from keynetra.config.redis_client import get_redis
-from keynetra.config.settings import get_settings, reset_settings_cache
+from keynetra.config.settings import DEFAULT_SERVER_HOST, get_settings, reset_settings_cache
 from keynetra.config.tenancy import DEFAULT_TENANT_KEY
 from keynetra.infrastructure.cache.access_index_cache import build_access_index_cache
 from keynetra.infrastructure.cache.acl_cache import build_acl_cache
@@ -110,7 +110,7 @@ def _resolve_url(explicit_url: str | None, suffix: str, *, use_settings: bool) -
         return f"http://localhost:8000{suffix}"
     settings = get_settings()
     host = settings.server_host
-    if host == "0.0.0.0":
+    if host == DEFAULT_SERVER_HOST:
         host = "127.0.0.1"
     return f"http://{host}:{settings.server_port}{suffix}"
 
@@ -118,7 +118,7 @@ def _resolve_url(explicit_url: str | None, suffix: str, *, use_settings: bool) -
 @app.command("start")
 def start(
     ctx: typer.Context,
-    host: str = typer.Option("0.0.0.0", "--host"),
+    host: str = typer.Option(DEFAULT_SERVER_HOST, "--host"),
     port: int = typer.Option(8000, "--port"),
     reload: bool = typer.Option(False, "--reload", help="Enable development autoreload."),
     config: str | None = typer.Option(None, "--config", help="Path to config file."),
@@ -129,7 +129,7 @@ def start(
     _maybe_load_config(ctx, config)
     settings = get_settings()
     _run_server(
-        host=host if not config_active or host != "0.0.0.0" else settings.server_host,
+        host=host if not config_active or host != DEFAULT_SERVER_HOST else settings.server_host,
         port=port if not config_active or port != 8000 else settings.server_port,
         reload=reload,
     )
@@ -138,7 +138,7 @@ def start(
 @app.command("serve")
 def serve(
     ctx: typer.Context,
-    host: str = typer.Option("0.0.0.0", "--host"),
+    host: str = typer.Option(DEFAULT_SERVER_HOST, "--host"),
     port: int = typer.Option(8000, "--port"),
     reload: bool = typer.Option(False, "--reload", help="Enable development autoreload."),
     config: str | None = typer.Option(None, "--config", help="Path to config file."),
@@ -149,7 +149,7 @@ def serve(
     _maybe_load_config(ctx, config)
     settings = get_settings()
     _run_server(
-        host=host if not config_active or host != "0.0.0.0" else settings.server_host,
+        host=host if not config_active or host != DEFAULT_SERVER_HOST else settings.server_host,
         port=port if not config_active or port != 8000 else settings.server_port,
         reload=reload,
     )
@@ -704,14 +704,21 @@ def generate_openapi(
     ),
 ) -> None:
     """Generate OpenAPI contract directly from the FastAPI app."""
+    from typing import Protocol, cast
+
     from keynetra.main import create_app
 
     app_instance = create_app()
     payload = app_instance.openapi()
+
+    class _YamlModule(Protocol):
+        def safe_dump(self, data: object, *, sort_keys: bool = ...) -> str: ...
+
     try:
-        import yaml
+        import yaml as _yaml
     except ModuleNotFoundError as exc:
         raise typer.BadParameter("pyyaml is required to generate yaml contracts") from exc
+    yaml = cast(_YamlModule, _yaml)
 
     written_paths: list[str] = []
     for raw_path in [output, yaml_output]:

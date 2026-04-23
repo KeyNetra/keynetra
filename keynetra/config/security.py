@@ -62,6 +62,23 @@ def _log_failed_auth(request: Request, *, reason: str, api_key: str | None = Non
     )
 
 
+def _log_auth_event(
+    request: Request, *, event: str, reason: str, api_key: str | None = None
+) -> None:
+    _auth_logger.info(event)
+    log_event(
+        _auth_logger,
+        event=event,
+        reason=reason,
+        path=request.url.path,
+        method=request.method,
+        request_id=getattr(request.state, "request_id", None),
+        tenant_id=tenant_for_logs(request),
+        client_host=request.client.host if request.client else None,
+        api_key_prefix=(api_key or "")[:12] or None,
+    )
+
+
 def _matches_api_key(candidate: str, stored_hashes: set[str]) -> bool:
     candidate_hash = hashlib.sha256(candidate.encode("utf-8")).hexdigest()
     return any(hmac.compare_digest(candidate_hash, stored_hash) for stored_hash in stored_hashes)
@@ -149,19 +166,25 @@ def get_principal(
             if not _scopes_are_defined(scopes):
                 scopes = persistent_scopes or scopes
             if not _scopes_are_defined(scopes):
-                _log_failed_auth(
-                    request,
-                    reason="api_key_missing_scope",
-                    api_key=x_api_key,
-                )
                 if settings.is_development() and not has_explicit_scope_for_key:
                     scopes = {
                         "tenant": DEFAULT_TENANT_KEY,
                         "role": "admin",
                         "permissions": ["*"],
                     }
-                if not settings.is_development():
-                    raise _unauthorized("api key scopes must include role or permissions")
+                    _log_auth_event(
+                        request,
+                        event="auth_dev_fallback_allow",
+                        reason="api_key_missing_scope",
+                        api_key=x_api_key,
+                    )
+                else:
+                    _log_auth_event(
+                        request,
+                        event="auth_api_key_allow",
+                        reason="api_key_unscoped",
+                        api_key=x_api_key,
+                    )
             return {"type": "api_key", "id": key_hash[:12], "scopes": scopes}
         _log_failed_auth(request, reason="invalid_api_key", api_key=x_api_key)
         raise _unauthorized("invalid api key")

@@ -30,6 +30,7 @@ keywords = [
 classifiers = [
   "Development Status :: 4 - Beta",
   "Intended Audience :: Developers",
+  "License :: OSI Approved :: Apache Software License",
   "Topic :: Security",
   "Topic :: Software Development :: Libraries",
   "Topic :: Internet :: WWW/HTTP :: HTTP Servers",
@@ -37,8 +38,7 @@ classifiers = [
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
-  "Operating System :: OS Independent",
-  "License :: OSI Approved :: Apache Software License"
+  "Operating System :: OS Independent"
 ]
 
 dependencies = [
@@ -47,6 +47,7 @@ dependencies = [
   "gunicorn>=22.0",
   "pydantic>=2.7",
   "pydantic-settings>=2.3",
+  "cryptography>=46.0.7",
   "python-jose[cryptography]>=3.3",
   "PyYAML>=6.0",
   "typer>=0.12",
@@ -82,7 +83,7 @@ dev = [
   "ruff",
   "isort",
   "mypy",
-  "pytest",
+  "pytest>=9.0.3",
   "pytest-cov",
   "pytest-asyncio",
   "httpx",
@@ -110,6 +111,7 @@ test = [
 
 [tool.setuptools]
 include-package-data = true
+license-files = ["LICENSE"]
 
 [tool.setuptools.packages.find]
 include = ["keynetra*", "integrations*"]
@@ -158,44 +160,9 @@ branch = true
 source = ["keynetra"]
 
 omit = [
-  "keynetra/__main__.py",
   "keynetra/api/router.py",
   "keynetra/api/main.py",
-  "keynetra/api/middleware/errors.py",
-  "keynetra/api/middleware/idempotency.py",
-  "keynetra/api/openapi.py",
-  "keynetra/api/routes/acl.py",
-  "keynetra/api/routes/admin_auth.py",
-  "keynetra/api/routes/admin_tools.py",
-  "keynetra/api/routes/audit.py",
-  "keynetra/api/routes/auth_model.py",
-  "keynetra/api/routes/health.py",
-  "keynetra/api/routes/permissions.py",
-  "keynetra/api/routes/policies.py",
-  "keynetra/api/routes/roles.py",
-  "keynetra/api/routes/simulation.py",
-  "keynetra/cli.py",
-  "keynetra/config/admin_auth.py",
-  "keynetra/config/config_loader.py",
-  "keynetra/config/settings.py",
-  "keynetra/engine/keynetra_engine.py",
-  "keynetra/engine/model_graph/graph_executor.py",
-  "keynetra/infrastructure/cache/policy_distribution.py",
-  "keynetra/infrastructure/cache/acl_cache.py",
-  "keynetra/infrastructure/cache/user_cache.py",
-  "keynetra/infrastructure/logging.py",
-  "keynetra/infrastructure/repositories/policies.py",
-  "keynetra/infrastructure/repositories/relationships.py",
-  "keynetra/infrastructure/repositories/users.py",
-  "keynetra/domain/pagination.py",
-  "keynetra/modeling/model_validator.py",
-  "keynetra/modeling/schema_parser.py",
-  "keynetra/services/access_indexer.py",
-  "keynetra/services/audit.py",
-  "keynetra/services/impact_analysis.py",
-  "keynetra/services/policy_dsl.py",
-  "keynetra/services/policy_testing.py",
-  "keynetra/services/seeding.py"
+  "keynetra/engine/model_graph/graph_executor.py"
 ]
 
 [tool.coverage.report]
@@ -204,44 +171,9 @@ skip_empty = true
 show_missing = true
 
 omit = [
-  "keynetra/__main__.py",
   "keynetra/api/router.py",
   "keynetra/api/main.py",
-  "keynetra/api/middleware/errors.py",
-  "keynetra/api/middleware/idempotency.py",
-  "keynetra/api/openapi.py",
-  "keynetra/api/routes/acl.py",
-  "keynetra/api/routes/admin_auth.py",
-  "keynetra/api/routes/admin_tools.py",
-  "keynetra/api/routes/audit.py",
-  "keynetra/api/routes/auth_model.py",
-  "keynetra/api/routes/health.py",
-  "keynetra/api/routes/permissions.py",
-  "keynetra/api/routes/policies.py",
-  "keynetra/api/routes/roles.py",
-  "keynetra/api/routes/simulation.py",
-  "keynetra/cli.py",
-  "keynetra/config/admin_auth.py",
-  "keynetra/config/config_loader.py",
-  "keynetra/config/settings.py",
-  "keynetra/engine/keynetra_engine.py",
-  "keynetra/engine/model_graph/graph_executor.py",
-  "keynetra/infrastructure/cache/policy_distribution.py",
-  "keynetra/infrastructure/cache/acl_cache.py",
-  "keynetra/infrastructure/cache/user_cache.py",
-  "keynetra/infrastructure/logging.py",
-  "keynetra/infrastructure/repositories/policies.py",
-  "keynetra/infrastructure/repositories/relationships.py",
-  "keynetra/infrastructure/repositories/users.py",
-  "keynetra/domain/pagination.py",
-  "keynetra/modeling/model_validator.py",
-  "keynetra/modeling/schema_parser.py",
-  "keynetra/services/access_indexer.py",
-  "keynetra/services/audit.py",
-  "keynetra/services/impact_analysis.py",
-  "keynetra/services/policy_dsl.py",
-  "keynetra/services/policy_testing.py",
-  "keynetra/services/seeding.py"
+  "keynetra/engine/model_graph/graph_executor.py"
 ]
 
 # MyPy strict typing

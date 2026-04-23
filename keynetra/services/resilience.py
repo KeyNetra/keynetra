@@ -65,5 +65,6 @@ def retry(
             if attempt >= max(1, attempts):
                 break
             time.sleep(base_delay_seconds * (2 ** (attempt - 1)))
-    assert last_error is not None
+    if last_error is None:
+        raise RuntimeError("retry exhausted without recording an exception")
     raise last_error

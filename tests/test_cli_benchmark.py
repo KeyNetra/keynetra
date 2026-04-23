@@ -17,7 +17,7 @@ class _FakeResponse:
         return None
 
 
-async def _fake_post(self, *args, **kwargs) -> _FakeResponse:  # type: ignore[override]
+async def _fake_post(self, *args, **kwargs) -> _FakeResponse:
     await asyncio.sleep(0)
     return _FakeResponse()
 

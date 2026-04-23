@@ -156,8 +156,8 @@ def test_authorization_service_uses_policy_and_relationship_caches() -> None:
 
     assert first.decision.allowed is True
     assert second.cached is True
-    assert service._policies.list_calls == 1  # type: ignore[attr-defined]
-    assert service._relationships.list_calls == 1  # type: ignore[attr-defined]
+    assert service._policies.list_calls == 1
+    assert service._relationships.list_calls == 1
 
 
 def test_policy_update_bumps_decision_namespace_and_publishes_event() -> None:

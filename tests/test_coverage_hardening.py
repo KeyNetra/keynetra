@@ -5,9 +5,10 @@ from types import SimpleNamespace
 from typing import Any
 
 import pytest
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials
 from jose import JWTError
+from sqlalchemy.exc import SQLAlchemyError
 
 from keynetra.api.errors import ApiError, ApiErrorCode
 from keynetra.api.main import (
@@ -20,11 +21,17 @@ from keynetra.api.main import (
 from keynetra.api.routes.access import (
     AccessRequest,
     BatchAccessRequest,
+    _resolve_tenant_key,
     check_access,
     check_access_batch,
     simulate,
 )
-from keynetra.config.security import _get_jwks, _load_persistent_api_key_scopes, get_principal
+from keynetra.config.security import (
+    _decode_with_jwks,
+    _get_jwks,
+    _load_persistent_api_key_scopes,
+    get_principal,
+)
 from keynetra.engine.keynetra_engine import (
     AuthorizationDecision,
     AuthorizationInput,
@@ -460,6 +467,74 @@ def test_get_jwks_covers_success_cache_and_backoff(monkeypatch: pytest.MonkeyPat
         _get_jwks(settings)
 
 
+def test_security_helpers_cover_decode_errors_and_missing_configuration(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        "keynetra.config.security.jwt.get_unverified_header", lambda token: {"kid": "match"}
+    )
+    calls = {"count": 0}
+
+    def _decode(token: str, key: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
+        calls["count"] += 1
+        if calls["count"] == 1:
+            raise JWTError("bad key")
+        return {"sub": "user-1"}
+
+    monkeypatch.setattr("keynetra.config.security.jwt.decode", _decode)
+    decoded = _decode_with_jwks(
+        "token",
+        {"keys": [{"kid": "other"}, {"kid": "match"}, {"kid": "match"}]},
+        None,
+        None,
+    )
+    assert decoded["sub"] == "user-1"
+
+    with pytest.raises(JWTError):
+        _decode_with_jwks("token", {"keys": [{"kid": "other"}]}, None, None)
+    with pytest.raises(JWTError):
+        _get_jwks(DummySettings(oidc_jwks_url=None))
+
+
+def test_load_persistent_api_key_scopes_handles_failures(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        "keynetra.config.security.create_session_factory",
+        lambda _url: (_ for _ in ()).throw(RuntimeError("boom")),
+    )
+    assert _load_persistent_api_key_scopes(DummySettings(), "hash") is None
+
+    class _Repo:
+        def __init__(self, db: object) -> None:
+            self._db = db
+
+        def get_by_hash(self, *, key_hash: str) -> SimpleNamespace:
+            return SimpleNamespace(scopes={"role": "admin"}, revoked_at="revoked")
+
+    class _Db:
+        def close(self) -> None:
+            return None
+
+    monkeypatch.setattr(
+        "keynetra.config.security.create_session_factory", lambda _url: lambda: _Db()
+    )
+    monkeypatch.setattr("keynetra.config.security.SqlApiKeyRepository", _Repo)
+    assert _load_persistent_api_key_scopes(DummySettings(), "hash") is None
+
+
+def test_get_jwks_rejects_invalid_payload(monkeypatch: pytest.MonkeyPatch) -> None:
+    settings = DummySettings(oidc_jwks_url="https://issuer/invalid-jwks")
+    response = SimpleNamespace(raise_for_status=lambda: None, json=lambda: ["not", "a", "dict"])
+    monkeypatch.setattr("httpx.get", lambda *args, **kwargs: response)
+    monkeypatch.setattr("keynetra.config.security.time.time", lambda: 10.0)
+    from keynetra.config import security as security_module
+
+    security_module._jwks_cache.clear()
+    security_module._jwks_backoff_until.clear()
+
+    with pytest.raises(JWTError):
+        _get_jwks(settings)
+
+
 def test_get_principal_supports_persistent_and_development_api_key_scopes(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -490,6 +565,16 @@ def test_get_principal_supports_persistent_and_development_api_key_scopes(
     principal = get_principal(request, settings=dev_settings, authorization=None, x_api_key=key)
     assert principal["scopes"]["tenant"] == "default"
 
+    explicit_scope_settings = DummySettings(
+        _api_key_hashes={key_hash},
+        _api_key_scopes={key_hash: {"tenant": "acme", "permissions": []}},
+        environment="production",
+    )
+    principal = get_principal(
+        request, settings=explicit_scope_settings, authorization=None, x_api_key=key
+    )
+    assert principal["scopes"]["permissions"] == []
+
 
 def test_get_principal_uses_jwks_when_oidc_is_configured(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
@@ -508,6 +593,34 @@ def test_get_principal_uses_jwks_when_oidc_is_configured(monkeypatch: pytest.Mon
     assert principal["id"] == "svc-1"
 
 
+def test_get_principal_rejects_invalid_api_key_jwt_and_missing_credentials() -> None:
+    request = DummyRequest()
+
+    with pytest.raises(HTTPException):
+        get_principal(
+            request,
+            settings=DummySettings(_api_key_hashes=set()),
+            authorization=None,
+            x_api_key="bad-key",
+        )
+
+    with pytest.raises(HTTPException):
+        get_principal(
+            request,
+            settings=DummySettings(jwt_secret="secret"),
+            authorization=HTTPAuthorizationCredentials(scheme="Bearer", credentials="bad-token"),
+            x_api_key=None,
+        )
+
+    with pytest.raises(HTTPException):
+        get_principal(
+            request,
+            settings=DummySettings(),
+            authorization=None,
+            x_api_key=None,
+        )
+
+
 def test_authorization_service_returns_cached_decision() -> None:
     cached = CachedDecision.from_decision(_decision(allowed=True))
     service = build_service(decision_cache=FakeDecisionCache(cached=cached))
@@ -521,6 +634,45 @@ def test_authorization_service_returns_cached_decision() -> None:
     )
     assert result.cached is True
     assert result.decision.allowed is True
+
+
+def test_authorization_service_falls_back_when_input_or_engine_failures_occur(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    service = build_service()
+    monkeypatch.setattr(
+        service,
+        "_build_input",
+        lambda **kwargs: (_ for _ in ()).throw(RuntimeError("boom")),
+    )
+    result = service.authorize(
+        tenant_key="acme",
+        principal={"type": "api_key", "id": "p1"},
+        user={"id": 7},
+        action="read",
+        resource={"resource_type": "document", "resource_id": "doc-1"},
+        context={},
+    )
+    assert result.decision.decision == "deny"
+    assert "authorization input unavailable" in result.decision.reason
+
+    service = build_service()
+
+    class _Engine:
+        def decide(self, authorization_input: AuthorizationInput) -> AuthorizationDecision:
+            raise RuntimeError("engine down")
+
+    monkeypatch.setattr(service, "_build_engine", lambda **kwargs: _Engine())
+    result = service.authorize(
+        tenant_key="acme",
+        principal={"type": "api_key", "id": "p1"},
+        user={"id": 7},
+        action="read",
+        resource={"resource_type": "document", "resource_id": "doc-1"},
+        context={},
+    )
+    assert result.decision.decision == "deny"
+    assert result.revision == 3
 
 
 def test_authorization_service_builds_input_with_model_and_access_index(
@@ -555,6 +707,101 @@ def test_authorization_service_hydrates_user_and_relationships() -> None:
     assert hydrated["role_permissions"] == ["write"]
     assert hydrated["direct_permissions"] == ["read"]
     assert relationship_cache.set_calls == 1
+
+
+def test_authorization_service_wrappers_and_edge_branches(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    service = build_service()
+    built = service.build_input(
+        tenant_key="acme",
+        user={"id": 7},
+        action="read",
+        resource={"resource_type": "document", "resource_id": "doc-1"},
+        context={"trace": True},
+    )
+    assert built.tenant_key == "acme"
+
+    hydrated = service._hydrate_user(  # noqa: SLF001
+        tenant_id=1, user={"id": "user-1", "permissions": "read"}
+    )
+    assert "direct_permissions" not in hydrated
+
+    service = build_service()
+    monkeypatch.setattr(
+        service,
+        "_require_tenant",
+        lambda tenant_key: (_ for _ in ()).throw(RuntimeError("backend unavailable")),
+    )
+    results = service.authorize_batch(
+        tenant_key="acme",
+        principal={"type": "api_key", "id": "p1"},
+        user={"id": 7},
+        items=[{"action": "read", "resource": {"id": "doc-1"}}],
+    )
+    assert len(results) == 1
+    assert results[0].decision.decision == "deny"
+
+    cached = CachedDecision.from_decision(_decision(allowed=True))
+    service = build_service(decision_cache=FakeDecisionCache(cached=cached))
+    monkeypatch.setattr(
+        service,
+        "_build_engine",
+        lambda **kwargs: SimpleNamespace(
+            decide=lambda authorization_input: _decision(allowed=True)
+        ),
+    )
+    results = service.authorize_batch(
+        tenant_key="acme",
+        principal={"type": "api_key", "id": "p1"},
+        user={"id": 7},
+        items=[
+            {
+                "action": "read",
+                "resource": {"resource_type": "document", "resource_id": "doc-1"},
+            }
+        ],
+        consistency="fully_consistent",
+    )
+    assert results[0].cached is False
+
+
+@pytest.mark.anyio
+async def test_authorization_service_async_wrappers() -> None:
+    service = build_service()
+    result = await service.authorize_async(
+        tenant_key="acme",
+        principal={"type": "api_key", "id": "p1"},
+        user={"id": 7},
+        action="read",
+        resource={"resource_type": "document", "resource_id": "doc-1"},
+        context={},
+    )
+    assert result.revision == 3
+
+    monkeypatch = pytest.MonkeyPatch()
+    monkeypatch.setattr(
+        service,
+        "_build_engine",
+        lambda **kwargs: SimpleNamespace(
+            decide=lambda authorization_input: _decision(allowed=True)
+        ),
+    )
+    batch = await service.authorize_batch_async(
+        tenant_key="acme",
+        principal={"type": "api_key", "id": "p1"},
+        user={"id": 7},
+        items=[
+            {
+                "action": "read",
+                "resource": {"resource_type": "document", "resource_id": "doc-1"},
+            }
+        ],
+    )
+    try:
+        assert len(batch) == 1
+    finally:
+        monkeypatch.undo()
 
 
 def test_authorization_service_authorize_batch_memoizes_same_item(
@@ -596,6 +843,64 @@ def test_authorization_service_safe_cache_helpers_handle_timeouts(
         service._safe_relationship_cache_get(tenant_id=1, subject_type="user", subject_id="7")
         is None
     )  # noqa: SLF001
+
+
+def test_authorization_service_safe_helpers_cover_non_timeout_failures(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    service = build_service()
+
+    def _raise_runtime(*args: Any, **kwargs: Any) -> Any:
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr("keynetra.services.authorization.with_timeout", _raise_runtime)
+    service._safe_cache_set(
+        "key",
+        CachedDecision.from_decision(_decision(allowed=True)),
+    )  # noqa: SLF001
+    service._safe_policy_cache_set("acme", 1, [])  # noqa: SLF001
+    service._safe_relationship_cache_set(  # noqa: SLF001
+        tenant_id=1,
+        subject_type="user",
+        subject_id="7",
+        relationships=[],
+    )
+    service._safe_audit_write(tenant_id=1)  # noqa: SLF001
+    assert service._safe_cache_get("k") is None  # noqa: SLF001
+    assert service._safe_policy_cache_get("acme", 1) is None  # noqa: SLF001
+    assert (
+        service._safe_relationship_cache_get(  # noqa: SLF001
+            tenant_id=1, subject_type="user", subject_id="7"
+        )
+        is None
+    )
+
+
+def test_authorization_service_fallback_modes_cover_policy_eval_and_fail_open(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    service = build_service(
+        settings=DummySettings(
+            resilience_fallback_behavior="default_policy_eval",
+            resilience_mode="fail_open",
+        )
+    )
+    authorization_input = AuthorizationInput(
+        user={"id": 7},
+        action="read",
+        resource={"resource_type": "document", "resource_id": "doc-1"},
+        context={},
+        tenant_key="acme",
+    )
+
+    monkeypatch.setattr(
+        "keynetra.services.authorization.KeyNetraEngine.decide",
+        lambda self, authorization_input: (_ for _ in ()).throw(RuntimeError("broken policy")),
+    )
+    decision = service._fallback_decision(
+        authorization_input, reason="backend unavailable"
+    )  # noqa: SLF001
+    assert decision.decision == "allow"
 
 
 def test_access_indexer_covers_cache_memo_relationships_and_invalidation(
@@ -691,6 +996,98 @@ async def test_access_routes_cover_invalid_policy_set_and_batch_flow() -> None:
 
     simulated = await simulate(payload, request, service=None, services=services, principal={})
     assert simulated["data"]["decision"] == "allow"
+
+
+def test_resolve_tenant_key_covers_strict_and_creation_paths() -> None:
+    request = DummyRequest(headers={})
+    services = SimpleNamespace(
+        settings=SimpleNamespace(strict_tenancy=True, is_development=lambda: False),
+        tenant_repo=SimpleNamespace(get_by_key=lambda tenant_key: None),
+    )
+    with pytest.raises(ApiError) as exc:
+        _resolve_tenant_key(request=request, principal={}, services=services)
+    assert exc.value.code == ApiErrorCode.VALIDATION_ERROR
+
+    request = DummyRequest(headers={})
+    created: list[str] = []
+    services = SimpleNamespace(
+        settings=SimpleNamespace(strict_tenancy=False, is_development=lambda: True),
+        tenant_repo=SimpleNamespace(
+            get_by_key=lambda tenant_key: None,
+            get_or_create=lambda tenant_key: created.append(tenant_key),
+        ),
+    )
+    assert _resolve_tenant_key(request=request, principal={}, services=services) == "default"
+    assert created == ["default"]
+
+    request = DummyRequest(headers={"X-Tenant-Id": "missing"})
+    services = SimpleNamespace(
+        settings=SimpleNamespace(strict_tenancy=False, is_development=lambda: False),
+        tenant_repo=SimpleNamespace(get_by_key=lambda tenant_key: None),
+    )
+    with pytest.raises(ApiError) as exc:
+        _resolve_tenant_key(request=request, principal={}, services=services)
+    assert exc.value.code == ApiErrorCode.NOT_FOUND
+
+
+@pytest.mark.anyio
+async def test_access_routes_map_validation_and_database_errors() -> None:
+    request = DummyRequest(headers={"X-Tenant-Id": "acme"})
+    payload = AccessRequest(user={"id": "u1"}, action="read", resource={"id": "doc-1"})
+    services = SimpleNamespace(
+        settings=SimpleNamespace(
+            async_authorization_enabled=False, strict_tenancy=False, is_development=lambda: False
+        ),
+        tenant_repo=SimpleNamespace(get_by_key=lambda tenant_key: object()),
+    )
+
+    class _ValidationService:
+        def authorize(self, **kwargs: Any) -> AuthorizationResult:
+            from keynetra.services.attribute_validation import AttributeValidationError
+
+            raise AttributeValidationError("bad resource")
+
+        def simulate(self, **kwargs: Any) -> AuthorizationDecision:
+            raise SQLAlchemyError("db")
+
+        def authorize_batch(self, **kwargs: Any) -> list[AuthorizationResult]:
+            raise SQLAlchemyError("db")
+
+    services.authorization_service = _ValidationService()
+
+    async def _run_in_threadpool(fn: Any, *args: Any, **kwargs: Any) -> Any:
+        return fn(*args, **kwargs)
+
+    monkeypatch = pytest.MonkeyPatch()
+    monkeypatch.setattr("keynetra.api.routes.access.run_in_threadpool", _run_in_threadpool)
+    try:
+        with pytest.raises(ApiError) as exc:
+            await check_access(
+                payload,
+                request,
+                service=None,
+                services=services,
+                principal={},
+                policy_set="active",
+            )
+        assert exc.value.code == ApiErrorCode.VALIDATION_ERROR
+
+        with pytest.raises(ApiError) as exc:
+            await simulate(payload, request, service=None, services=services, principal={})
+        assert exc.value.code == ApiErrorCode.DATABASE_ERROR
+
+        with pytest.raises(ApiError) as exc:
+            await check_access_batch(
+                BatchAccessRequest(user={"id": "u1"}, items=[{"action": "read", "resource": {}}]),
+                request,
+                service=None,
+                services=services,
+                principal={},
+                policy_set="active",
+            )
+        assert exc.value.code == ApiErrorCode.DATABASE_ERROR
+    finally:
+        monkeypatch.undo()
 
 
 @pytest.mark.anyio

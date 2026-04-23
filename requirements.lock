@@ -3,6 +3,7 @@ uvicorn[standard]==0.43.0
 gunicorn==25.3.0
 pydantic==2.12.5
 pydantic-settings==2.13.1
+cryptography==46.0.7
 python-jose[cryptography]==3.5.0
 PyYAML==6.0.1
 typer==0.24.1

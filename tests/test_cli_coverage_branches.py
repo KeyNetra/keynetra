@@ -14,7 +14,7 @@ def test_compile_policies_reports_missing_paths(monkeypatch) -> None:
     monkeypatch.setattr(
         "keynetra.cli.get_settings",
         lambda: type("S", (), {"parsed_policy_paths": lambda self: []})(),
-    )  # type: ignore[misc]
+    )
     result = runner.invoke(app, ["compile-policies"])
     assert result.exit_code == 2
 

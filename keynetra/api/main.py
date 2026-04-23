@@ -38,6 +38,11 @@ from keynetra.version import version as keynetra_version
 _bootstrap_logger = logging.getLogger("keynetra.bootstrap")
 
 
+class KeyNetraAPI(FastAPI):
+    def openapi(self) -> dict[str, Any]:
+        return build_openapi_schema(self)
+
+
 @asynccontextmanager
 async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
     settings = get_settings()
@@ -51,7 +56,7 @@ async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 def create_app() -> FastAPI:
     configure_json_logging()
-    app = FastAPI(title="KeyNetra", version=keynetra_version, lifespan=_lifespan)
+    app = KeyNetraAPI(title="KeyNetra", version=keynetra_version, lifespan=_lifespan)
     settings = get_settings()
     app.state.settings = settings
 
@@ -87,10 +92,6 @@ def create_app() -> FastAPI:
             if settings.environment in {"prod", "production"}:
                 raise BootstrapError("failed to initialize OTel instrumentation") from exc
 
-    def _custom_openapi() -> dict[str, Any]:
-        return build_openapi_schema(app)
-
-    app.openapi = _custom_openapi  # type: ignore[method-assign]
     return app
 
 

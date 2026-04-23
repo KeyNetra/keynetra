@@ -15,7 +15,7 @@ from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 
 from keynetra.config.redis_client import get_redis
-from keynetra.config.settings import Settings
+from keynetra.config.settings import DEFAULT_JWT_SECRET, Settings
 from keynetra.infrastructure.storage.session import create_engine_for_url
 
 
@@ -55,9 +55,9 @@ def _check_env(settings: Settings) -> DoctorCheck:
         "KEYNETRA_REDIS_URL": bool(os.environ.get("KEYNETRA_REDIS_URL")),
     }
     has_api_key_auth = bool(settings.parsed_api_key_hashes())
-    has_jwt_auth = settings.jwt_secret != "change-me" or bool(settings.oidc_jwks_url)
+    has_jwt_auth = settings.jwt_secret != DEFAULT_JWT_SECRET or bool(settings.oidc_jwks_url)
     auth_configured = has_api_key_auth or has_jwt_auth
-    weak_jwt_secret = settings.jwt_secret.strip() == "change-me"
+    weak_jwt_secret = settings.jwt_secret.strip() == DEFAULT_JWT_SECRET
     profile = settings.environment
     weak_admin_username = (
         bool(settings.admin_username) and (settings.admin_username or "").lower() == "admin"
