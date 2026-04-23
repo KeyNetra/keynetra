@@ -6,8 +6,11 @@ Manifests are in `deploy/kubernetes/`:
 - `secret.yaml`
 - `deployment.yaml`
 - `service.yaml`
-- `horizontal-pod-autoscaler.yaml`
+- `hpa.yaml`
 - `ingress.yaml`
+- `serviceaccount.yaml`
+- `pdb.yaml`
+- `networkpolicy.yaml`
 
 ## Apply
 
@@ -17,6 +20,9 @@ kubectl apply -f deploy/kubernetes/
 
 ## Notes
 
-- Set secure values in `secret.yaml` before applying.
+- Keep only non-secret runtime flags in `configmap.yaml`.
+- Put `KEYNETRA_DATABASE_URL`, `KEYNETRA_REDIS_URL`, API key hashes, and JWT secrets in `secret.yaml` or an external secret manager.
 - `KEYNETRA_STRICT_TENANCY` defaults to `true` in this deployment.
+- Unknown tenant headers now fail with `404` instead of creating tenants implicitly.
+- Schedule `keynetra purge-idempotency` as a CronJob if you retain API idempotency records.
 - Probes are configured for `/health/live` and `/health/ready`.

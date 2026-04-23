@@ -7,6 +7,7 @@ from typing import Any
 
 from keynetra.engine.keynetra_engine import AuthorizationDecision, KeyNetraEngine
 from keynetra.services.authorization import AuthorizationService
+from keynetra.services.errors import TenantNotFoundError
 from keynetra.services.interfaces import PolicyRepository, TenantRepository
 from keynetra.services.policy_dsl import dsl_to_policy
 
@@ -39,7 +40,9 @@ class PolicySimulator:
         context: dict[str, Any],
         policy_change: str,
     ) -> SimulationResult:
-        tenant = self._tenants.get_or_create(tenant_key)
+        tenant = self._tenants.get_by_key(tenant_key)
+        if tenant is None:
+            raise TenantNotFoundError(tenant_key)
         authorization_input, _ = self._authorization_service._build_input(
             tenant_key=tenant_key,
             user=user,

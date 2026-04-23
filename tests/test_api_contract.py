@@ -9,10 +9,8 @@ from fastapi.testclient import TestClient
 from keynetra.config.settings import reset_settings_cache
 from keynetra.main import create_app
 
-CONTRACT_PATH = (
-    Path(__file__).resolve().parents[1] / "contracts" / "openapi" / "keynetra-v0.1.2.yaml"
-)
-CONTRACT_JSON_PATH = Path(__file__).resolve().parents[1] / "contracts" / "openapi" / "openapi.json"
+CONTRACT_PATH = Path(__file__).resolve().parents[1] / "contracts" / "openapi.yaml"
+CONTRACT_JSON_PATH = Path(__file__).resolve().parents[1] / "contracts" / "openapi.json"
 
 
 def _normalize_request_id(payload: dict[str, Any]) -> dict[str, Any]:
@@ -63,6 +61,8 @@ def test_openapi_schema_is_sdk_friendly() -> None:
     assert check_access["operationId"] == "check_access"
     assert policies_dsl["operationId"] == "create_policy_from_dsl"
     assert admin_login["tags"] == ["auth"]
+    assert "/dev/sample-data" not in schema["paths"]
+    assert "/dev/sample-data/seed" not in schema["paths"]
     assert any(
         parameter.get("$ref") == "#/components/parameters/ApiVersionHeader"
         for parameter in policies_dsl["parameters"]
@@ -73,9 +73,18 @@ def test_openapi_schema_is_sdk_friendly() -> None:
         for parameter in check_access["parameters"]
         if isinstance(parameter, dict)
     )
-    assert roles_create["responses"]["201"]["content"]["application/json"]["schema"]["$ref"] == "#/components/schemas/SuccessResponse_RoleOut_"
-    assert schema["components"]["schemas"]["ErrorResponse"]["properties"]["meta"]["$ref"] == "#/components/schemas/MetaBody"
-    assert schema["components"]["schemas"]["ErrorBody"]["properties"]["code"]["$ref"] == "#/components/schemas/ApiErrorCode"
+    assert (
+        roles_create["responses"]["201"]["content"]["application/json"]["schema"]["$ref"]
+        == "#/components/schemas/SuccessResponse_RoleOut_"
+    )
+    assert (
+        schema["components"]["schemas"]["ErrorResponse"]["properties"]["meta"]["$ref"]
+        == "#/components/schemas/MetaBody"
+    )
+    assert (
+        schema["components"]["schemas"]["ErrorBody"]["properties"]["code"]["$ref"]
+        == "#/components/schemas/ApiErrorCode"
+    )
 
 
 def test_generated_openapi_matches_checked_in_contract_files() -> None:
@@ -122,8 +131,14 @@ def test_openapi_paths_include_required_headers_and_component_refs() -> None:
                 if "$ref" in response:
                     continue
                 headers = response.get("headers", {})
-                assert headers.get("X-Request-Id", {}).get("$ref") == "#/components/headers/RequestIdHeader"
-                assert headers.get("X-API-Version", {}).get("$ref") == "#/components/headers/ApiVersionHeader"
+                assert (
+                    headers.get("X-Request-Id", {}).get("$ref")
+                    == "#/components/headers/RequestIdHeader"
+                )
+                assert (
+                    headers.get("X-API-Version", {}).get("$ref")
+                    == "#/components/headers/ApiVersionHeader"
+                )
                 if path == "/metrics":
                     text_plain = response.get("content", {}).get("text/plain")
                     assert text_plain is not None
@@ -133,8 +148,12 @@ def test_openapi_paths_include_required_headers_and_component_refs() -> None:
                 if app_json is None:
                     continue
                 schema_ref = app_json.get("schema", {})
-                assert "$ref" in schema_ref, f"{method.upper()} {path} {status_code} uses an inline JSON schema"
-                assert app_json.get("examples"), f"{method.upper()} {path} {status_code} missing OpenAPI examples"
+                assert (
+                    "$ref" in schema_ref
+                ), f"{method.upper()} {path} {status_code} uses an inline JSON schema"
+                assert app_json.get(
+                    "examples"
+                ), f"{method.upper()} {path} {status_code} missing OpenAPI examples"
 
 
 def test_health_response_matches_snapshot() -> None:

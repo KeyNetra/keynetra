@@ -9,8 +9,7 @@ from fastapi import Request
 from fastapi.responses import JSONResponse
 
 from keynetra.api.errors import ApiErrorCode
-from keynetra.domain.schemas.api import ErrorBody
-from keynetra.domain.schemas.api import MetaBody
+from keynetra.domain.schemas.api import ErrorBody, MetaBody
 from keynetra.infrastructure.logging import get_request_id
 
 
@@ -96,7 +95,9 @@ def ensure_request_id(request: Request) -> str:
     current = request_id_from_state(request.state)
     if current:
         return current
-    request_id = request.headers.get("X-Request-Id") or get_request_id() or secrets.token_urlsafe(10)
+    request_id = (
+        request.headers.get("X-Request-Id") or get_request_id() or secrets.token_urlsafe(10)
+    )
     request.state.request_id = request_id
     return request_id
 
@@ -117,10 +118,10 @@ def _apply_common_headers(
         response.headers[key] = value
 
 
-def _normalize_error_code(code: ApiErrorCode | str) -> str:
+def _normalize_error_code(code: ApiErrorCode | str) -> ApiErrorCode:
     if isinstance(code, ApiErrorCode):
-        return str(code)
+        return code
     try:
-        return str(ApiErrorCode(code))
+        return ApiErrorCode(code)
     except ValueError as exc:
         raise ValueError(f"unknown api error code: {code}") from exc

@@ -29,7 +29,15 @@ def _client(database_url: str) -> TestClient:
 
 
 def _path_value(name: str) -> str:
-    if name in {"version", "from_version", "to_version", "role_id", "permission_id", "acl_id", "key_id"}:
+    if name in {
+        "version",
+        "from_version",
+        "to_version",
+        "role_id",
+        "permission_id",
+        "acl_id",
+        "key_id",
+    }:
         return "1"
     if name == "tenant_key":
         return "acme"
@@ -88,7 +96,9 @@ def test_all_documented_json_routes_return_standard_envelope(tmp_path) -> None:
     for route in app.routes:
         if not isinstance(route, APIRoute) or not route.include_in_schema:
             continue
-        method = next(iter(sorted(m for m in (route.methods or set()) if m not in {"HEAD", "OPTIONS"})), None)
+        method = next(
+            iter(sorted(m for m in (route.methods or set()) if m not in {"HEAD", "OPTIONS"})), None
+        )
         if method is None:
             continue
         if route.path == "/metrics":
@@ -102,7 +112,12 @@ def test_all_documented_json_routes_return_standard_envelope(tmp_path) -> None:
             continue
         body = response.json()
         assert set(body) == {"data", "meta", "error"}, f"{method} {path}"
-        assert set(body["meta"]) == {"request_id", "limit", "next_cursor", "extra"}, f"{method} {path}"
+        assert set(body["meta"]) == {
+            "request_id",
+            "limit",
+            "next_cursor",
+            "extra",
+        }, f"{method} {path}"
         assert body["meta"]["request_id"], f"{method} {path}"
 
 
@@ -169,7 +184,9 @@ def test_datetime_values_are_utc_z_strings_in_api_responses(tmp_path) -> None:
     assert listed.json()["data"][0]["created_at"].endswith("Z")
 
 
-def test_strict_tenant_missing_header_returns_standard_error_envelope(tmp_path, monkeypatch) -> None:
+def test_strict_tenant_missing_header_returns_standard_error_envelope(
+    tmp_path, monkeypatch
+) -> None:
     monkeypatch.setenv("KEYNETRA_STRICT_TENANCY", "true")
     client = _client(f"sqlite+pysqlite:///{tmp_path / 'strict-tenant.db'}")
 

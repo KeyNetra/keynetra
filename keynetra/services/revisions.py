@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from keynetra.observability.metrics import record_revision_update
+from keynetra.services.errors import TenantNotFoundError
 from keynetra.services.interfaces import TenantRepository
 
 
@@ -13,11 +14,21 @@ class RevisionService:
         self._tenants = tenants
 
     def get_revision(self, *, tenant_key: str) -> int:
-        tenant = self._tenants.get_or_create(tenant_key)
+        get_by_key = getattr(self._tenants, "get_by_key", None)
+        tenant = get_by_key(tenant_key) if callable(get_by_key) else None
+        if tenant is None:
+            tenant = self._tenants.get_or_create(tenant_key)
+        if tenant is None:
+            raise TenantNotFoundError(tenant_key)
         return int(getattr(tenant, "revision", 1))
 
     def bump_revision(self, *, tenant_key: str) -> int:
-        tenant = self._tenants.get_or_create(tenant_key)
+        get_by_key = getattr(self._tenants, "get_by_key", None)
+        tenant = get_by_key(tenant_key) if callable(get_by_key) else None
+        if tenant is None:
+            tenant = self._tenants.get_or_create(tenant_key)
+        if tenant is None:
+            raise TenantNotFoundError(tenant_key)
         bump = getattr(self._tenants, "bump_revision", None)
         if callable(bump):
             updated = bump(tenant)

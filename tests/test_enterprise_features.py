@@ -110,7 +110,12 @@ def test_enterprise_management_surface(tmp_path: Path) -> None:
             "document": json.dumps(
                 {
                     "policies": [
-                        {"action": "read", "effect": "allow", "priority": 1, "conditions": {"role": "admin"}}
+                        {
+                            "action": "read",
+                            "effect": "allow",
+                            "priority": 1,
+                            "conditions": {"role": "admin"},
+                        }
                     ],
                     "tests": [
                         {

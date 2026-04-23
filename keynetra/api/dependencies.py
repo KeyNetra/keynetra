@@ -14,8 +14,8 @@ from keynetra.infrastructure.cache.policy_cache import build_policy_cache
 from keynetra.infrastructure.cache.policy_distribution import RedisPolicyEventPublisher
 from keynetra.infrastructure.cache.relationship_cache import build_relationship_cache
 from keynetra.infrastructure.repositories.acl import SqlACLRepository
-from keynetra.infrastructure.repositories.audit import SqlAuditRepository
 from keynetra.infrastructure.repositories.api_keys import SqlApiKeyRepository
+from keynetra.infrastructure.repositories.audit import SqlAuditRepository
 from keynetra.infrastructure.repositories.auth_models import SqlAuthModelRepository
 from keynetra.infrastructure.repositories.policies import SqlPolicyRepository
 from keynetra.infrastructure.repositories.relationships import SqlRelationshipRepository
@@ -25,7 +25,7 @@ from keynetra.infrastructure.storage.session import get_db
 from keynetra.services.access_indexer import AccessIndexer
 from keynetra.services.authorization import AuthorizationService
 from keynetra.services.impact_analysis import ImpactAnalyzer
-from keynetra.services.interfaces import DecisionCache
+from keynetra.services.interfaces import AccessIndexCache, DecisionCache
 from keynetra.services.policies import PolicyService
 from keynetra.services.policy_lint import PolicyLintService
 from keynetra.services.policy_simulator import PolicySimulator
@@ -49,7 +49,7 @@ class ServiceContainer:
     policy_lint_service: PolicyLintService
     relationship_service: RelationshipService
     access_indexer: AccessIndexer
-    access_index_cache: object
+    access_index_cache: AccessIndexCache
     decision_cache: DecisionCache
     policy_simulator: PolicySimulator
     impact_analyzer: ImpactAnalyzer

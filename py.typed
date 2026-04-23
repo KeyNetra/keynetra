@@ -1,0 +1,4 @@
+# Marker file for PEP 561.
+# This indicates that the `keynetra` package includes
+# inline type hints and should be treated as a typed
+# package by static type checkers mypy.

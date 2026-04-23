@@ -6,8 +6,10 @@ import hashlib
 import logging
 import math
 import time
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from threading import Lock
+from typing import Any
 
 from fastapi import Request, status
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -72,13 +74,15 @@ return {allowed, tokens, retry_after}
 
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
-    def __init__(self, app, settings: Settings) -> None:  # type: ignore[override]
+    def __init__(self, app: Any, settings: Settings) -> None:
         super().__init__(app)
         self._settings = settings
         with _local_limits_lock:
             _local_limits.clear()
 
-    async def dispatch(self, request: Request, call_next) -> Response:  # type: ignore[override]
+    async def dispatch(
+        self, request: Request, call_next: Callable[[Request], Awaitable[Response]]
+    ) -> Response:
         if request.method.upper() == "OPTIONS" or request.url.path in _EXEMPT_PATHS:
             return await call_next(request)
 
@@ -130,12 +134,22 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                     limit=capacity, remaining=remaining_tokens, retry_after=retry_after_seconds
                 )
             except (AttributeError, ConnectionError, OSError, RuntimeError, ValueError) as exc:
+                mode = self._settings.rate_limit_redis_unavailable_mode
                 log_event(
                     _logger,
                     event="rate_limit_redis_fallback",
+                    fallback_mode=mode,
                     reason=repr(exc),
                     request_id=getattr(request.state, "request_id", None),
                 )
+                if mode == "fail_closed":
+                    return error_json_response(
+                        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                        code=ApiErrorCode.INTERNAL_ERROR,
+                        message="rate limiter backend unavailable",
+                        details={"backend": "redis", "mode": mode},
+                        request_id=request_id_from_state(request.state),
+                    )
 
         with _local_limits_lock:
             bucket = _local_limits.get(key)
@@ -147,7 +161,9 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             bucket.updated_at = now
             if bucket.tokens < 1.0:
                 retry_after = max(1, math.ceil((1.0 - bucket.tokens) / refill_rate))
-                return self._limited_response(request=request, limit=capacity, retry_after=retry_after)
+                return self._limited_response(
+                    request=request, limit=capacity, retry_after=retry_after
+                )
             bucket.tokens -= 1.0
             remaining = max(0, int(bucket.tokens))
             return _BucketDecision(limit=capacity, remaining=remaining, retry_after=0)

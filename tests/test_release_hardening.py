@@ -391,6 +391,43 @@ def test_cli_migrate_invokes_alembic_upgrade(monkeypatch: pytest.MonkeyPatch, tm
     assert called["url"] == database_url
 
 
+def test_cli_check_appends_suffix_to_explicit_url(monkeypatch: pytest.MonkeyPatch) -> None:
+    posted: list[tuple[str, dict[str, object], dict[str, str]]] = []
+
+    class FakeResponse:
+        text = '{"ok": true}'
+
+        def raise_for_status(self) -> None:
+            return None
+
+    def fake_post(url: str, *, json: dict[str, object], headers: dict[str, str], timeout: float):
+        posted.append((url, json, headers))
+        return FakeResponse()
+
+    monkeypatch.setattr("keynetra.cli.httpx.post", fake_post)
+
+    runner = CliRunner()
+    result = runner.invoke(
+        app,
+        [
+            "check",
+            "--url",
+            "http://127.0.0.1:8093",
+            "--api-key",
+            "testkey",
+            "--action",
+            "read",
+            "--user",
+            '{"id": 1}',
+            "--resource",
+            '{"id": "doc-1"}',
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert posted[-1][0] == "http://127.0.0.1:8093/check-access"
+
+
 def test_access_route_helpers_cover_transport_paths() -> None:
     class FakeAccessService:
         def authorize(self, **_: object) -> SimpleNamespace:

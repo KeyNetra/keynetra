@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 from functools import lru_cache
 from typing import Any
 
@@ -45,17 +46,21 @@ class Settings(BaseSettings):
     policy_paths: str | None = Field(default=None)
     model_paths: str | None = Field(default=None)
     decision_cache_ttl_seconds: int = Field(default=5)
+    idempotency_ttl_seconds: int = Field(default=86_400)
     service_timeout_seconds: float = Field(default=2.0)
     critical_retry_attempts: int = Field(default=3)
     resilience_mode: str = Field(default="fail_closed")
     resilience_fallback_behavior: str = Field(default="static")
+    resilience_executor_workers: int | None = Field(default=None)
 
     rate_limit_per_minute: int = Field(default=60)
     rate_limit_burst: int | None = Field(default=None)
     rate_limit_window_seconds: int = Field(default=60)
+    rate_limit_redis_unavailable_mode: str = Field(default="degraded_local")
     otel_enabled: bool = Field(default=False)
     service_mode: str = Field(default="all")
     auto_seed_sample_data: bool = Field(default=False)
+    run_migrations: bool = Field(default=False)
     server_host: str = Field(default="0.0.0.0")
     server_port: int = Field(default=8000)
     async_authorization_enabled: bool = Field(default=False)
@@ -107,6 +112,13 @@ class Settings(BaseSettings):
             raise ValueError("rate_limit_window_seconds must be between 1 and 3600")
         return value
 
+    @field_validator("idempotency_ttl_seconds")
+    @classmethod
+    def _validate_idempotency_ttl_seconds(cls, value: int) -> int:
+        if value < 60 or value > 31_536_000:
+            raise ValueError("idempotency_ttl_seconds must be between 60 and 31536000")
+        return value
+
     @field_validator("rate_limit_burst")
     @classmethod
     def _validate_rate_limit_burst(cls, value: int | None) -> int | None:
@@ -115,6 +127,25 @@ class Settings(BaseSettings):
         if value < 1 or value > 1_000_000:
             raise ValueError("rate_limit_burst must be between 1 and 1000000")
         return value
+
+    @field_validator("resilience_executor_workers")
+    @classmethod
+    def _validate_resilience_executor_workers(cls, value: int | None) -> int | None:
+        if value is None:
+            return value
+        if value < 1 or value > 512:
+            raise ValueError("resilience_executor_workers must be between 1 and 512")
+        return value
+
+    @field_validator("rate_limit_redis_unavailable_mode")
+    @classmethod
+    def _validate_rate_limit_redis_unavailable_mode(cls, value: str) -> str:
+        normalized = str(value or "").strip().lower()
+        if normalized not in {"degraded_local", "fail_closed"}:
+            raise ValueError(
+                "rate_limit_redis_unavailable_mode must be one of: degraded_local, fail_closed"
+            )
+        return normalized
 
     @field_validator("jwks_cache_ttl_seconds")
     @classmethod
@@ -227,6 +258,11 @@ class Settings(BaseSettings):
 
     def is_development(self) -> bool:
         return self.environment in _DEV_ENVIRONMENTS
+
+    def resolved_resilience_executor_workers(self) -> int:
+        if self.resilience_executor_workers is not None:
+            return self.resilience_executor_workers
+        return min(32, max(4, (os.cpu_count() or 1) * 4))
 
     def parsed_cors_allow_origins(self) -> list[str]:
         if not self.cors_allow_origins:

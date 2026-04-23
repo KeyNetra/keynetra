@@ -23,9 +23,16 @@ from keynetra.engine.keynetra_engine import (
 )
 from keynetra.engine.model_graph.permission_graph import MODEL_GRAPH_STORE, CompiledPermissionGraph
 from keynetra.infrastructure.logging import log_event
-from keynetra.infrastructure.metrics import observe_decision_latency, record_cache_event
+from keynetra.infrastructure.metrics import (
+    observe_decision_latency,
+    record_auth_fail_closed,
+    record_auth_fail_open,
+    record_backend_timeout,
+    record_cache_event,
+)
 from keynetra.services.access_indexer import AccessIndexer
 from keynetra.services.attribute_validation import validate_resource, validate_user
+from keynetra.services.errors import TenantNotFoundError
 from keynetra.services.interfaces import (
     AccessIndexCache,
     ACLCache,
@@ -136,6 +143,8 @@ class AuthorizationService:
                 resource=resource,
                 context=context or {},
             )
+        except TenantNotFoundError:
+            raise
         except Exception as exc:
             decision = self._fallback_decision(
                 fallback_input, reason=f"authorization input unavailable: {exc}"
@@ -187,6 +196,8 @@ class AuthorizationService:
                     correlation_id=self._request_id,
                 )
             return AuthorizationResult(decision=decision, cached=False, revision=tenant.revision)
+        except TenantNotFoundError:
+            raise
         except Exception as exc:
             log_event(
                 self._logger,
@@ -253,10 +264,7 @@ class AuthorizationService:
         normalized_policy_set = policy_set.strip().lower() or "active"
         consistency_mode = consistency.strip().lower()
         try:
-            tenant = with_timeout(
-                lambda: self._tenants.get_or_create(tenant_key),
-                timeout_seconds=self._settings.service_timeout_seconds,
-            )
+            tenant = self._require_tenant(tenant_key)
             enriched_user = self._hydrate_user(tenant_id=tenant.id, user=user)
             engine = self._build_engine(
                 tenant_key=tenant.tenant_key,
@@ -264,6 +272,8 @@ class AuthorizationService:
                 policy_version=tenant.policy_version,
                 policy_set=normalized_policy_set,
             )
+        except TenantNotFoundError:
+            raise
         except (RuntimeError, TimeoutError, ValueError) as exc:
             log_event(
                 self._logger,
@@ -429,10 +439,7 @@ class AuthorizationService:
     ) -> tuple[AuthorizationInput, Any]:
         validate_user(user)
         validate_resource(resource)
-        tenant = with_timeout(
-            lambda: self._tenants.get_or_create(tenant_key),
-            timeout_seconds=self._settings.service_timeout_seconds,
-        )
+        tenant = self._require_tenant(tenant_key)
         enriched_user = self._hydrate_user(tenant_id=tenant.id, user=user)
         return (
             self._build_authorization_input(
@@ -506,6 +513,7 @@ class AuthorizationService:
             persisted_user = with_timeout(
                 lambda: self._users.get_user_context(user_id),
                 timeout_seconds=self._settings.service_timeout_seconds,
+                settings=self._settings,
             )
             if persisted_user is not None:
                 enriched_user["roles"] = list(persisted_user.get("roles", []))
@@ -522,6 +530,7 @@ class AuthorizationService:
                         subject_id=str(user_id),
                     ),
                     timeout_seconds=self._settings.service_timeout_seconds,
+                    settings=self._settings,
                 )
                 self._safe_relationship_cache_set(
                     tenant_id=tenant_id,
@@ -558,6 +567,7 @@ class AuthorizationService:
             cached = with_timeout(
                 _load_current_policies,
                 timeout_seconds=self._settings.service_timeout_seconds,
+                settings=self._settings,
             )
             if not cached:
                 policies = self._settings.load_policies()
@@ -577,7 +587,11 @@ class AuthorizationService:
             decision=(
                 "allow"
                 if cached.allowed
-                else "deny" if cached.decision not in {"allow", "deny"} else cached.decision
+                else (
+                    "deny"
+                    if cached.decision not in {"allow", "deny"}
+                    else "allow" if cached.decision == "allow" else "deny"
+                )
             ),
             reason=cached.reason,
             policy_id=cached.policy_id,
@@ -654,7 +668,9 @@ class AuthorizationService:
                 )
 
         if (self._settings.resilience_mode or "fail_closed").strip().lower() == "fail_open":
+            record_auth_fail_open()
             return self._safe_allow(reason=reason)
+        record_auth_fail_closed()
         return self._safe_deny(reason=reason)
 
     def _safe_cache_get(self, key: str) -> CachedDecision | None:
@@ -662,8 +678,11 @@ class AuthorizationService:
             cached = with_timeout(
                 lambda: self._decision_cache.get(key),
                 timeout_seconds=self._settings.service_timeout_seconds,
+                settings=self._settings,
             )
         except Exception as exc:
+            if isinstance(exc, TimeoutError):
+                record_backend_timeout(operation="decision_cache_get")
             record_cache_event(cache_name="decision", outcome="fallback")
             log_event(
                 self._logger,
@@ -684,6 +703,7 @@ class AuthorizationService:
                         key, value, self._settings.decision_cache_ttl_seconds
                     ),
                     timeout_seconds=self._settings.service_timeout_seconds,
+                    settings=self._settings,
                 ),
                 attempts=self._settings.critical_retry_attempts,
             )
@@ -701,8 +721,11 @@ class AuthorizationService:
             cached = with_timeout(
                 lambda: self._policy_cache.get(tenant_key, policy_version),
                 timeout_seconds=self._settings.service_timeout_seconds,
+                settings=self._settings,
             )
         except Exception as exc:
+            if isinstance(exc, TimeoutError):
+                record_backend_timeout(operation="policy_cache_get")
             record_cache_event(cache_name="policy", outcome="fallback")
             log_event(
                 self._logger,
@@ -723,6 +746,7 @@ class AuthorizationService:
                 lambda: with_timeout(
                     lambda: self._policy_cache.set(tenant_key, policy_version, cached),
                     timeout_seconds=self._settings.service_timeout_seconds,
+                    settings=self._settings,
                 ),
                 attempts=self._settings.critical_retry_attempts,
             )
@@ -742,8 +766,11 @@ class AuthorizationService:
                     tenant_id=tenant_id, subject_type=subject_type, subject_id=subject_id
                 ),
                 timeout_seconds=self._settings.service_timeout_seconds,
+                settings=self._settings,
             )
         except Exception as exc:
+            if isinstance(exc, TimeoutError):
+                record_backend_timeout(operation="relationship_cache_get")
             record_cache_event(cache_name="relationship", outcome="fallback")
             log_event(
                 self._logger,
@@ -771,6 +798,7 @@ class AuthorizationService:
                         relationships=relationships,
                     ),
                     timeout_seconds=self._settings.service_timeout_seconds,
+                    settings=self._settings,
                 ),
                 attempts=self._settings.critical_retry_attempts,
             )
@@ -800,6 +828,7 @@ class AuthorizationService:
                 lambda: with_timeout(
                     lambda: self._audit.write(**kwargs),
                     timeout_seconds=self._settings.service_timeout_seconds,
+                    settings=self._settings,
                 ),
                 attempts=self._settings.critical_retry_attempts,
             )
@@ -810,3 +839,13 @@ class AuthorizationService:
                 reason=repr(exc),
                 correlation_id=self._request_id,
             )
+
+    def _require_tenant(self, tenant_key: str):
+        tenant = with_timeout(
+            lambda: self._tenants.get_by_key(tenant_key),
+            timeout_seconds=self._settings.service_timeout_seconds,
+            settings=self._settings,
+        )
+        if tenant is None:
+            raise TenantNotFoundError(tenant_key)
+        return tenant

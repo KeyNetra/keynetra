@@ -88,7 +88,9 @@ class SqlAuditRepository:
         if end_time:
             query = query.where(AuditLog.created_at <= end_time)
         if cursor is not None:
-            cursor_created_at = datetime.fromisoformat(str(cursor["created_at"]).replace("Z", "+00:00"))
+            cursor_created_at = datetime.fromisoformat(
+                str(cursor["created_at"]).replace("Z", "+00:00")
+            )
             cursor_id = int(cursor["id"])
             query = query.where(
                 or_(

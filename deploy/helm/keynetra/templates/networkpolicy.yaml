@@ -1,0 +1,38 @@
+{{- if .Values.networkPolicy.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "keynetra.fullname" . }}
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "keynetra.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+{{- if .Values.networkPolicy.ingressNamespaces }}
+{{- range .Values.networkPolicy.ingressNamespaces }}
+        - namespaceSelector:
+            matchLabels:
+{{ toYaml . | indent 14 }}
+{{- end }}
+{{- else }}
+        - namespaceSelector: {}
+{{- end }}
+      ports:
+        - protocol: TCP
+          port: {{ .Values.service.port }}
+  egress:
+    - ports:
+{{- range .Values.networkPolicy.egressPorts }}
+        - protocol: {{ if eq (int .) 53 }}UDP{{ else }}TCP{{ end }}
+          port: {{ . }}
+{{- end }}
+        - protocol: TCP
+          port: 53
+      to:
+        - namespaceSelector: {}
+{{- end }}

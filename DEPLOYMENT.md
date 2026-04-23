@@ -1,6 +1,6 @@
 # Deployment Guide
 
-This guide documents supported deployment paths for KeyNetra v0.1.1-beta.
+This guide documents supported deployment paths for KeyNetra v0.1.2.
 
 ## Prerequisites
 
@@ -23,6 +23,9 @@ Optional:
 - `KEYNETRA_REDIS_URL`
 - `KEYNETRA_RATE_LIMIT_PER_MINUTE`
 - `KEYNETRA_RATE_LIMIT_BURST`
+- `KEYNETRA_RATE_LIMIT_REDIS_UNAVAILABLE_MODE=fail_closed|degraded_local`
+- `KEYNETRA_RESILIENCE_EXECUTOR_WORKERS`
+- `KEYNETRA_IDEMPOTENCY_TTL_SECONDS`
 - `KEYNETRA_RUN_MIGRATIONS`
 - `KEYNETRA_AUTO_SEED_SAMPLE_DATA`
 
@@ -71,6 +74,15 @@ Included resources:
 - `secret.yaml`
 - `ingress.yaml`
 - `hpa.yaml`
+- `serviceaccount.yaml`
+- `pdb.yaml`
+- `networkpolicy.yaml`
+
+Deployment notes:
+
+- Keep database and Redis URLs in Secrets, not ConfigMaps.
+- Unknown tenant headers return `404`; create tenants explicitly before sending tenant-scoped traffic.
+- If you depend on API idempotency, run `keynetra purge-idempotency` on a schedule.
 
 ## Helm
 

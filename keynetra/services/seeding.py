@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any, cast
 
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
@@ -19,6 +20,11 @@ from keynetra.domain.models.policy_versioning import Policy, PolicyVersion
 from keynetra.domain.models.rbac import Permission, Role, User, role_permissions, user_roles
 from keynetra.domain.models.relationship import Relationship
 from keynetra.domain.models.tenant import Tenant
+
+_sample_user = cast(dict[str, Any], SAMPLE_USER)
+_sample_role = cast(dict[str, Any], SAMPLE_ROLE)
+_sample_relationship = cast(dict[str, Any], SAMPLE_RELATIONSHIPS[0])
+_sample_policies = cast(list[dict[str, Any]], SAMPLE_POLICY_DEFINITIONS)
 
 
 @dataclass(frozen=True)
@@ -56,10 +62,10 @@ def seed_demo_data(
         db.add(tenant)
         db.flush()
 
-    role = db.execute(select(Role).where(Role.name == SAMPLE_ROLE["name"])).scalars().first()
+    role = db.execute(select(Role).where(Role.name == str(_sample_role["name"]))).scalars().first()
     created_role = role is None
     if role is None:
-        role = Role(name=str(SAMPLE_ROLE["name"]))
+        role = Role(name=str(_sample_role["name"]))
         db.add(role)
         db.flush()
 
@@ -76,10 +82,10 @@ def seed_demo_data(
         if permission not in role.permissions:
             role.permissions.append(permission)
 
-    user = db.execute(select(User).where(User.id == int(SAMPLE_USER["id"]))).scalars().first()
+    user = db.execute(select(User).where(User.id == int(_sample_user["id"]))).scalars().first()
     created_user = user is None
     if user is None:
-        user = User(id=int(SAMPLE_USER["id"]), external_id=str(SAMPLE_USER["external_id"]))
+        user = User(id=int(_sample_user["id"]), external_id=str(_sample_user["external_id"]))
         db.add(user)
         db.flush()
     if role not in user.roles:
@@ -89,11 +95,11 @@ def seed_demo_data(
         db.execute(
             select(Relationship)
             .where(Relationship.tenant_id == tenant.id)
-            .where(Relationship.subject_type == SAMPLE_RELATIONSHIPS[0]["subject_type"])
-            .where(Relationship.subject_id == SAMPLE_RELATIONSHIPS[0]["subject_id"])
-            .where(Relationship.relation == SAMPLE_RELATIONSHIPS[0]["relation"])
-            .where(Relationship.object_type == SAMPLE_RELATIONSHIPS[0]["object_type"])
-            .where(Relationship.object_id == SAMPLE_RELATIONSHIPS[0]["object_id"])
+            .where(Relationship.subject_type == str(_sample_relationship["subject_type"]))
+            .where(Relationship.subject_id == str(_sample_relationship["subject_id"]))
+            .where(Relationship.relation == str(_sample_relationship["relation"]))
+            .where(Relationship.object_type == str(_sample_relationship["object_type"]))
+            .where(Relationship.object_id == str(_sample_relationship["object_id"]))
         )
         .scalars()
         .first()
@@ -102,16 +108,16 @@ def seed_demo_data(
         db.add(
             Relationship(
                 tenant_id=tenant.id,
-                subject_type=str(SAMPLE_RELATIONSHIPS[0]["subject_type"]),
-                subject_id=str(SAMPLE_RELATIONSHIPS[0]["subject_id"]),
-                relation=str(SAMPLE_RELATIONSHIPS[0]["relation"]),
-                object_type=str(SAMPLE_RELATIONSHIPS[0]["object_type"]),
-                object_id=str(SAMPLE_RELATIONSHIPS[0]["object_id"]),
+                subject_type=str(_sample_relationship["subject_type"]),
+                subject_id=str(_sample_relationship["subject_id"]),
+                relation=str(_sample_relationship["relation"]),
+                object_type=str(_sample_relationship["object_type"]),
+                object_id=str(_sample_relationship["object_id"]),
             )
         )
         created_relationships += 1
 
-    for policy in SAMPLE_POLICY_DEFINITIONS:
+    for policy in _sample_policies:
         created_policies += _ensure_policy(
             db,
             tenant_id=tenant.id,
@@ -139,8 +145,8 @@ def _clear_sample_data(db: Session, *, tenant_key: str) -> None:
     if tenant is None:
         return
 
-    role = db.execute(select(Role).where(Role.name == SAMPLE_ROLE["name"])).scalars().first()
-    user = db.execute(select(User).where(User.id == int(SAMPLE_USER["id"]))).scalars().first()
+    role = db.execute(select(Role).where(Role.name == str(_sample_role["name"]))).scalars().first()
+    user = db.execute(select(User).where(User.id == int(_sample_user["id"]))).scalars().first()
     permissions = (
         db.execute(
             select(Permission).where(

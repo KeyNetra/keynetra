@@ -12,6 +12,12 @@ from keynetra.version import __version__
 
 
 class _BrokenTenantRepo:
+    def get_by_key(self, tenant_key: str):
+        raise RuntimeError("tenant store unavailable")
+
+    def create(self, tenant_key: str):
+        raise RuntimeError("tenant store unavailable")
+
     def get_or_create(self, tenant_key: str):
         raise RuntimeError("tenant store unavailable")
 

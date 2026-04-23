@@ -8,17 +8,18 @@ reports pass/fail results.
 
 from __future__ import annotations
 
+import importlib
 import json
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, cast
 
-from keynetra.engine.keynetra_engine import AuthorizationInput, KeyNetraEngine
+from keynetra.engine.keynetra_engine import AuthorizationInput, KeyNetraEngine, PolicyDefinition
 from keynetra.services.policy_dsl import dsl_to_policy
 
 try:
-    import yaml
+    yaml: Any | None = importlib.import_module("yaml")
 except ModuleNotFoundError:  # pragma: no cover - optional parser dependency
-    yaml = None  # type: ignore[assignment]
+    yaml = None
 
 
 @dataclass(frozen=True)
@@ -75,7 +76,9 @@ def parse_policy_test_suite(document: str) -> PolicyTestSuite:
 def run_policy_test_suite(suite: PolicyTestSuite) -> list[PolicyTestResult]:
     """Execute all policy tests against the pure engine."""
 
-    engine = KeyNetraEngine(suite.policies, strategy="first_match")
+    engine = KeyNetraEngine(
+        cast(list[PolicyDefinition | dict[str, Any]], suite.policies), strategy="first_match"
+    )
     results: list[PolicyTestResult] = []
     for case in suite.tests:
         decision = engine.decide(case.authorization_input)

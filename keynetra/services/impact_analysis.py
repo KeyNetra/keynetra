@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from keynetra.engine.keynetra_engine import AuthorizationInput, KeyNetraEngine
+from keynetra.services.errors import TenantNotFoundError
 from keynetra.services.interfaces import (
     PolicyRepository,
     RelationshipRepository,
@@ -36,7 +37,9 @@ class ImpactAnalyzer:
         self._relationships = relationships
 
     def analyze_policy_change(self, *, tenant_key: str, policy_change: str) -> ImpactResult:
-        tenant = self._tenants.get_or_create(tenant_key)
+        tenant = self._tenants.get_by_key(tenant_key)
+        if tenant is None:
+            raise TenantNotFoundError(tenant_key)
         current_policies = self._policies.list_current_policies(tenant_id=tenant.id)
         changed_policy = dsl_to_policy(policy_change)
         before_engine = KeyNetraEngine([policy.definition for policy in current_policies])

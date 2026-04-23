@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Request, status
+from fastapi.responses import JSONResponse
 from sqlalchemy import text
 
 from keynetra.api.dependencies import ServiceContainer, build_services
@@ -27,7 +28,7 @@ def readiness(
     request: Request,
     settings: Settings = Depends(get_settings),
     services: ServiceContainer = Depends(build_services),
-) -> dict[str, object]:
+) -> JSONResponse:
     database_status = _check_database(services)
     redis_status = _check_redis(settings)
     healthy = database_status["status"] == "ok" and redis_status["status"] in {

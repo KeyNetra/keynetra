@@ -1,15 +1,24 @@
-name: CI Pipeline
+name: 🚀 CI Pipeline
 
 on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   PYTHONUNBUFFERED: "1"
+  PIP_DISABLE_PIP_VERSION_CHECK: "1"
+  PIP_NO_PYTHON_VERSION_WARNING: "1"
+  FORCE_COLOR: "1"
+
   KEYNETRA_DATABASE_URL: sqlite+pysqlite:///./.keynetra-ci.db
   KEYNETRA_API_KEYS: testkey
   KEYNETRA_RATE_LIMIT_PER_MINUTE: "5000"
@@ -17,37 +26,51 @@ env:
 
 jobs:
 
-  # -------------------------------
-  # Stage 1: Security Scan
-  # -------------------------------
+# =====================================================
+# 🔐 STAGE 1 — SECRET SCAN
+# =====================================================
   secret-scan:
-    name: 🔐 Secret Scan (Gitleaks)
+    name: 🔐 Stage 1 / Secret Scan
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
-      - name: 📥 Checkout repository
+      - name: 📥 Checkout Source
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
+      - name: 📢 Stage Start
+        run: |
+          echo "🔐 Starting secret scan..."
+          echo "Repository: ${{ github.repository }}"
+          echo "Branch: ${{ github.ref_name }}"
+
       - name: 🔍 Run Gitleaks
         run: |
           docker run --rm \
-            -v ${{ github.workspace }}:/repo \
+            -v "${{ github.workspace }}:/repo" \
             ghcr.io/gitleaks/gitleaks:latest \
-            detect --source /repo --verbose --exit-code 1
+            detect \
+            --source /repo \
+            --verbose \
+            --redact \
+            --exit-code 1
 
+      - name: ✅ Stage Complete
+        run: echo "✅ Secret scan passed."
 
-  # -------------------------------
-  # Stage 2: Lint & Static Checks
-  # -------------------------------
+# =====================================================
+# 🧹 STAGE 2 — LINT
+# =====================================================
   lint:
-    name: 🧹 Lint & Formatting
+    name: 🧹 Stage 2 / Lint & Static Checks
     runs-on: ubuntu-latest
     needs: secret-scan
+    timeout-minutes: 15
 
     steps:
-      - name: 📥 Checkout repository
+      - name: 📥 Checkout Source
         uses: actions/checkout@v4
 
       - name: 🐍 Setup Python
@@ -56,29 +79,44 @@ jobs:
           python-version: "3.12"
           cache: pip
 
-      - name: 📦 Install dependencies
+      - name: 📦 Install Dependencies
         run: |
+          echo "📦 Installing dependencies..."
+          python -m pip install --upgrade pip wheel setuptools
           pip install -r requirements.lock
           pip install -r requirements-dev.lock
 
-      - name: 🧪 Run linters
+      - name: 🔎 Run Quality Checks
         run: |
+          echo "🧹 Running Ruff..."
           ruff check .
+
+          echo "🎨 Running Black..."
           black --check .
+
+          echo "📚 Running isort..."
           isort --check-only .
+
+          echo "🧠 Running mypy..."
+          mypy keynetra
+
+          echo "🧠 Running Import Linter..."
           lint-imports --config .importlinter
 
+      - name: ✅ Stage Complete
+        run: echo "✅ Lint stage passed."
 
-  # -------------------------------
-  # Stage 3: Security Dependencies
-  # -------------------------------
+# =====================================================
+# 🛡 STAGE 3 — DEPENDENCY SECURITY
+# =====================================================
   security-deps:
-    name: 🛡 Dependency Security Scan
+    name: 🛡 Stage 3 / Dependency Security
     runs-on: ubuntu-latest
     needs: lint
+    timeout-minutes: 20
 
     steps:
-      - name: 📥 Checkout repository
+      - name: 📥 Checkout Source
         uses: actions/checkout@v4
 
       - name: 🐍 Setup Python
@@ -87,15 +125,18 @@ jobs:
           python-version: "3.12"
           cache: pip
 
-      - name: 📦 Install dependencies
+      - name: 📦 Install Tools
         run: |
+          echo "📦 Installing audit tools..."
+          python -m pip install --upgrade pip
           pip install -r requirements.lock
           pip install pip-audit
 
-      - name: 🔍 Run pip-audit
+      - name: 🔍 Run Security Audit
         run: |
-          pip-audit
           mkdir -p artifacts
+          echo "🛡 Scanning dependencies..."
+          pip-audit
           pip-audit -f cyclonedx-json -o artifacts/sbom.cdx.json
 
       - name: 📤 Upload SBOM
@@ -104,13 +145,20 @@ jobs:
           name: sbom
           path: artifacts/sbom.cdx.json
 
+      - name: ✅ Stage Complete
+        run: echo "✅ Dependency security stage passed."
+
+# =====================================================
+# 📦 STAGE 4 — OPENAPI CONTRACTS
+# =====================================================
   sdk-contracts:
-    name: 📦 SDK Contract Export
+    name: 📦 Stage 4 / Public Contract Verification
     runs-on: ubuntu-latest
     needs: security-deps
+    timeout-minutes: 20
 
     steps:
-      - name: 📥 Checkout repository
+      - name: 📥 Checkout Source
         uses: actions/checkout@v4
 
       - name: 🐍 Setup Python
@@ -119,45 +167,53 @@ jobs:
           python-version: "3.12"
           cache: pip
 
-      - name: 📦 Install dependencies
+      - name: 📦 Install App
         run: |
-          pip install --upgrade pip
+          echo "📦 Installing project..."
+          python -m pip install --upgrade pip
           pip install -r requirements.lock
           pip install -r requirements-dev.lock
           pip install -e .
 
-      - name: 🔒 Contract freeze guard
+      - name: 🧾 Export Contracts
         run: |
-          # python3.12 scripts/check_contract_freeze.py
-          echo "Contract freeze guard disabled - scripts removed."
+          echo "📄 Generating OpenAPI contracts..."
+          mkdir -p contracts
+          keynetra generate-openapi \
+            --output contracts/openapi.json \
+            --yaml-output contracts/openapi.yaml
 
-      - name: 🧾 Export SDK OpenAPI contracts
+      - name: 🔒 Drift Check
         run: |
-          # keynetra generate-openapi --output contracts/openapi/openapi.json --yaml-output contracts/openapi/openapi.yaml
-          echo "Contract export is handled manually or via dedicated workflow for standalone SDK repo."
+          echo "🔒 Checking contract drift..."
+          git diff --exit-code -- contracts/openapi.json contracts/openapi.yaml
 
-      - name: 🧭 SDK breaking-change guard
-        if: github.event_name == 'pull_request'
+      - name: ✅ Validate Contracts
         run: |
-          # python3.12 scripts/check_sdk_breaking_changes.py origin/${{ github.base_ref }}
-          echo "SDK breaking-change guard disabled - moved to standalone SDK repo."
+          echo "🧪 Validating OpenAPI..."
+          keynetra check-openapi --contract contracts/openapi.json
+          keynetra check-openapi --contract contracts/openapi.yaml
 
-      - name: 📤 Upload SDK contracts
+      - name: 📤 Upload Contracts
         uses: actions/upload-artifact@v4
         with:
           name: sdk-contracts
           path: |
-            contracts/openapi/openapi.json
-            contracts/openapi/openapi.yaml
+            contracts/openapi.json
+            contracts/openapi.yaml
 
+      - name: ✅ Stage Complete
+        run: echo "✅ Contract verification passed."
 
-  # -------------------------------
-  # Stage 4: Tests (Matrix)
-  # -------------------------------
+# =====================================================
+# 🧪 STAGE 5 — TEST MATRIX
+# =====================================================
   test:
-    name: CI / test (${{ matrix.python-version }})
+    name: 🧪 Stage 5 / Test (${{ matrix.python-version }})
     runs-on: ubuntu-latest
-    needs: security-deps
+    needs:
+      - security-deps
+      - sdk-contracts
 
     strategy:
       fail-fast: true
@@ -165,55 +221,91 @@ jobs:
         python-version: ["3.11", "3.12", "3.13", "3.14"]
 
     steps:
-      - name: 📥 Checkout repository
+      - name: 📥 Checkout Source
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
-      - name: 🐍 Setup Python
+      - name: 🐍 Setup Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
           cache: pip
 
-      - name: 📦 Install dependencies
+      - name: 📦 Install Dependencies
         run: |
-          pip install --upgrade pip
+          echo "📦 Installing on Python ${{ matrix.python-version }}"
+          python -m pip install --upgrade pip
           pip install -r requirements.lock
           pip install -r requirements-dev.lock
           pip install -e .
 
-      - name: 🔄 OpenAPI drift check
-        run: keynetra check-openapi
-
-      - name: 🗄 Migration check
-        run: keynetra migrate --confirm-destructive
-
-      - name: 🧪 Run tests with coverage
+      - name: 🔄 Contract Check
         run: |
-          pytest -q \
-            --cov=keynetra \
-            --cov-fail-under=80 \
-            --cov-report=term \
-            --cov-report=json
+          echo "🔄 Verifying OpenAPI contract..."
+          keynetra check-openapi
+
+      - name: 🗄 Migration Test
+        run: |
+          echo "🗄 Running migrations..."
+          keynetra migrate --confirm-destructive
+
+      - name: 🧪 Run Tests
+        run: |
+          echo "🧪 Running pytest..."
+          STRICT_MODULE_COVERAGE=1 pytest --cov-fail-under=90
 
           if [ -d ./keynetra-client-python/tests ]; then
+            echo "📦 Running SDK tests..."
             pytest -q keynetra-client-python/tests
           fi
 
           python scripts/check_coverage.py
 
+      - name: 🧪 Integration Smoke
+        if: matrix.python-version == '3.11'
+        run: |
+          echo "🧪 Running integration-focused smoke selection..."
+          pytest --no-cov tests/test_api.py tests/test_admin_audit.py tests/test_api_contract.py
 
-  # -------------------------------
-  # Stage 5: Load Test
-  # -------------------------------
+      - name: 📦 Build Artifact Verify
+        if: matrix.python-version == '3.11'
+        run: |
+          echo "📦 Building distribution..."
+          python -m build
+
+      - name: 🐳 Docker Build Smoke
+        if: matrix.python-version == '3.11'
+        run: |
+          echo "🐳 Building Docker image..."
+          docker build -t keynetra:ci .
+
+      - name: ⛵ Helm Template
+        if: matrix.python-version == '3.11'
+        run: |
+          echo "⛵ Installing Helm..."
+          curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+          echo "⛵ Rendering chart..."
+          helm lint deploy/helm/keynetra
+          helm template keynetra deploy/helm/keynetra >/tmp/keynetra-helm.yaml
+
+      - name: 🔄 Migration Roundtrip
+        if: matrix.python-version == '3.11'
+        run: |
+          echo "🔄 Verifying migration roundtrip..."
+          pytest --no-cov tests/test_migration_utils.py::test_migration_roundtrip_creates_and_drops_schema
+
+      - name: ✅ Matrix Complete
+        run: echo "✅ Python ${{ matrix.python-version }} passed."
+
+# =====================================================
+# 🚦 STAGE 6 — LOAD TEST
+# =====================================================
   load-test:
-    name: 🚦 Load Smoke Test
+    name: 🚦 Stage 6 / Load Smoke Test
     runs-on: ubuntu-latest
     needs: test
 
     steps:
-      - name: 📥 Checkout repository
+      - name: 📥 Checkout Source
         uses: actions/checkout@v4
 
       - name: 🐍 Setup Python
@@ -222,18 +314,28 @@ jobs:
           python-version: "3.12"
           cache: pip
 
-      - name: 📦 Install dependencies
+      - name: 📦 Install Tools
         run: |
+          echo "📦 Installing locust..."
           pip install -r requirements.lock
           pip install locust uvicorn
 
       - name: 🚀 Start API
         run: |
-          python -m uvicorn keynetra.api.main:app --host 127.0.0.1 --port 8000 &
-          sleep 3
+          echo "🚀 Booting API..."
+          python -m uvicorn keynetra.api.main:app \
+            --host 127.0.0.1 \
+            --port 8000 &
+          sleep 5
+
+      - name: ❤️ Health Check
+        run: |
+          echo "❤️ Checking health..."
+          curl --fail http://127.0.0.1:8000/health || curl --fail http://127.0.0.1:8000/docs
 
       - name: ⚡ Run Locust
         run: |
+          echo "⚡ Running load test..."
           locust \
             -f locustfile.py \
             --host http://127.0.0.1:8000 \
@@ -244,5 +346,41 @@ jobs:
             --csv /tmp/locust \
             --only-summary
 
-      - name: 📊 Validate load budget
-        run: python scripts/check_load_budget.py
+      - name: 📊 Validate Load Budget
+        run: |
+          echo "📊 Validating latency / throughput..."
+          python scripts/check_load_budget.py
+
+      - name: ✅ Stage Complete
+        run: echo "✅ Load test passed."
+
+# =====================================================
+# 🏁 FINAL SUMMARY
+# =====================================================
+  ci-status:
+    name: 🏁 Final CI Status
+    runs-on: ubuntu-latest
+    if: always()
+    needs:
+      - secret-scan
+      - lint
+      - security-deps
+      - sdk-contracts
+      - test
+      - load-test
+
+    steps:
+      - name: 📋 Final Summary
+        run: |
+          echo "🚀 CI PIPELINE FINISHED" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Stage | Result |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| 🔐 Secret Scan | ${{ needs.secret-scan.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🧹 Lint | ${{ needs.lint.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🛡 Security | ${{ needs.security-deps.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 📦 Contracts | ${{ needs.sdk-contracts.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🧪 Tests | ${{ needs.test.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🚦 Load Test | ${{ needs.load-test.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "🔥 Ready for merge if all green." >> $GITHUB_STEP_SUMMARY

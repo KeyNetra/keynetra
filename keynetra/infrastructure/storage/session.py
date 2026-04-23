@@ -67,8 +67,8 @@ def initialize_database(database_url: str) -> None:
         return
 
     from keynetra.domain.models import acl as _acl  # noqa: F401
-    from keynetra.domain.models import audit as _audit  # noqa: F401
     from keynetra.domain.models import api_key as _api_key  # noqa: F401
+    from keynetra.domain.models import audit as _audit  # noqa: F401
     from keynetra.domain.models import auth_model as _auth_model  # noqa: F401
     from keynetra.domain.models import idempotency as _idempotency  # noqa: F401
     from keynetra.domain.models import policy_versioning as _policy_versioning  # noqa: F401
@@ -79,6 +79,20 @@ def initialize_database(database_url: str) -> None:
 
     engine = create_engine_for_url(database_url)
     Base.metadata.create_all(bind=engine)
+
+
+def run_migrations(database_url: str, revision: str = "head") -> None:
+    """Run database migrations to the specified revision."""
+    from pathlib import Path
+
+    from alembic import command
+    from alembic.config import Config
+
+    core_dir = Path(__file__).resolve().parents[3]
+    config = Config(str(core_dir / "alembic.ini"))
+    config.set_main_option("script_location", str(core_dir / "alembic"))
+    config.set_main_option("sqlalchemy.url", database_url)
+    command.upgrade(config, revision)
 
 
 def get_db() -> Generator[Session, None, None]:

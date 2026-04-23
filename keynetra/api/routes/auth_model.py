@@ -60,7 +60,7 @@ def create_auth_model(
         data=AuthModelOut(
             id=record.id,
             tenant_id=record.tenant_id,
-            schema_text=record.schema_text,
+            schema=record.schema_text,
             parsed=record.schema_json,
             compiled=record.compiled_json,
         ).model_dump(by_alias=True),
@@ -82,7 +82,7 @@ def get_auth_model(
         data=AuthModelOut(
             id=record.id,
             tenant_id=record.tenant_id,
-            schema_text=record.schema_text,
+            schema=record.schema_text,
             parsed=record.schema_json,
             compiled=record.compiled_json,
         ).model_dump(by_alias=True),

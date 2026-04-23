@@ -60,7 +60,7 @@ def _check_env(settings: Settings) -> DoctorCheck:
     weak_jwt_secret = settings.jwt_secret.strip() == "change-me"
     profile = settings.environment
     weak_admin_username = (
-        bool(settings.admin_username) and settings.admin_username.lower() == "admin"
+        bool(settings.admin_username) and (settings.admin_username or "").lower() == "admin"
     )
     missing_admin_password_hash = bool(settings.admin_username) and not bool(
         settings.admin_password_hash

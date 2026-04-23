@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import logging
 import time
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
+from typing import Any
 
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
@@ -16,12 +17,12 @@ from keynetra.observability.http_metrics import record_http_request
 class RequestLoggingMiddleware(BaseHTTPMiddleware):
     """Emit one structured log line per request."""
 
-    def __init__(self, app) -> None:  # type: ignore[override]
+    def __init__(self, app: Any) -> None:
         super().__init__(app)
         self._logger = logging.getLogger("keynetra.request")
 
     async def dispatch(
-        self, request: Request, call_next: Callable[[Request], Response]
+        self, request: Request, call_next: Callable[[Request], Awaitable[Response]]
     ) -> Response:
         start = time.perf_counter()
         response = await call_next(request)
@@ -38,7 +39,7 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
             tenant_id=tenant_id,
         )
         record_http_request(
-            tenant=tenant_id,
+            tenant=tenant_id or "unknown",
             endpoint=request.url.path,
             method=request.method,
             status=response.status_code,

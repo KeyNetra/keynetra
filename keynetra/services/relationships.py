@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from keynetra.services.errors import TenantNotFoundError
 from keynetra.services.interfaces import (
     AccessIndexCache,
     DecisionCache,
@@ -34,7 +35,7 @@ class RelationshipService:
     def list_relationships(
         self, *, tenant_key: str, subject_type: str, subject_id: str
     ) -> list[dict[str, str]]:
-        tenant = self._tenants.get_or_create(tenant_key)
+        tenant = self._require_tenant(tenant_key)
         cached = self._relationship_cache.get(
             tenant_id=tenant.id, subject_type=subject_type, subject_id=subject_id
         )
@@ -62,7 +63,7 @@ class RelationshipService:
         limit: int,
         cursor: dict[str, object] | None,
     ) -> tuple[list[dict[str, str]], str | None]:
-        tenant = self._tenants.get_or_create(tenant_key)
+        tenant = self._require_tenant(tenant_key)
         relationships, next_cursor = self._relationships.list_for_subject_page(
             tenant_id=tenant.id,
             subject_type=subject_type,
@@ -82,7 +83,7 @@ class RelationshipService:
         object_type: str,
         object_id: str,
     ) -> int:
-        tenant = self._tenants.get_or_create(tenant_key)
+        tenant = self._require_tenant(tenant_key)
         row_id = self._relationships.create(
             tenant_id=tenant.id,
             subject_type=subject_type,
@@ -99,3 +100,12 @@ class RelationshipService:
         self._decision_cache.bump_namespace(tenant.tenant_key)
         self._revisions.bump_revision(tenant_key=tenant.tenant_key)
         return row_id
+
+    def _require_tenant(self, tenant_key: str):
+        get_by_key = getattr(self._tenants, "get_by_key", None)
+        tenant = get_by_key(tenant_key) if callable(get_by_key) else None
+        if tenant is None:
+            tenant = self._tenants.get_or_create(tenant_key)
+        if tenant is None:
+            raise TenantNotFoundError(tenant_key)
+        return tenant

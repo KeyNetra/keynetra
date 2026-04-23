@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any, cast
+
 from sqlalchemy import and_, or_, select
 from sqlalchemy.orm import Session
 
@@ -62,6 +64,7 @@ class SqlRelationshipRepository:
             .where(Relationship.subject_id == subject_id)
         )
         if cursor is not None:
+            cursor_id = cast(Any, cursor["id"])
             query = query.where(
                 or_(
                     Relationship.relation > str(cursor["relation"]),
@@ -78,7 +81,7 @@ class SqlRelationshipRepository:
                         Relationship.relation == str(cursor["relation"]),
                         Relationship.object_type == str(cursor["object_type"]),
                         Relationship.object_id == str(cursor["object_id"]),
-                        Relationship.id > int(cursor["id"]),
+                        Relationship.id > int(cursor_id),
                     ),
                 )
             )

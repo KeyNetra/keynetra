@@ -17,11 +17,20 @@ spec:
         app.kubernetes.io/name: {{ include "keynetra.name" . }}
         app.kubernetes.io/instance: {{ .Release.Name }}
     spec:
+      serviceAccountName: {{ include "keynetra.serviceAccountName" . }}
+      automountServiceAccountToken: {{ .Values.serviceAccount.automountServiceAccountToken }}
+      securityContext:
+{{ toYaml .Values.podSecurityContext | indent 8 }}
+      volumes:
+        - name: tmp
+          emptyDir: {}
       containers:
         - name: keynetra
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           args: ["keynetra", "serve", "--host", "0.0.0.0", "--port", "8000"]
+          securityContext:
+{{ toYaml .Values.securityContext | indent 12 }}
           ports:
             - name: http
               containerPort: 8000
@@ -32,11 +41,28 @@ spec:
                 name: {{ include "keynetra.fullname" . }}-secret
           resources:
 {{ toYaml .Values.resources | indent 12 }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
           readinessProbe:
             httpGet:
               path: /health/ready
               port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
           livenessProbe:
             httpGet:
               path: /health/live
               port: http
+            initialDelaySeconds: 20
+            periodSeconds: 20
+            timeoutSeconds: 3
+            failureThreshold: 3
+          startupProbe:
+            httpGet:
+              path: /health/ready
+              port: http
+            failureThreshold: 30
+            periodSeconds: 5

@@ -46,9 +46,9 @@ def tenant_from_principal(principal: dict[str, Any]) -> str | None:
     tenant_roles = claims.get("tenant_roles")
     if isinstance(tenant_roles, dict):
         candidates = [normalize_tenant_key(str(item)) for item in tenant_roles]
-        normalized = [item for item in candidates if item]
-        if len(normalized) == 1:
-            return normalized[0]
+        normalized_candidates = [item for item in candidates if item]
+        if len(normalized_candidates) == 1:
+            return normalized_candidates[0]
 
     return None
 

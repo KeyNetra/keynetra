@@ -5,5 +5,6 @@ metadata:
 data:
   KEYNETRA_ENVIRONMENT: "prod"
   KEYNETRA_STRICT_TENANCY: "true"
-  KEYNETRA_DATABASE_URL: "postgresql+psycopg://keynetra:keynetra@postgres:5432/keynetra"
-  KEYNETRA_REDIS_URL: "redis://redis:6379/0"
+  KEYNETRA_RATE_LIMIT_REDIS_UNAVAILABLE_MODE: "fail_closed"
+  KEYNETRA_RESILIENCE_EXECUTOR_WORKERS: "16"
+  KEYNETRA_IDEMPOTENCY_TTL_SECONDS: "86400"

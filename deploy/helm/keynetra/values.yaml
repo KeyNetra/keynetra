@@ -2,12 +2,44 @@ replicaCount: 2
 
 image:
   repository: ghcr.io/keynetra/keynetra
-  tag: v0.1.1
+  tag: "v0.1.2"
   pullPolicy: IfNotPresent
 
 service:
   type: ClusterIP
   port: 8000
+
+serviceAccount:
+  create: true
+  automountServiceAccountToken: false
+  name: ""
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 10001
+  runAsGroup: 10001
+  fsGroup: 10001
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+networkPolicy:
+  enabled: true
+  ingressNamespaces: []
+  egressPorts:
+    - 5432
+    - 6379
+    - 53
 
 resources:
   requests:
@@ -32,10 +64,13 @@ hpa:
 env:
   KEYNETRA_ENVIRONMENT: prod
   KEYNETRA_STRICT_TENANCY: "true"
-  KEYNETRA_DATABASE_URL: postgresql+psycopg://keynetra:keynetra@postgres:5432/keynetra
-  KEYNETRA_REDIS_URL: redis://redis:6379/0
+  KEYNETRA_RATE_LIMIT_REDIS_UNAVAILABLE_MODE: fail_closed
+  KEYNETRA_RESILIENCE_EXECUTOR_WORKERS: "16"
+  KEYNETRA_IDEMPOTENCY_TTL_SECONDS: "86400"
 
 secretEnv:
+  KEYNETRA_DATABASE_URL: postgresql+psycopg://keynetra:keynetra@postgres:5432/keynetra
+  KEYNETRA_REDIS_URL: redis://redis:6379/0
   KEYNETRA_API_KEY_HASHES: replace-with-sha256-hashes
   KEYNETRA_API_KEY_SCOPES_JSON: '{"replace":{"tenant":"default","role":"admin","permissions":["*"]}}'
   KEYNETRA_JWT_SECRET: replace-with-strong-secret

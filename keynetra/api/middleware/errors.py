@@ -93,7 +93,8 @@ def register_error_handlers(app: FastAPI, settings: Settings) -> None:
             request_id=rid,
         )
         if settings.debug:
-            body = json.loads(response.body.decode("utf-8"))
+            body_bytes = bytes(response.body)
+            body = json.loads(body_bytes.decode("utf-8"))
             body["error"]["details"] = repr(exc)
             response.body = json.dumps(body).encode("utf-8")
             response.headers["content-length"] = str(len(response.body))

@@ -13,9 +13,9 @@ from jose import JWTError, jwt
 
 from keynetra.config.settings import Settings, get_settings
 from keynetra.config.tenancy import DEFAULT_TENANT_KEY, tenant_for_logs
+from keynetra.infrastructure.logging import log_event
 from keynetra.infrastructure.repositories.api_keys import SqlApiKeyRepository
 from keynetra.infrastructure.storage.session import create_session_factory
-from keynetra.infrastructure.logging import log_event
 from keynetra.observability.metrics import record_auth_failure, record_jwks_fetch
 
 api_key_scheme = APIKeyHeader(name="X-API-Key", auto_error=False)
@@ -48,6 +48,7 @@ def _unauthorized(detail: str = "unauthorized") -> HTTPException:
 
 def _log_failed_auth(request: Request, *, reason: str, api_key: str | None = None) -> None:
     record_auth_failure(reason=reason)
+    _auth_logger.info("auth_failed")
     log_event(
         _auth_logger,
         event="auth_failed",

@@ -72,9 +72,6 @@ Thumbs.db
 
 # Project-specific
 docs-site/
-/sdks/
-/keynetra-sdks/
-/sdk_info/
 artifacts/
 .keynetra-ci.db
 .keynetra-release.db

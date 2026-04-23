@@ -19,9 +19,7 @@ class SqlApiKeyRepository:
     def list_keys(self, *, tenant_id: int) -> list[ApiKeyRecord]:
         rows = (
             self._session.execute(
-                select(ApiKey)
-                .where(ApiKey.tenant_id == tenant_id)
-                .order_by(ApiKey.id.asc())
+                select(ApiKey).where(ApiKey.tenant_id == tenant_id).order_by(ApiKey.id.asc())
             )
             .scalars()
             .all()
@@ -31,9 +29,7 @@ class SqlApiKeyRepository:
     def get_key(self, *, tenant_id: int, key_id: int) -> ApiKeyRecord | None:
         row = (
             self._session.execute(
-                select(ApiKey)
-                .where(ApiKey.tenant_id == tenant_id)
-                .where(ApiKey.id == key_id)
+                select(ApiKey).where(ApiKey.tenant_id == tenant_id).where(ApiKey.id == key_id)
             )
             .scalars()
             .first()
@@ -65,9 +61,7 @@ class SqlApiKeyRepository:
     def revoke_key(self, *, tenant_id: int, key_id: int) -> None:
         row = (
             self._session.execute(
-                select(ApiKey)
-                .where(ApiKey.tenant_id == tenant_id)
-                .where(ApiKey.id == key_id)
+                select(ApiKey).where(ApiKey.tenant_id == tenant_id).where(ApiKey.id == key_id)
             )
             .scalars()
             .first()

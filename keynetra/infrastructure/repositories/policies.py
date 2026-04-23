@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import json
-from typing import Any
+from collections.abc import Sequence
+from typing import Any, TypeAlias, cast
 
 from sqlalchemy import and_, delete, or_, select, text
 from sqlalchemy.exc import OperationalError
@@ -13,6 +14,9 @@ from keynetra.domain.models.policy_versioning import Policy, PolicyVersion
 from keynetra.domain.pagination import encode_cursor
 from keynetra.engine.keynetra_engine import PolicyDefinition
 from keynetra.services.interfaces import PolicyListItem, PolicyMutationResult, PolicyRecord
+
+_PolicyRow: TypeAlias = tuple[PolicyVersion, Policy] | dict[str, Any]
+_PolicyRowList: TypeAlias = Sequence[_PolicyRow]
 
 
 class SqlPolicyRepository:
@@ -24,6 +28,7 @@ class SqlPolicyRepository:
     def list_current_policies(
         self, *, tenant_id: int, policy_set: str = "active"
     ) -> list[PolicyRecord]:
+        rows: _PolicyRowList
         try:
             rows = self._current_policy_rows(tenant_id=tenant_id, policy_set=policy_set)
         except OperationalError:
@@ -62,6 +67,7 @@ class SqlPolicyRepository:
     def list_current_policy_views(
         self, *, tenant_id: int, policy_set: str = "active"
     ) -> list[PolicyListItem]:
+        rows: _PolicyRowList
         try:
             rows = self._current_policy_rows(tenant_id=tenant_id, policy_set=policy_set)
         except OperationalError:
@@ -307,9 +313,14 @@ class SqlPolicyRepository:
             query = query.where(PolicyVersion.state == normalized_set)
         else:
             query = query.where(PolicyVersion.state == "active")
-        return self._session.execute(
-            query.order_by(PolicyVersion.priority.asc(), PolicyVersion.id.asc())
-        ).all()
+        return list(
+            cast(
+                list[tuple[PolicyVersion, Policy]],
+                self._session.execute(
+                    query.order_by(PolicyVersion.priority.asc(), PolicyVersion.id.asc())
+                ).all(),
+            )
+        )
 
     def _legacy_current_policy_rows(self, *, tenant_id: int) -> list[dict[str, Any]]:
         rows = self._session.execute(

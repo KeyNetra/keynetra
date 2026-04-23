@@ -1,6 +1,7 @@
 import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from typing import Any
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -8,10 +9,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from keynetra.api.middleware.errors import register_error_handlers
 from keynetra.api.middleware.idempotency import IdempotencyMiddleware
 from keynetra.api.middleware.logging import RequestLoggingMiddleware
-from keynetra.api.openapi import build_openapi_schema
 from keynetra.api.middleware.request_id import RequestIdMiddleware
 from keynetra.api.middleware.tenant import TenantResolverMiddleware
 from keynetra.api.middleware.versioning import ApiVersionMiddleware
+from keynetra.api.openapi import build_openapi_schema
 from keynetra.api.service_modes import router_for_mode
 from keynetra.config.rate_limit import RateLimitMiddleware
 from keynetra.config.redis_client import get_redis
@@ -23,7 +24,12 @@ from keynetra.engine.model_graph.permission_graph import MODEL_GRAPH_STORE, Comp
 from keynetra.infrastructure.cache.policy_cache import build_policy_cache
 from keynetra.infrastructure.errors import BootstrapError
 from keynetra.infrastructure.logging import configure_json_logging, log_event
-from keynetra.infrastructure.storage.session import create_session_factory, initialize_database
+from keynetra.infrastructure.repositories.tenants import SqlTenantRepository
+from keynetra.infrastructure.storage.session import (
+    create_session_factory,
+    initialize_database,
+    run_migrations,
+)
 from keynetra.modeling.permission_compiler import compile_authorization_schema
 from keynetra.observability.metrics import record_bootstrap_failure
 from keynetra.services.seeding import seed_demo_data
@@ -47,6 +53,7 @@ def create_app() -> FastAPI:
     configure_json_logging()
     app = FastAPI(title="KeyNetra", version=keynetra_version, lifespan=_lifespan)
     settings = get_settings()
+    app.state.settings = settings
 
     app.add_middleware(
         CORSMiddleware,
@@ -80,17 +87,24 @@ def create_app() -> FastAPI:
             if settings.environment in {"prod", "production"}:
                 raise BootstrapError("failed to initialize OTel instrumentation") from exc
 
-    app.openapi = lambda: build_openapi_schema(app)
+    def _custom_openapi() -> dict[str, Any]:
+        return build_openapi_schema(app)
+
+    app.openapi = _custom_openapi  # type: ignore[method-assign]
     return app
 
 
 def _run_startup(settings: Settings) -> None:
     try:
         initialize_database(settings.database_url)
+        if settings.run_migrations:
+            log_event(_bootstrap_logger, event="running_migrations", url=settings.database_url)
+            run_migrations(settings.database_url)
     except Exception as exc:
         record_bootstrap_failure(stage="database")
         log_event(_bootstrap_logger, event="bootstrap_database_failed", reason=repr(exc))
         raise BootstrapError("database initialization failed") from exc
+    _ensure_bootstrap_tenant(settings)
     _bootstrap_file_backed_policies(settings)
     _bootstrap_file_backed_model(settings)
     if settings.environment.strip().lower() not in {"development", "dev", "local"}:
@@ -103,6 +117,19 @@ def _run_startup(settings: Settings) -> None:
     db = create_session_factory(settings.database_url)()
     try:
         seed_demo_data(db)
+    finally:
+        db.close()
+
+
+def _ensure_bootstrap_tenant(settings: Settings) -> None:
+    if not settings.is_development():
+        return
+    db = create_session_factory(settings.database_url)()
+    try:
+        tenants = SqlTenantRepository(db)
+        if tenants.get_by_key(DEFAULT_TENANT_KEY) is None:
+            tenants.create(DEFAULT_TENANT_KEY)
+            log_event(_bootstrap_logger, event="bootstrap_default_tenant_created")
     finally:
         db.close()
 

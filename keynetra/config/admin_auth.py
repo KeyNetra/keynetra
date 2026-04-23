@@ -4,11 +4,14 @@ from dataclasses import dataclass
 from typing import Any
 
 from fastapi import Depends, Request, status
+from sqlalchemy.orm import Session
 
 from keynetra.api.errors import ApiError, ApiErrorCode
 from keynetra.config.security import get_principal
 from keynetra.config.settings import Settings, get_settings
 from keynetra.config.tenancy import DEFAULT_TENANT_KEY, normalize_tenant_key, tenant_from_principal
+from keynetra.infrastructure.repositories.tenants import SqlTenantRepository
+from keynetra.infrastructure.storage.session import get_db
 
 _ROLE_ORDER = {"viewer": 1, "developer": 2, "admin": 3}
 
@@ -27,13 +30,27 @@ def require_management_role(minimum_role: str):
     def dependency(
         request: Request,
         principal: dict[str, Any] = Depends(get_principal),
-        settings: Settings = Depends(get_settings),
+        settings: Any = Depends(get_settings),
+        db: Session = Depends(get_db),
     ) -> AdminAccess:
         if not isinstance(settings, Settings):
             settings = get_settings()
         tenant_key = _resolve_request_tenant_key(
             request=request, principal=principal, settings=settings
         )
+        if getattr(request.state, "is_management_api", False):
+            tenants = SqlTenantRepository(db)
+            explicit_tenant = normalize_tenant_key(request.headers.get("X-Tenant-Id"))
+            tenant = tenants.get_by_key(tenant_key)
+            if tenant is None:
+                if settings.strict_tenancy or explicit_tenant is not None:
+                    raise ApiError(
+                        status_code=status.HTTP_404_NOT_FOUND,
+                        code=ApiErrorCode.NOT_FOUND,
+                        message="tenant not found",
+                        details={"tenant_key": tenant_key},
+                    )
+                tenant = tenants.get_or_create(tenant_key)
         role = _resolve_tenant_role(principal, tenant_key=tenant_key)
         if role is None:
             raise ApiError(

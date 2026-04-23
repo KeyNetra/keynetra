@@ -2,19 +2,34 @@
 
 from __future__ import annotations
 
-try:
-    from prometheus_client import Counter, Histogram
-except ModuleNotFoundError:  # pragma: no cover
-    Counter = None  # type: ignore[assignment]
-    Histogram = None  # type: ignore[assignment]
+import importlib
+from typing import Any
 
-if Counter is not None and Histogram is not None:
-    HTTP_REQUESTS_TOTAL = Counter(
+try:
+    _prometheus_client: Any | None = importlib.import_module("prometheus_client")
+except ModuleNotFoundError:  # pragma: no cover
+    _prometheus_client = None
+
+MetricFactory = Any
+Metric = Any
+
+_counter_factory: MetricFactory | None = (
+    None if _prometheus_client is None else getattr(_prometheus_client, "Counter", None)
+)
+_histogram_factory: MetricFactory | None = (
+    None if _prometheus_client is None else getattr(_prometheus_client, "Histogram", None)
+)
+
+HTTP_REQUESTS_TOTAL: Metric | None
+HTTP_REQUEST_DURATION_SECONDS: Metric | None
+
+if _counter_factory is not None and _histogram_factory is not None:
+    HTTP_REQUESTS_TOTAL = _counter_factory(
         "keynetra_http_requests_total",
         "HTTP request count",
         labelnames=("tenant", "endpoint", "method", "status"),
     )
-    HTTP_REQUEST_DURATION_SECONDS = Histogram(
+    HTTP_REQUEST_DURATION_SECONDS = _histogram_factory(
         "keynetra_http_request_duration_seconds",
         "HTTP request latency in seconds",
         labelnames=("tenant", "endpoint", "method", "status"),

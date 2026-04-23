@@ -3,13 +3,12 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Generic, TypeVar
+from typing import Annotated, Any, Generic, TypeVar
 
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.functional_serializers import PlainSerializer
-from typing_extensions import Annotated
 
-from keynetra.api.errors import ApiErrorCode
+from keynetra.domain.errors import ApiErrorCode
 from keynetra.utils.datetime import isoformat_z
 
 PayloadT = TypeVar("PayloadT")

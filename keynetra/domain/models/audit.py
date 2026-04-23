@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import JSON, DateTime, ForeignKey, String
+from sqlalchemy import JSON, DateTime, ForeignKey, Index, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from keynetra.domain.models.base import Base
@@ -31,4 +31,10 @@ class AuditLog(Base):
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=utc_now
+    )
+
+    __table_args__ = (
+        Index("ix_audit_logs_tenant_created_at", "tenant_id", "created_at"),
+        Index("ix_audit_logs_tenant_actor", "tenant_id", "principal_type", "principal_id"),
+        Index("ix_audit_logs_tenant_decision", "tenant_id", "decision"),
     )

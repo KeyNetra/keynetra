@@ -11,6 +11,12 @@ class FakeTenantRepository:
     def __init__(self) -> None:
         self._tenant = TenantRecord(id=1, tenant_key="default", policy_version=1, revision=1)
 
+    def get_by_key(self, tenant_key: str) -> TenantRecord | None:
+        return self._tenant if tenant_key == self._tenant.tenant_key else None
+
+    def create(self, tenant_key: str) -> TenantRecord:
+        return self._tenant
+
     def get_or_create(self, tenant_key: str) -> TenantRecord:
         return self._tenant
 

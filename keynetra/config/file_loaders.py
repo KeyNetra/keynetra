@@ -210,7 +210,8 @@ def _model_mapping_to_schema(payload: dict[str, Any]) -> str:
     model = payload.get("model", payload)
     if not isinstance(model, dict):
         raise ValueError("model must be an object")
-    version = int(model.get("schema_version", model.get("version", 1)))
+    version_value = model.get("schema_version", model.get("version", 1))
+    version = int(version_value if version_value is not None else 1)
     object_type = str(model.get("type", "resource")).strip() or "resource"
     relations_obj = model.get("relations") or {}
     permissions_obj = model.get("permissions") or {}

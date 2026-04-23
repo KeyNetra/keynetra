@@ -9,6 +9,7 @@ from __future__ import annotations
 import logging
 
 from fastapi import APIRouter, Depends, Request, status
+from fastapi.concurrency import run_in_threadpool
 from sqlalchemy.exc import SQLAlchemyError
 
 from keynetra.api.dependencies import ServiceContainer, build_services
@@ -32,6 +33,7 @@ from keynetra.domain.schemas.access import (
 from keynetra.domain.schemas.api import SuccessResponse
 from keynetra.services.attribute_validation import AttributeValidationError
 from keynetra.services.authorization import AuthorizationService
+from keynetra.services.errors import TenantNotFoundError
 
 router = APIRouter()
 logger = logging.getLogger("keynetra.access")
@@ -48,43 +50,66 @@ def _resolve_tenant_key(
     services: ServiceContainer,
 ) -> str:
     headers = getattr(request, "headers", {})
-    requested = normalize_tenant_key(
-        headers.get(TENANT_HEADER_NAME) or getattr(request.state, "requested_tenant_key", None)
+    explicit_tenant = normalize_tenant_key(headers.get(TENANT_HEADER_NAME))
+    requested_state_tenant = normalize_tenant_key(
+        getattr(request.state, "requested_tenant_key", None)
     )
-    if requested:
+    requested = explicit_tenant or requested_state_tenant
+    if requested is not None:
         request.state.requested_tenant_key = requested
-        return requested
+        tenant_key = requested
+    else:
+        principal_tenant = tenant_from_principal(principal)
+        if principal_tenant:
+            request.state.requested_tenant_key = principal_tenant
+            tenant_key = principal_tenant
+        else:
+            settings = getattr(services, "settings", None)
+            strict_tenancy = (
+                bool(getattr(settings, "strict_tenancy", False)) if settings is not None else False
+            )
+            if strict_tenancy:
+                raise ApiError(
+                    status_code=422,
+                    code=ApiErrorCode.VALIDATION_ERROR,
+                    message="tenant is required",
+                    details={"header": TENANT_HEADER_NAME},
+                )
 
-    principal_tenant = tenant_from_principal(principal)
-    if principal_tenant:
-        request.state.requested_tenant_key = principal_tenant
-        return principal_tenant
+            is_development = (
+                bool(getattr(settings, "is_development", lambda: True)())
+                if settings is not None
+                else True
+            )
+            if is_development:
+                request.state.requested_tenant_key = DEFAULT_TENANT_KEY
+                tenant_key = DEFAULT_TENANT_KEY
+            else:
+                raise ApiError(
+                    status_code=422,
+                    code=ApiErrorCode.VALIDATION_ERROR,
+                    message="tenant is required",
+                    details={"header": TENANT_HEADER_NAME},
+                )
 
-    settings = getattr(services, "settings", None)
-    strict_tenancy = (
-        bool(getattr(settings, "strict_tenancy", False)) if settings is not None else False
-    )
-    if strict_tenancy:
+    tenant_repo = getattr(services, "tenant_repo", None)
+    if tenant_repo is None:
+        return tenant_key
+
+    tenant = tenant_repo.get_by_key(tenant_key)
+    if tenant is not None:
+        return tenant_key
+
+    strict_tenancy = bool(getattr(getattr(services, "settings", None), "strict_tenancy", False))
+    if strict_tenancy or explicit_tenant is not None:
         raise ApiError(
-            status_code=422,
-            code=ApiErrorCode.VALIDATION_ERROR,
-            message="tenant is required",
-            details={"header": TENANT_HEADER_NAME},
+            status_code=404,
+            code=ApiErrorCode.NOT_FOUND,
+            message="tenant not found",
+            details={"tenant_key": tenant_key},
         )
-
-    is_development = (
-        bool(getattr(settings, "is_development", lambda: True)()) if settings is not None else True
-    )
-    if is_development:
-        request.state.requested_tenant_key = DEFAULT_TENANT_KEY
-        return DEFAULT_TENANT_KEY
-
-    raise ApiError(
-        status_code=422,
-        code=ApiErrorCode.VALIDATION_ERROR,
-        message="tenant is required",
-        details={"header": TENANT_HEADER_NAME},
-    )
+    tenant_repo.get_or_create(tenant_key)
+    return tenant_key
 
 
 @router.post(
@@ -123,7 +148,8 @@ async def check_access(
                 policy_set=normalized_policy_set,
             )
         else:
-            result = effective_service.authorize(
+            result = await run_in_threadpool(
+                effective_service.authorize,
                 tenant_key=tenant_key,
                 principal=principal,
                 user=payload.user,
@@ -143,6 +169,13 @@ async def check_access(
     except SQLAlchemyError as error:
         raise ApiError(
             status_code=500, code=ApiErrorCode.DATABASE_ERROR, message="db error"
+        ) from error
+    except TenantNotFoundError as error:
+        raise ApiError(
+            status_code=404,
+            code=ApiErrorCode.NOT_FOUND,
+            message="tenant not found",
+            details={"tenant_key": error.tenant_key},
         ) from error
 
     logger.info(
@@ -194,7 +227,8 @@ async def simulate(
                 )
             ).decision
         else:
-            decision = effective_service.simulate(
+            decision = await run_in_threadpool(
+                effective_service.simulate,
                 tenant_key=tenant_key,
                 principal=principal,
                 user=payload.user,
@@ -212,6 +246,13 @@ async def simulate(
         raise ApiError(
             status_code=500, code=ApiErrorCode.DATABASE_ERROR, message="db error"
         ) from error
+    except TenantNotFoundError as error:
+        raise ApiError(
+            status_code=404,
+            code=ApiErrorCode.NOT_FOUND,
+            message="tenant not found",
+            details={"tenant_key": error.tenant_key},
+        ) from error
 
     logger.info(
         "simulate user=%s action=%s result=%s principal=%s",
@@ -228,7 +269,7 @@ async def simulate(
             policy_id=decision.policy_id,
             explain_trace=[step.to_dict() for step in decision.explain_trace],
             failed_conditions=list(decision.failed_conditions),
-            revision=effective_service.get_revision(tenant_key=tenant_key),
+            revision=await run_in_threadpool(effective_service.get_revision, tenant_key=tenant_key),
         ).model_dump(),
         request_id=request_id_from_state(request.state),
     )
@@ -268,7 +309,8 @@ async def check_access_batch(
                 policy_set=normalized_policy_set,
             )
         else:
-            results = effective_service.authorize_batch(
+            results = await run_in_threadpool(
+                effective_service.authorize_batch,
                 tenant_key=tenant_key,
                 principal=principal,
                 user=payload.user,
@@ -287,6 +329,13 @@ async def check_access_batch(
         raise ApiError(
             status_code=500, code=ApiErrorCode.DATABASE_ERROR, message="db error"
         ) from error
+    except TenantNotFoundError as error:
+        raise ApiError(
+            status_code=404,
+            code=ApiErrorCode.NOT_FOUND,
+            message="tenant not found",
+            details={"tenant_key": error.tenant_key},
+        ) from error
 
     logger.info(
         "batch user=%s items=%s principal=%s",
@@ -299,7 +348,7 @@ async def check_access_batch(
             results=[
                 BatchAccessResult(
                     action=item.action, allowed=result.decision.allowed, revision=result.revision
-                ).model_dump()
+                )
                 for item, result in zip(payload.items, results, strict=False)
             ],
             revision=results[0].revision if results else None,

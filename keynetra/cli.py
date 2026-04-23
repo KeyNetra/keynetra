@@ -9,6 +9,7 @@ import time
 import warnings
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit, urlunsplit
 
 import httpx
 import typer
@@ -28,6 +29,7 @@ from keynetra.infrastructure.cache.policy_cache import build_policy_cache
 from keynetra.infrastructure.cache.relationship_cache import build_relationship_cache
 from keynetra.infrastructure.repositories.acl import SqlACLRepository
 from keynetra.infrastructure.repositories.audit import SqlAuditRepository
+from keynetra.infrastructure.repositories.idempotency import SqlIdempotencyRepository
 from keynetra.infrastructure.repositories.policies import SqlPolicyRepository
 from keynetra.infrastructure.repositories.relationships import SqlRelationshipRepository
 from keynetra.infrastructure.repositories.tenants import SqlTenantRepository
@@ -36,6 +38,7 @@ from keynetra.infrastructure.storage.session import (
     create_engine_for_url,
     create_session_factory,
     initialize_database,
+    run_migrations,
 )
 from keynetra.migrations import find_destructive_revisions
 from keynetra.services.authorization import AuthorizationService
@@ -98,7 +101,11 @@ def _maybe_load_config(ctx: typer.Context, path: str | None) -> None:
 
 def _resolve_url(explicit_url: str | None, suffix: str, *, use_settings: bool) -> str:
     if explicit_url:
-        return explicit_url
+        parsed = urlsplit(explicit_url)
+        normalized_path = parsed.path.rstrip("/")
+        if normalized_path.endswith(suffix):
+            return explicit_url
+        return urlunsplit(parsed._replace(path=f"{normalized_path}{suffix}"))
     if not use_settings:
         return f"http://localhost:8000{suffix}"
     settings = get_settings()
@@ -120,7 +127,7 @@ def start(
 
     config_active = _effective_config_path(ctx, config) is not None
     _maybe_load_config(ctx, config)
-    settings = get_settings() if config_active else None
+    settings = get_settings()
     _run_server(
         host=host if not config_active or host != "0.0.0.0" else settings.server_host,
         port=port if not config_active or port != 8000 else settings.server_port,
@@ -140,7 +147,7 @@ def serve(
 
     config_active = _effective_config_path(ctx, config) is not None
     _maybe_load_config(ctx, config)
-    settings = get_settings() if config_active else None
+    settings = get_settings()
     _run_server(
         host=host if not config_active or host != "0.0.0.0" else settings.server_host,
         port=port if not config_active or port != 8000 else settings.server_port,
@@ -393,13 +400,12 @@ def migrate(
     """Apply database migrations for the configured KeyNetra database."""
     _maybe_load_config(ctx, config)
 
-    from alembic import command
     from alembic.config import Config
 
     core_dir = Path(__file__).resolve().parents[1]
-    config = Config(str(core_dir / "alembic.ini"))
-    config.set_main_option("script_location", str(core_dir / "alembic"))
-    config.set_main_option("sqlalchemy.url", get_settings().database_url)
+    alembic_config = Config(str(core_dir / "alembic.ini"))
+    alembic_config.set_main_option("script_location", str(core_dir / "alembic"))
+    alembic_config.set_main_option("sqlalchemy.url", get_settings().database_url)
     engine = create_engine_for_url(get_settings().database_url)
     versions_dir = core_dir / "alembic" / "versions"
     applied = _read_applied_revisions(engine)
@@ -410,8 +416,28 @@ def migrate(
             typer.echo(f"  - {revision_id}")
         typer.echo("Re-run with --confirm-destructive to apply them.")
         raise typer.Exit(code=1)
-    command.upgrade(config, revision)
-    typer.echo(f"Migrations applied up to {revision}.")
+
+    run_migrations(get_settings().database_url, revision=revision)
+    typer.echo(f"Migrations applied to {revision}.")
+
+
+@app.command("purge-idempotency")
+def purge_idempotency(
+    ctx: typer.Context,
+    config: str | None = typer.Option(None, "--config", help="Path to config file."),
+) -> None:
+    """Delete expired idempotency records for scheduled maintenance jobs."""
+    _maybe_load_config(ctx, config)
+
+    settings = get_settings()
+    initialize_database(settings.database_url)
+    session_factory = create_session_factory(settings.database_url)
+    db = session_factory()
+    try:
+        deleted = SqlIdempotencyRepository(db).delete_expired()
+    finally:
+        db.close()
+    typer.echo(json.dumps({"deleted": deleted}, indent=2))
 
 
 @app.command("seed-data")
@@ -574,6 +600,9 @@ def explain(
     session_factory = create_session_factory(settings.database_url)
     db = session_factory()
     try:
+        tenants = SqlTenantRepository(db)
+        if tenants.get_by_key(DEFAULT_TENANT_KEY) is None:
+            tenants.create(DEFAULT_TENANT_KEY)
         service = _build_authorization_service(db)
         result = service.authorize(
             tenant_key=DEFAULT_TENANT_KEY,
@@ -668,7 +697,7 @@ def compile_policies(
 @app.command("generate-openapi")
 def generate_openapi(
     output: str = typer.Option(
-        "contracts/openapi/openapi.json", "--output", help="OpenAPI output file path."
+        "contracts/openapi.json", "--output", help="OpenAPI output file path."
     ),
     yaml_output: str | None = typer.Option(
         None, "--yaml-output", help="Optional YAML OpenAPI output file path."
@@ -691,7 +720,9 @@ def generate_openapi(
         out_path = Path(raw_path)
         out_path.parent.mkdir(parents=True, exist_ok=True)
         if out_path.suffix.lower() == ".json":
-            out_path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+            out_path.write_text(
+                json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+            )
         else:
             out_path.write_text(yaml.safe_dump(payload, sort_keys=False), encoding="utf-8")
         written_paths.append(str(out_path))
@@ -701,7 +732,7 @@ def generate_openapi(
 @app.command("check-openapi")
 def check_openapi(
     contract: str = typer.Option(
-        "contracts/openapi/openapi.json",
+        "contracts/openapi.json",
         "--contract",
         help="Versioned OpenAPI contract to compare against generated output.",
     ),
@@ -719,12 +750,14 @@ def check_openapi(
     path = Path(contract)
     if not path.exists():
         raise typer.BadParameter(f"contract file not found: {path}")
-    if path.suffix.lower() == ".json":
-        generated = json.dumps(payload, indent=2, sort_keys=True)
-    else:
-        generated = yaml.safe_dump(payload, sort_keys=False)
     expected = path.read_text(encoding="utf-8")
-    if generated != expected:
+    if path.suffix.lower() == ".json":
+        expected_payload = json.loads(expected)
+        ok = payload == expected_payload
+    else:
+        expected_payload = yaml.safe_load(expected)
+        ok = payload == expected_payload
+    if not ok:
         typer.echo(
             json.dumps(
                 {

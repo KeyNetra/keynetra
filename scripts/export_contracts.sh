@@ -1,28 +1,26 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-set -e
+set -euo pipefail
 
-# --- Configuration ---
-OUTPUT_DIR="contracts/openapi"
-JSON_OUTPUT="$OUTPUT_DIR/openapi.json"
-YAML_OUTPUT="$OUTPUT_DIR/openapi.yaml"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+JSON_OUTPUT="$REPO_ROOT/contracts/openapi.json"
+YAML_OUTPUT="$REPO_ROOT/contracts/openapi.yaml"
 
 echo "--------------------------------------------------"
 echo "🚀 Exporting KeyNetra OpenAPI Contracts..."
 echo "--------------------------------------------------"
 
-# Ensure the output directory exists
-mkdir -p "$OUTPUT_DIR"
+mkdir -p "$(dirname "$JSON_OUTPUT")"
 
-# Export OpenAPI JSON and YAML using the KeyNetra CLI
-# Assuming keynetra is installed in the environment
+cd "$REPO_ROOT"
+
 if command -v keynetra >/dev/null 2>&1; then
     keynetra generate-openapi \
         --output "$JSON_OUTPUT" \
         --yaml-output "$YAML_OUTPUT"
 else
-    # Fallback to calling python directly if CLI is not in path
-    python3 -m keynetra.main generate-openapi \
+    python3 -m keynetra generate-openapi \
         --output "$JSON_OUTPUT" \
         --yaml-output "$YAML_OUTPUT"
 fi

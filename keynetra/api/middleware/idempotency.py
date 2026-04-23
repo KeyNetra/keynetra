@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import hashlib
-from collections.abc import Callable
+from collections.abc import AsyncIterator, Awaitable, Callable
+from typing import Any, cast
 
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
@@ -25,13 +26,14 @@ class IdempotencyMiddleware(BaseHTTPMiddleware):
         ("POST", "/relationships"),
     }
 
-    def __init__(self, app, settings: Settings) -> None:  # type: ignore[override]
+    def __init__(self, app: Any, settings: Settings) -> None:
         super().__init__(app)
+        self._settings = settings
         initialize_database(settings.database_url)
         self._session_factory = create_session_factory(settings.database_url)
 
     async def dispatch(
-        self, request: Request, call_next: Callable[[Request], Response]
+        self, request: Request, call_next: Callable[[Request], Awaitable[Response]]
     ) -> Response:
         if (request.method.upper(), request.url.path) not in self._target_paths:
             return await call_next(request)
@@ -48,7 +50,10 @@ class IdempotencyMiddleware(BaseHTTPMiddleware):
         try:
             repository = SqlIdempotencyRepository(db)
             start = repository.start(
-                scope=scope, idempotency_key=idempotency_key, request_hash=request_hash
+                scope=scope,
+                idempotency_key=idempotency_key,
+                request_hash=request_hash,
+                ttl_seconds=self._settings.idempotency_ttl_seconds,
             )
             if start.outcome == "mismatch":
                 return error_json_response(
@@ -100,10 +105,12 @@ class IdempotencyMiddleware(BaseHTTPMiddleware):
 
 
 async def _collect_body(response: Response) -> bytes:
-    if hasattr(response, "body") and response.body is not None:
-        return bytes(response.body)
+    body = getattr(response, "body", None)
+    if body is not None:
+        return bytes(body)
+    iterator = cast(AsyncIterator[bytes], cast(Any, response).body_iterator)
     body = b""
-    async for chunk in response.body_iterator:
+    async for chunk in iterator:
         body += chunk
     return body
 

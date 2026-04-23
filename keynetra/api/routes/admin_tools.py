@@ -3,10 +3,10 @@ from __future__ import annotations
 import hashlib
 import secrets
 from datetime import datetime
-from typing import Any
+from typing import Any, cast
 
-from fastapi import APIRouter, Depends, Query, Request, status
-from sqlalchemy import delete, insert, select
+from fastapi import APIRouter, Depends, Request, status
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import joinedload
 
@@ -17,14 +17,12 @@ from keynetra.api.responses import request_id_from_state, success_response
 from keynetra.config.admin_auth import AdminAccess, require_management_role
 from keynetra.config.security import get_principal
 from keynetra.domain.models.acl import ResourceACL
-from keynetra.domain.models.api_key import ApiKey
-from keynetra.domain.models.policy_versioning import Policy, PolicyVersion
-from keynetra.domain.models.rbac import Permission, Role, User, role_permissions, user_roles
+from keynetra.domain.models.rbac import Permission, Role, User
 from keynetra.domain.models.relationship import Relationship
 from keynetra.domain.models.tenant import Tenant
 from keynetra.domain.schemas.admin import (
-    ApiKeyCreatedOut,
     ApiKeyCreate,
+    ApiKeyCreatedOut,
     ApiKeyOut,
     BulkExportOut,
     BulkImportOut,
@@ -38,7 +36,7 @@ from keynetra.domain.schemas.admin import (
     UserRoleAssignmentOut,
 )
 from keynetra.domain.schemas.api import SuccessResponse
-from keynetra.domain.schemas.management import AuditRecordOut, PolicyCreate
+from keynetra.domain.schemas.management import AuditRecordOut
 from keynetra.infrastructure.repositories.api_keys import SqlApiKeyRepository
 from keynetra.services.policy_testing import validate_policy_test_suite
 from keynetra.services.revisions import RevisionService
@@ -84,7 +82,9 @@ def list_tenants(
     )
 
 
-@router.post("/tenants", response_model=SuccessResponse[TenantOut], status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/tenants", response_model=SuccessResponse[TenantOut], status_code=status.HTTP_201_CREATED
+)
 def create_tenant(
     payload: TenantCreate,
     request: Request,
@@ -105,7 +105,9 @@ def create_tenant(
         services.db.refresh(tenant)
     except SQLAlchemyError as error:
         services.db.rollback()
-        raise ApiError(status_code=500, code=ApiErrorCode.DATABASE_ERROR, message="db error") from error
+        raise ApiError(
+            status_code=500, code=ApiErrorCode.DATABASE_ERROR, message="db error"
+        ) from error
     return success_response(
         data=TenantOut(
             id=tenant.id,
@@ -188,14 +190,18 @@ def create_api_key(
         )
     except SQLAlchemyError as error:
         services.db.rollback()
-        raise ApiError(status_code=500, code=ApiErrorCode.DATABASE_ERROR, message="db error") from error
+        raise ApiError(
+            status_code=500, code=ApiErrorCode.DATABASE_ERROR, message="db error"
+        ) from error
     return success_response(
         data=ApiKeyCreatedOut(secret=secret, **_api_key_out(record).model_dump()).model_dump(),
         request_id=request_id_from_state(request.state),
     )
 
 
-@router.delete("/tenants/{tenant_key}/api-keys/{key_id}", response_model=SuccessResponse[dict[str, int]])
+@router.delete(
+    "/tenants/{tenant_key}/api-keys/{key_id}", response_model=SuccessResponse[dict[str, int]]
+)
 def revoke_api_key(
     tenant_key: str,
     key_id: int,
@@ -210,7 +216,9 @@ def revoke_api_key(
     )
 
 
-@router.get("/users/{external_id}/roles", response_model=SuccessResponse[list[UserRoleAssignmentOut]])
+@router.get(
+    "/users/{external_id}/roles", response_model=SuccessResponse[list[UserRoleAssignmentOut]]
+)
 def list_user_roles(
     external_id: str,
     request: Request,
@@ -220,12 +228,18 @@ def list_user_roles(
     user = _get_or_create_user(services, external_id)
     roles = [role.name for role in user.roles]
     return success_response(
-        data=[UserRoleAssignmentOut(user_id=user.id, external_id=user.external_id, roles=roles).model_dump()],
+        data=[
+            UserRoleAssignmentOut(
+                user_id=user.id, external_id=user.external_id, roles=roles
+            ).model_dump()
+        ],
         request_id=request_id_from_state(request.state),
     )
 
 
-@router.post("/users/{external_id}/roles/{role_id}", response_model=SuccessResponse[UserRoleAssignmentOut])
+@router.post(
+    "/users/{external_id}/roles/{role_id}", response_model=SuccessResponse[UserRoleAssignmentOut]
+)
 def assign_user_role(
     external_id: str,
     role_id: int,
@@ -243,7 +257,9 @@ def assign_user_role(
             services.db.commit()
         except SQLAlchemyError as error:
             services.db.rollback()
-            raise ApiError(status_code=500, code=ApiErrorCode.DATABASE_ERROR, message="db error") from error
+            raise ApiError(
+                status_code=500, code=ApiErrorCode.DATABASE_ERROR, message="db error"
+            ) from error
     services.decision_cache.bump_namespace(access.tenant_key)
     RevisionService(services.tenant_repo).bump_revision(tenant_key=access.tenant_key)
     return success_response(
@@ -254,7 +270,9 @@ def assign_user_role(
     )
 
 
-@router.delete("/users/{external_id}/roles/{role_id}", response_model=SuccessResponse[UserRoleAssignmentOut])
+@router.delete(
+    "/users/{external_id}/roles/{role_id}", response_model=SuccessResponse[UserRoleAssignmentOut]
+)
 def remove_user_role(
     external_id: str,
     role_id: int,
@@ -272,7 +290,9 @@ def remove_user_role(
             services.db.commit()
         except SQLAlchemyError as error:
             services.db.rollback()
-            raise ApiError(status_code=500, code=ApiErrorCode.DATABASE_ERROR, message="db error") from error
+            raise ApiError(
+                status_code=500, code=ApiErrorCode.DATABASE_ERROR, message="db error"
+            ) from error
     services.decision_cache.bump_namespace(access.tenant_key)
     RevisionService(services.tenant_repo).bump_revision(tenant_key=access.tenant_key)
     return success_response(
@@ -317,7 +337,9 @@ def get_policy_version(
         tenant_id=tenant.id, policy_key=policy_key, version=version
     )
     if record is None:
-        raise ApiError(status_code=404, code=ApiErrorCode.NOT_FOUND, message="policy version not found")
+        raise ApiError(
+            status_code=404, code=ApiErrorCode.NOT_FOUND, message="policy version not found"
+        )
     return success_response(
         data=PolicyVersionOut(**record).model_dump(mode="json"),
         request_id=request_id_from_state(request.state),
@@ -344,7 +366,9 @@ def diff_policy_versions(
         tenant_id=tenant.id, policy_key=policy_key, version=to_version
     )
     if left is None or right is None:
-        raise ApiError(status_code=404, code=ApiErrorCode.NOT_FOUND, message="policy version not found")
+        raise ApiError(
+            status_code=404, code=ApiErrorCode.NOT_FOUND, message="policy version not found"
+        )
     fields = ("action", "effect", "priority", "state", "conditions")
     changes = {
         field: {"from": left[field], "to": right[field]}
@@ -391,7 +415,9 @@ def run_policy_tests(
     try:
         results = validate_policy_test_suite(payload.document)
     except ValueError as error:
-        raise ApiError(status_code=422, code=ApiErrorCode.VALIDATION_ERROR, message=str(error)) from error
+        raise ApiError(
+            status_code=422, code=ApiErrorCode.VALIDATION_ERROR, message=str(error)
+        ) from error
     return success_response(
         data=[PolicyTestResultOut(**result.__dict__).model_dump(mode="json") for result in results],
         request_id=request_id_from_state(request.state),
@@ -441,7 +467,7 @@ def export_audit(
         )
         if not batch:
             break
-        items.extend(AuditRecordOut(**item.__dict__).model_dump(mode="json") for item in batch)
+        items.extend(AuditRecordOut(**item.__dict__) for item in batch)
         remaining -= len(batch)
         if cursor is None:
             break
@@ -480,7 +506,9 @@ def bulk_import(
 
 
 def _get_tenant_or_404(services: ServiceContainer, tenant_key: str) -> Tenant:
-    tenant = services.db.execute(select(Tenant).where(Tenant.tenant_key == tenant_key)).scalars().first()
+    tenant = (
+        services.db.execute(select(Tenant).where(Tenant.tenant_key == tenant_key)).scalars().first()
+    )
     if tenant is None:
         raise ApiError(status_code=404, code=ApiErrorCode.NOT_FOUND, message="tenant not found")
     return tenant
@@ -547,15 +575,17 @@ def _export_resource(services: ServiceContainer, tenant_id: int, resource: str) 
         return None if record is None else record.__dict__
     if resource == "roles":
         roles = (
-            db.execute(
-                select(Role).options(joinedload(Role.permissions)).order_by(Role.id.asc())
-            )
+            db.execute(select(Role).options(joinedload(Role.permissions)).order_by(Role.id.asc()))
             .unique()
             .scalars()
             .all()
         )
         return [
-            {"id": role.id, "name": role.name, "permissions": [permission.action for permission in role.permissions]}
+            {
+                "id": role.id,
+                "name": role.name,
+                "permissions": [permission.action for permission in role.permissions],
+            }
             for role in roles
         ]
     if resource == "permissions":
@@ -569,7 +599,15 @@ def _export_resource(services: ServiceContainer, tenant_id: int, resource: str) 
             for permission in permissions
         ]
     if resource == "acl":
-        rows = db.execute(select(ResourceACL).where(ResourceACL.tenant_id == tenant_id).order_by(ResourceACL.id.asc())).scalars().all()
+        rows = (
+            db.execute(
+                select(ResourceACL)
+                .where(ResourceACL.tenant_id == tenant_id)
+                .order_by(ResourceACL.id.asc())
+            )
+            .scalars()
+            .all()
+        )
         return [
             {
                 "id": row.id,
@@ -583,7 +621,15 @@ def _export_resource(services: ServiceContainer, tenant_id: int, resource: str) 
             }
             for row in rows
         ]
-    rows = db.execute(select(Relationship).where(Relationship.tenant_id == tenant_id).order_by(Relationship.id.asc())).scalars().all()
+    relationship_rows = (
+        db.execute(
+            select(Relationship)
+            .where(Relationship.tenant_id == tenant_id)
+            .order_by(Relationship.id.asc())
+        )
+        .scalars()
+        .all()
+    )
     return [
         {
             "id": row.id,
@@ -593,7 +639,7 @@ def _export_resource(services: ServiceContainer, tenant_id: int, resource: str) 
             "object_type": row.object_type,
             "object_id": row.object_id,
         }
-        for row in rows
+        for row in relationship_rows
     ]
 
 
@@ -604,12 +650,18 @@ def _import_resource(
     imported = 0
     if resource == "policies":
         if not isinstance(payload, list):
-            raise ApiError(status_code=422, code=ApiErrorCode.VALIDATION_ERROR, message="payload must be a list")
+            raise ApiError(
+                status_code=422,
+                code=ApiErrorCode.VALIDATION_ERROR,
+                message="payload must be a list",
+            )
         for item in payload:
             if not isinstance(item, dict):
                 continue
             conditions = dict(item.get("conditions") or {})
-            policy_key = str(item.get("policy_key") or conditions.get("policy_key") or item.get("action"))
+            policy_key = str(
+                item.get("policy_key") or conditions.get("policy_key") or item.get("action")
+            )
             services.policy_service.create_policy(
                 tenant_key=tenant_key,
                 policy_key=policy_key,
@@ -624,7 +676,11 @@ def _import_resource(
         return imported
     if resource == "auth-model":
         if not isinstance(payload, dict) or not isinstance(payload.get("schema_text"), str):
-            raise ApiError(status_code=422, code=ApiErrorCode.VALIDATION_ERROR, message="auth-model payload requires schema_text")
+            raise ApiError(
+                status_code=422,
+                code=ApiErrorCode.VALIDATION_ERROR,
+                message="auth-model payload requires schema_text",
+            )
         services.auth_model_repo.upsert_model(
             tenant_id=tenant.id,
             schema_text=payload["schema_text"],
@@ -634,14 +690,21 @@ def _import_resource(
         return 1
     if resource == "roles":
         if not isinstance(payload, list):
-            raise ApiError(status_code=422, code=ApiErrorCode.VALIDATION_ERROR, message="payload must be a list")
+            raise ApiError(
+                status_code=422,
+                code=ApiErrorCode.VALIDATION_ERROR,
+                message="payload must be a list",
+            )
         for item in payload:
             if isinstance(item, str):
                 name = item
-                permissions = []
+                permissions: list[Any] = []
             elif isinstance(item, dict):
                 name = str(item.get("name") or "")
-                permissions = item.get("permissions") if isinstance(item.get("permissions"), list) else []
+                permissions = cast(
+                    list[Any],
+                    item.get("permissions") if isinstance(item.get("permissions"), list) else [],
+                )
             else:
                 continue
             if not name:
@@ -659,12 +722,24 @@ def _import_resource(
         return imported
     if resource == "permissions":
         if not isinstance(payload, list):
-            raise ApiError(status_code=422, code=ApiErrorCode.VALIDATION_ERROR, message="payload must be a list")
+            raise ApiError(
+                status_code=422,
+                code=ApiErrorCode.VALIDATION_ERROR,
+                message="payload must be a list",
+            )
         for item in payload:
-            action = item if isinstance(item, str) else item.get("action") if isinstance(item, dict) else None
+            action = (
+                item
+                if isinstance(item, str)
+                else item.get("action") if isinstance(item, dict) else None
+            )
             if not isinstance(action, str) or not action:
                 continue
-            permission = services.db.execute(select(Permission).where(Permission.action == action)).scalars().first()
+            permission = (
+                services.db.execute(select(Permission).where(Permission.action == action))
+                .scalars()
+                .first()
+            )
             if permission is None:
                 services.db.add(Permission(action=action))
                 imported += 1
@@ -672,7 +747,11 @@ def _import_resource(
         return imported
     if resource == "acl":
         if not isinstance(payload, list):
-            raise ApiError(status_code=422, code=ApiErrorCode.VALIDATION_ERROR, message="payload must be a list")
+            raise ApiError(
+                status_code=422,
+                code=ApiErrorCode.VALIDATION_ERROR,
+                message="payload must be a list",
+            )
         for item in payload:
             if not isinstance(item, dict):
                 continue
@@ -691,7 +770,11 @@ def _import_resource(
         return imported
     if resource == "relationships":
         if not isinstance(payload, list):
-            raise ApiError(status_code=422, code=ApiErrorCode.VALIDATION_ERROR, message="payload must be a list")
+            raise ApiError(
+                status_code=422,
+                code=ApiErrorCode.VALIDATION_ERROR,
+                message="payload must be a list",
+            )
         for item in payload:
             if not isinstance(item, dict):
                 continue
@@ -714,14 +797,19 @@ def _import_resource(
 
 
 def _sync_role_permissions(db, role: Role, permissions: list[Any]) -> None:
-    desired_actions = {str(item) if not isinstance(item, dict) else str(item.get("action") or "") for item in permissions}
+    desired_actions = {
+        str(item) if not isinstance(item, dict) else str(item.get("action") or "")
+        for item in permissions
+    }
     desired_actions = {action for action in desired_actions if action}
     existing = {permission.action: permission for permission in role.permissions}
     role.permissions = []
     for action in sorted(desired_actions):
         permission = existing.get(action)
         if permission is None:
-            permission = db.execute(select(Permission).where(Permission.action == action)).scalars().first()
+            permission = (
+                db.execute(select(Permission).where(Permission.action == action)).scalars().first()
+            )
         if permission is None:
             permission = Permission(action=action)
             db.add(permission)

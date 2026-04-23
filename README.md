@@ -11,7 +11,7 @@
 [![Docker Hub](https://img.shields.io/docker/pulls/keynetra/keynetra?label=docker%20pulls)](https://hub.docker.com/r/keynetra/keynetra)
 [![Python](https://img.shields.io/badge/python-3.11%2B-blue)](./pyproject.toml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-green)](./LICENSE)
-[![OpenAPI](https://img.shields.io/badge/OpenAPI-3.0.3-orange)](./contracts/openapi/openapi.json)
+[![OpenAPI](https://img.shields.io/badge/OpenAPI-3.0.3-orange)](./contracts/openapi.json)
 
 </div>
 
@@ -107,13 +107,14 @@ keynetra doctor --service core
 
 OpenAPI contracts:
 
-- [`contracts/openapi/openapi.json`](./contracts/openapi/openapi.json)
-- [`contracts/openapi/keynetra-v0.1.0.yaml`](./contracts/openapi/keynetra-v0.1.0.yaml)
+- [`contracts/openapi.json`](./contracts/openapi.json)
+- [`contracts/openapi.yaml`](./contracts/openapi.yaml)
 
 ## Multi-Tenant and Security
 
 - Tenant-aware request flow and storage isolation
 - Strict tenancy mode available via `KEYNETRA_STRICT_TENANCY=true`
+- Tenant-scoped requests now require the tenant to exist; unknown tenant headers return `404`
 - API key and JWT auth support
 - Admin auth flow for privileged operations
 - Rate limiting and request correlation IDs
@@ -181,7 +182,7 @@ SDKs are maintained separately from this engine repository, but the core package
 ships an embedded facade for local execution.
 
 - Python SDK package: `keynetra-client`
-- SDK guide: [`SDK_GUIDE.md`](./SDK_GUIDE.md)
+- Server OpenAPI contract: [`contracts/openapi.json`](./contracts/openapi.json)
 
 Embedded usage:
 
@@ -226,7 +227,6 @@ Convenience commands are available in [`Makefile`](./Makefile).
 
 - [`ARCHITECTURE.md`](./ARCHITECTURE.md)
 - [`DEPLOYMENT.md`](./DEPLOYMENT.md)
-- [`SDK_GUIDE.md`](./SDK_GUIDE.md)
 - [`CONTRIBUTING.md`](./CONTRIBUTING.md)
 - [`CODE_OF_CONDUCT.md`](./CODE_OF_CONDUCT.md)
 - [`SECURITY.md`](./SECURITY.md)
@@ -248,7 +248,7 @@ Apache-2.0. See [`LICENSE`](./LICENSE).
   title   = {KeyNetra},
   author  = {KeyNetra Community},
   year    = {2026},
-  version = {0.1.0-beta},
+  version = {0.1.2},
   url     = {https://github.com/keynetra/keynetra}
 }
 ```

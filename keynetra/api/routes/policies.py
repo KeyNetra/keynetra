@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any, cast
+
 from fastapi import APIRouter, Depends, Request, status
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -44,7 +46,17 @@ def list_policies(
             status_code=500, code=ApiErrorCode.DATABASE_ERROR, message="db error"
         ) from error
     return success_response(
-        data=[PolicyOut(**item).model_dump() for item in items],
+        data=[
+            PolicyOut(
+                id=int(cast(Any, item["id"])),
+                action=str(item["action"]),
+                effect=str(item["effect"]),
+                priority=int(cast(Any, item["priority"])),
+                state=str(item.get("state", "active")),
+                conditions=cast(dict[str, object], item.get("conditions") or {}),
+            ).model_dump()
+            for item in items
+        ],
         request_id=request_id_from_state(request.state),
         limit=limit,
         next_cursor=next_cursor,

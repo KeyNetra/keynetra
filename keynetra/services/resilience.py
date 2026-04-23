@@ -6,19 +6,50 @@ import time
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import TimeoutError as FutureTimeoutError
+from threading import Lock
 from typing import TypeVar
+
+from keynetra.config.settings import Settings
+from keynetra.observability.metrics import (
+    observe_resilience_executor_pressure,
+    record_backend_timeout,
+)
 
 ResultT = TypeVar("ResultT")
 
-_EXECUTOR = ThreadPoolExecutor(max_workers=4)
+_EXECUTORS: dict[int, ThreadPoolExecutor] = {}
+_EXECUTORS_LOCK = Lock()
 
 
-def with_timeout(func: Callable[[], ResultT], *, timeout_seconds: float) -> ResultT:
-    future = _EXECUTOR.submit(func)
+def _get_executor(settings: Settings | None = None) -> ThreadPoolExecutor:
+    max_workers = settings.resolved_resilience_executor_workers() if settings is not None else 4
+    with _EXECUTORS_LOCK:
+        executor = _EXECUTORS.get(max_workers)
+        if executor is None:
+            executor = ThreadPoolExecutor(
+                max_workers=max_workers,
+                thread_name_prefix="keynetra-resilience",
+            )
+            _EXECUTORS[max_workers] = executor
+        return executor
+
+
+# Backward-compatible default executor used by tests and non-configured callers.
+_EXECUTOR = _get_executor()
+
+
+def with_timeout(
+    func: Callable[[], ResultT], *, timeout_seconds: float, settings: Settings | None = None
+) -> ResultT:
+    executor = _EXECUTOR if settings is None else _get_executor(settings)
+    queue_depth = getattr(getattr(executor, "_work_queue", None), "qsize", lambda: 0)()
+    observe_resilience_executor_pressure(queue_depth=queue_depth)
+    future = executor.submit(func)
     try:
         return future.result(timeout=timeout_seconds)
     except FutureTimeoutError as exc:
         future.cancel()
+        record_backend_timeout(operation="threadpool")
         raise TimeoutError(f"operation timed out after {timeout_seconds} seconds") from exc
 
 

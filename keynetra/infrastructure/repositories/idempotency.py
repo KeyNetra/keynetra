@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
+from typing import cast
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
+from sqlalchemy.engine import CursorResult
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -30,10 +32,20 @@ class SqlIdempotencyRepository:
         self._session = session
 
     def start(
-        self, *, scope: str, idempotency_key: str, request_hash: str
+        self,
+        *,
+        scope: str,
+        idempotency_key: str,
+        request_hash: str,
+        ttl_seconds: int,
     ) -> IdempotencyStartResult:
+        now = datetime.now(UTC)
+        self.delete_expired(now=now)
         record = IdempotencyRecord(
-            scope=scope, idempotency_key=idempotency_key, request_hash=request_hash
+            scope=scope,
+            idempotency_key=idempotency_key,
+            request_hash=request_hash,
+            expires_at=now + timedelta(seconds=ttl_seconds),
         )
         self._session.add(record)
         try:
@@ -73,6 +85,17 @@ class SqlIdempotencyRepository:
         record.response_content_type = content_type
         record.completed_at = datetime.now(UTC)
         self._session.commit()
+
+    def delete_expired(self, *, now: datetime | None = None) -> int:
+        cutoff = now or datetime.now(UTC)
+        result = cast(
+            CursorResult[tuple[IdempotencyRecord]],
+            self._session.execute(
+                delete(IdempotencyRecord).where(IdempotencyRecord.expires_at <= cutoff)
+            ),
+        )
+        self._session.commit()
+        return int(result.rowcount or 0)
 
     def _get(self, *, scope: str, idempotency_key: str) -> IdempotencyRecord | None:
         return (

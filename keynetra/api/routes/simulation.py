@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any, TypedDict, cast
+
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -16,6 +18,13 @@ from keynetra.domain.schemas.modeling import (
 )
 
 router = APIRouter()
+
+
+class _SimulationNormalizedRequest(TypedDict):
+    user: dict[str, Any]
+    resource: dict[str, Any]
+    action: str
+    context: dict[str, Any]
 
 
 @router.post("/simulate-policy", response_model=SuccessResponse[PolicySimulationResponse])
@@ -92,7 +101,7 @@ def impact_analysis(
     )
 
 
-def _normalize_request(raw: dict[str, object]) -> dict[str, object]:
+def _normalize_request(raw: dict[str, object]) -> _SimulationNormalizedRequest:
     user = raw.get("user")
     resource = raw.get("resource")
     action = raw.get("action")
@@ -113,4 +122,9 @@ def _normalize_request(raw: dict[str, object]) -> dict[str, object]:
         action = ""
     if not isinstance(context, dict):
         context = {}
-    return {"user": user, "resource": resource, "action": action, "context": context}
+    return {
+        "user": cast(dict[str, Any], user),
+        "resource": cast(dict[str, Any], resource),
+        "action": action,
+        "context": cast(dict[str, Any], context),
+    }

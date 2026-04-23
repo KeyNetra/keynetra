@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from typing import Any
+from typing import Any, cast
 
 SAMPLE_TENANT_KEY = "default"
 
@@ -50,7 +50,7 @@ DEFAULT_POLICIES = [
     {
         "action": item["action"],
         "effect": item["effect"],
-        "conditions": dict(item["conditions"]),
+        "conditions": cast(dict[str, Any], item["conditions"]).copy(),
         "priority": item["priority"],
     }
     for item in SAMPLE_POLICY_DEFINITIONS

@@ -27,19 +27,28 @@ class SqlTenantRepository:
             return None
         return self._to_record(tenant)
 
-    def get_or_create(self, tenant_key: str) -> TenantRecord:
-        existing = (
+    def get_by_key(self, tenant_key: str) -> TenantRecord | None:
+        tenant = (
             self._session.execute(select(Tenant).where(Tenant.tenant_key == tenant_key))
             .scalars()
             .first()
         )
-        if existing is not None:
-            return self._to_record(existing)
+        if tenant is None:
+            return None
+        return self._to_record(tenant)
+
+    def create(self, tenant_key: str) -> TenantRecord:
         tenant = Tenant(tenant_key=tenant_key)
         self._session.add(tenant)
         self._session.commit()
         self._session.refresh(tenant)
         return self._to_record(tenant)
+
+    def get_or_create(self, tenant_key: str) -> TenantRecord:
+        existing = self.get_by_key(tenant_key)
+        if existing is not None:
+            return existing
+        return self.create(tenant_key)
 
     def bump_policy_version(self, tenant: TenantRecord) -> TenantRecord:
         row = self._session.execute(select(Tenant).where(Tenant.id == tenant.id)).scalars().first()

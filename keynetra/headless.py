@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from keynetra.config.config_loader import load_config_file
 from keynetra.config.file_loaders import (
@@ -15,6 +15,7 @@ from keynetra.engine.keynetra_engine import (
     AuthorizationDecision,
     AuthorizationInput,
     KeyNetraEngine,
+    PolicyDefinition,
 )
 from keynetra.engine.model_graph.permission_graph import CompiledPermissionGraph
 from keynetra.modeling.permission_compiler import compile_authorization_schema
@@ -30,7 +31,10 @@ class KeyNetra:
     @classmethod
     def from_config(cls, path: str | Path) -> KeyNetra:
         config = load_config_file(path)
-        policies = load_policies_from_paths(list(config.policy_paths)) or list(DEFAULT_POLICIES)
+        policies = cast(
+            list[PolicyDefinition | dict[str, Any]],
+            load_policies_from_paths(list(config.policy_paths)) or list(DEFAULT_POLICIES),
+        )
         engine = cls(_engine=KeyNetraEngine(policies))
 
         schema = load_authorization_model_from_paths(list(config.model_paths))
@@ -42,7 +46,9 @@ class KeyNetra:
         return engine
 
     def load_policies(self, path: str | Path) -> None:
-        loaded = load_policies_from_paths([str(path)])
+        loaded = cast(
+            list[PolicyDefinition | dict[str, Any]], load_policies_from_paths([str(path)])
+        )
         if not loaded:
             raise ValueError("no policies found in the provided path")
         self._engine = KeyNetraEngine(loaded)

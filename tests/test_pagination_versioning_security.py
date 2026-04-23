@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 import hashlib
-import logging
 import os
 
 from fastapi.testclient import TestClient
 
+import keynetra.config.security as security_module
 from keynetra.config.settings import reset_settings_cache
 from keynetra.infrastructure.storage.session import initialize_database
 from keynetra.main import create_app
@@ -81,23 +81,31 @@ def test_policies_cursor_pagination(tmp_path) -> None:
     assert response.json()["meta"]["next_cursor"]
 
 
-def test_hashed_api_key_auth_and_failed_attempt_logging(tmp_path, caplog) -> None:
+def test_hashed_api_key_auth_and_failed_attempt_logging(tmp_path, monkeypatch) -> None:
     database_url = f"sqlite+pysqlite:///{tmp_path / 'auth.db'}"
     os.environ.pop("KEYNETRA_API_KEYS", None)
     os.environ["KEYNETRA_API_KEY_HASHES"] = hashlib.sha256(b"testkey").hexdigest()
+    events: list[str] = []
+
+    original_log_failed_auth = security_module._log_failed_auth
+
+    def _capture_failed_auth(request, *, reason: str, api_key: str | None = None) -> None:
+        events.append(reason)
+        original_log_failed_auth(request, reason=reason, api_key=api_key)
+
+    monkeypatch.setattr(security_module, "_log_failed_auth", _capture_failed_auth)
     client = _client(database_url)
 
     ok = client.get("/health", headers={"X-API-Key": "testkey"})
     assert ok.status_code == 200
 
-    caplog.set_level(logging.INFO)
     bad = client.post(
         "/check-access",
         json={"user": {}, "action": "read", "resource": {}},
         headers={"X-API-Key": "badkey"},
     )
     assert bad.status_code == 401
-    assert any("auth_failed" in str(record.msg) for record in caplog.records)
+    assert "invalid_api_key" in events
 
 
 def test_unsupported_api_version_rejected(tmp_path) -> None:

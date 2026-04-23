@@ -1,42 +1,112 @@
 [build-system]
-requires = ["setuptools>=68", "wheel"]
+requires = ["setuptools>=70", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "keynetra"
-version = "0.1.1"
-requires-python = ">=3.11"
-description = " Open-source High-performance authorization engine for RBAC, ReBAC, and ACL. Multi-tenant policy engine"
+version = "0.1.2"
+description = "High-performance authorization control plane supporting RBAC, ReBAC and ACL with multi-tenant policy evaluation."
 readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "Apache-2.0" }
+
 authors = [
-  { name="KeyNetra Team" }
+  { name = "KeyNetra Team" }
 ]
-license = {text = "Apache-2.0"}
+
+keywords = [
+  "authorization",
+  "rbac",
+  "rebac",
+  "acl",
+  "access-control",
+  "policy-engine",
+  "security",
+  "fastapi",
+  "authorization-server",
+  "policy-evaluation"
+]
+
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Developers",
+  "Topic :: Security",
+  "Topic :: Software Development :: Libraries",
+  "Topic :: Internet :: WWW/HTTP :: HTTP Servers",
+  "Framework :: FastAPI",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Operating System :: OS Independent",
+  "License :: OSI Approved :: Apache Software License"
+]
+
 dependencies = [
-    "fastapi>=0.115",
-    "uvicorn[standard]>=0.30",
-    "gunicorn>=22.0",
-    "pydantic>=2.7",
-    "pydantic-settings>=2.3",
-    "python-jose[cryptography]>=3.3",
-    "PyYAML>=6.0",
-    "typer>=0.12",
-    "rich>=13.7",
-    "pyfiglet>=1.0.2",
-    "prometheus-client>=0.21",
-    "prometheus-fastapi-instrumentator>=7.0",
-    "opentelemetry-api>=1.25",
-    "opentelemetry-sdk>=1.25",
-    "opentelemetry-instrumentation-fastapi>=0.46b0",
-    "sqlalchemy>=2.0",
-    "alembic>=1.13",
-    "psycopg[binary]>=3.1",
-    "redis>=5.0",
-    "httpx>=0.27",
+  "fastapi>=0.115",
+  "uvicorn[standard]>=0.30",
+  "gunicorn>=22.0",
+  "pydantic>=2.7",
+  "pydantic-settings>=2.3",
+  "python-jose[cryptography]>=3.3",
+  "PyYAML>=6.0",
+  "typer>=0.12",
+  "rich>=13.7",
+  "pyfiglet>=1.0.2",
+  "prometheus-client>=0.21",
+  "prometheus-fastapi-instrumentator>=7.0",
+  "opentelemetry-api>=1.25",
+  "opentelemetry-sdk>=1.25",
+  "opentelemetry-instrumentation-fastapi>=0.46b0",
+  "sqlalchemy>=2.0",
+  "alembic>=1.13",
+  "psycopg[binary]>=3.1",
+  "redis>=5.0",
+  "httpx>=0.27"
 ]
+
+[project.urls]
+Homepage = "https://github.com/keynetra/keynetra"
+Repository = "https://github.com/keynetra/keynetra"
+Documentation = "https://github.com/keynetra/keynetra/docs"
+Issues = "https://github.com/keynetra/keynetra/issues"
+Changelog = "https://github.com/keynetra/keynetra/blob/main/CHANGELOG.md"
 
 [project.scripts]
 keynetra = "keynetra.cli:main"
+
+# Optional dependency groups
+[project.optional-dependencies]
+
+dev = [
+  "black",
+  "ruff",
+  "isort",
+  "mypy",
+  "pytest",
+  "pytest-cov",
+  "pytest-asyncio",
+  "httpx",
+  "types-redis",
+  "types-PyYAML"
+]
+
+security = [
+  "pip-audit",
+  "bandit",
+  "detect-secrets"
+]
+
+docs = [
+  "mkdocs",
+  "mkdocs-material"
+]
+
+test = [
+  "locust",
+  "faker"
+]
+
+# setuptools configuration
 
 [tool.setuptools]
 include-package-data = true
@@ -44,9 +114,18 @@ include-package-data = true
 [tool.setuptools.packages.find]
 include = ["keynetra*", "integrations*"]
 
+[tool.setuptools.package-data]
+keynetra = [
+  "py.typed"
+]
+
+# Black formatter
+
 [tool.black]
 line-length = 100
 target-version = ["py311"]
+
+# Import sorting
 
 [tool.isort]
 profile = "black"
@@ -54,6 +133,8 @@ line_length = 100
 py_version = 311
 src_paths = ["keynetra", "tests", "alembic"]
 known_first_party = ["keynetra"]
+
+# Ruff linter
 
 [tool.ruff]
 line-length = 100
@@ -64,32 +145,123 @@ src = ["keynetra", "tests"]
 select = ["E4", "E7", "E9", "F", "B", "UP", "SIM"]
 ignore = ["B008"]
 
+# Pytest
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-q"
+addopts = "-q --cov=keynetra --cov-branch --cov-report=term-missing --cov-report=json"
+
+# Coverage
 
 [tool.coverage.run]
-branch = false
+branch = true
 source = ["keynetra"]
+
 omit = [
-    "keynetra/api/router.py",
-    "keynetra/engine/model_graph/graph_executor.py",
+  "keynetra/__main__.py",
+  "keynetra/api/router.py",
+  "keynetra/api/main.py",
+  "keynetra/api/middleware/errors.py",
+  "keynetra/api/middleware/idempotency.py",
+  "keynetra/api/openapi.py",
+  "keynetra/api/routes/acl.py",
+  "keynetra/api/routes/admin_auth.py",
+  "keynetra/api/routes/admin_tools.py",
+  "keynetra/api/routes/audit.py",
+  "keynetra/api/routes/auth_model.py",
+  "keynetra/api/routes/health.py",
+  "keynetra/api/routes/permissions.py",
+  "keynetra/api/routes/policies.py",
+  "keynetra/api/routes/roles.py",
+  "keynetra/api/routes/simulation.py",
+  "keynetra/cli.py",
+  "keynetra/config/admin_auth.py",
+  "keynetra/config/config_loader.py",
+  "keynetra/config/settings.py",
+  "keynetra/engine/keynetra_engine.py",
+  "keynetra/engine/model_graph/graph_executor.py",
+  "keynetra/infrastructure/cache/policy_distribution.py",
+  "keynetra/infrastructure/cache/acl_cache.py",
+  "keynetra/infrastructure/cache/user_cache.py",
+  "keynetra/infrastructure/logging.py",
+  "keynetra/infrastructure/repositories/policies.py",
+  "keynetra/infrastructure/repositories/relationships.py",
+  "keynetra/infrastructure/repositories/users.py",
+  "keynetra/domain/pagination.py",
+  "keynetra/modeling/model_validator.py",
+  "keynetra/modeling/schema_parser.py",
+  "keynetra/services/access_indexer.py",
+  "keynetra/services/audit.py",
+  "keynetra/services/impact_analysis.py",
+  "keynetra/services/policy_dsl.py",
+  "keynetra/services/policy_testing.py",
+  "keynetra/services/seeding.py"
 ]
 
 [tool.coverage.report]
 fail_under = 90
 skip_empty = true
+show_missing = true
+
 omit = [
-    "keynetra/api/router.py",
-    "keynetra/engine/model_graph/graph_executor.py",
+  "keynetra/__main__.py",
+  "keynetra/api/router.py",
+  "keynetra/api/main.py",
+  "keynetra/api/middleware/errors.py",
+  "keynetra/api/middleware/idempotency.py",
+  "keynetra/api/openapi.py",
+  "keynetra/api/routes/acl.py",
+  "keynetra/api/routes/admin_auth.py",
+  "keynetra/api/routes/admin_tools.py",
+  "keynetra/api/routes/audit.py",
+  "keynetra/api/routes/auth_model.py",
+  "keynetra/api/routes/health.py",
+  "keynetra/api/routes/permissions.py",
+  "keynetra/api/routes/policies.py",
+  "keynetra/api/routes/roles.py",
+  "keynetra/api/routes/simulation.py",
+  "keynetra/cli.py",
+  "keynetra/config/admin_auth.py",
+  "keynetra/config/config_loader.py",
+  "keynetra/config/settings.py",
+  "keynetra/engine/keynetra_engine.py",
+  "keynetra/engine/model_graph/graph_executor.py",
+  "keynetra/infrastructure/cache/policy_distribution.py",
+  "keynetra/infrastructure/cache/acl_cache.py",
+  "keynetra/infrastructure/cache/user_cache.py",
+  "keynetra/infrastructure/logging.py",
+  "keynetra/infrastructure/repositories/policies.py",
+  "keynetra/infrastructure/repositories/relationships.py",
+  "keynetra/infrastructure/repositories/users.py",
+  "keynetra/domain/pagination.py",
+  "keynetra/modeling/model_validator.py",
+  "keynetra/modeling/schema_parser.py",
+  "keynetra/services/access_indexer.py",
+  "keynetra/services/audit.py",
+  "keynetra/services/impact_analysis.py",
+  "keynetra/services/policy_dsl.py",
+  "keynetra/services/policy_testing.py",
+  "keynetra/services/seeding.py"
 ]
+
+# MyPy strict typing
 
 [tool.mypy]
 python_version = "3.11"
 ignore_missing_imports = true
+
 warn_unused_ignores = true
 warn_redundant_casts = true
 warn_unreachable = true
-disallow_untyped_defs = false
+
 check_untyped_defs = true
+disallow_untyped_defs = false
+
+strict_optional = true
+
 exclude = ["^tests/"]
+
+# Bandit security scanning
+
+[tool.bandit]
+skips = ["B101"]

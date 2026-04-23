@@ -5,6 +5,7 @@ from __future__ import annotations
 from keynetra.engine.compiled.decision_graph import COMPILED_POLICY_STORE
 from keynetra.engine.compiled.policy_compiler import compile_policy_graph
 from keynetra.engine.keynetra_engine import ConditionEvaluator
+from keynetra.services.errors import TenantNotFoundError
 from keynetra.services.interfaces import (
     DecisionCache,
     PolicyCache,
@@ -36,7 +37,7 @@ class PolicyService:
         self._revisions = RevisionService(tenants)
 
     def list_policies(self, *, tenant_key: str) -> list[dict[str, object]]:
-        tenant = self._tenants.get_or_create(tenant_key)
+        tenant = self._require_tenant(tenant_key)
         data: list[dict[str, object]] = []
         for item in self._policies.list_current_policy_views(tenant_id=tenant.id):
             row = dict(item.__dict__)
@@ -51,7 +52,7 @@ class PolicyService:
         limit: int,
         cursor: dict[str, object] | None,
     ) -> tuple[list[dict[str, object]], str | None]:
-        tenant = self._tenants.get_or_create(tenant_key)
+        tenant = self._require_tenant(tenant_key)
         items, next_cursor = self._policies.list_current_policy_page(
             tenant_id=tenant.id, limit=limit, cursor=cursor
         )
@@ -74,7 +75,7 @@ class PolicyService:
         created_by: str | None,
         state: str = "active",
     ) -> PolicyMutationResult:
-        tenant = self._tenants.get_or_create(tenant_key)
+        tenant = self._require_tenant(tenant_key)
         try:
             result = self._policies.create_policy_version(
                 tenant_id=tenant.id,
@@ -111,7 +112,7 @@ class PolicyService:
         return result
 
     def rollback_policy(self, *, tenant_key: str, policy_key: str, version: int) -> tuple[str, int]:
-        tenant = self._tenants.get_or_create(tenant_key)
+        tenant = self._require_tenant(tenant_key)
         result = self._policies.rollback_policy(
             tenant_id=tenant.id, policy_key=policy_key, version=version
         )
@@ -130,7 +131,7 @@ class PolicyService:
         return result
 
     def delete_policy(self, *, tenant_key: str, policy_key: str) -> None:
-        tenant = self._tenants.get_or_create(tenant_key)
+        tenant = self._require_tenant(tenant_key)
         self._policies.delete_policy(tenant_id=tenant.id, policy_key=policy_key)
         updated_tenant = self._tenants.bump_policy_version(tenant)
         self._policy_cache.invalidate(updated_tenant.tenant_key)
@@ -162,3 +163,12 @@ class PolicyService:
             tenant_key=tenant_key,
         )
         COMPILED_POLICY_STORE.set(tenant_key, policy_version, graph)
+
+    def _require_tenant(self, tenant_key: str):
+        get_by_key = getattr(self._tenants, "get_by_key", None)
+        tenant = get_by_key(tenant_key) if callable(get_by_key) else None
+        if tenant is None:
+            tenant = self._tenants.get_or_create(tenant_key)
+        if tenant is None:
+            raise TenantNotFoundError(tenant_key)
+        return tenant

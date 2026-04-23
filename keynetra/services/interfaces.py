@@ -7,6 +7,7 @@ database, cache, and external integrations belong in infrastructure.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from datetime import datetime
 from typing import Any, Protocol
 
 from keynetra.engine.keynetra_engine import (
@@ -36,8 +37,8 @@ class ApiKeyRecord:
     name: str
     key_hash: str
     scopes: dict[str, Any]
-    created_at: Any
-    revoked_at: Any | None = None
+    created_at: datetime
+    revoked_at: datetime | None = None
 
 
 @dataclass(frozen=True)
@@ -72,7 +73,7 @@ class ACLRecord:
     resource_id: str
     action: str
     effect: str
-    created_at: Any | None = None
+    created_at: datetime | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -85,9 +86,7 @@ class ACLRecord:
             "action": self.action,
             "effect": self.effect,
             "created_at": (
-                isoformat_z(self.created_at)
-                if hasattr(self.created_at, "isoformat")
-                else self.created_at
+                isoformat_z(self.created_at) if self.created_at is not None else self.created_at
             ),
         }
 
@@ -138,7 +137,7 @@ class AuditListItem:
     reason: str | None
     evaluated_rules: list[Any]
     failed_conditions: list[Any]
-    created_at: Any
+    created_at: datetime
 
 
 @dataclass(frozen=True)
@@ -150,8 +149,8 @@ class AuthModelRecord:
     schema_text: str
     schema_json: dict[str, Any]
     compiled_json: dict[str, Any]
-    created_at: Any | None = None
-    updated_at: Any | None = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
 
 
 @dataclass(frozen=True)
@@ -181,6 +180,10 @@ class CachedDecision:
 
 class TenantRepository(Protocol):
     """Persistence boundary for tenant data."""
+
+    def get_by_key(self, tenant_key: str) -> TenantRecord | None: ...
+
+    def create(self, tenant_key: str) -> TenantRecord: ...
 
     def get_or_create(self, tenant_key: str) -> TenantRecord: ...
 
@@ -225,9 +228,7 @@ class PolicyRepository(Protocol):
         self, *, tenant_id: int, policy_key: str, version: int
     ) -> tuple[str, int]: ...
 
-    def list_policy_versions(
-        self, *, tenant_id: int, policy_key: str
-    ) -> list[dict[str, Any]]: ...
+    def list_policy_versions(self, *, tenant_id: int, policy_key: str) -> list[dict[str, Any]]: ...
 
     def get_policy_version(
         self, *, tenant_id: int, policy_key: str, version: int
@@ -374,6 +375,8 @@ class RelationshipCache(Protocol):
         subject_id: str,
         relationships: list[RelationshipRecord],
     ) -> None: ...
+
+    def invalidate(self, *, tenant_id: int, subject_type: str, subject_id: str) -> None: ...
 
 
 class ACLRepository(Protocol):

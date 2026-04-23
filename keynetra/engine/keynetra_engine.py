@@ -8,7 +8,7 @@ explicitly through ``AuthorizationInput``.
 from __future__ import annotations
 
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Literal
@@ -55,10 +55,11 @@ class PolicyDefinition:
 
     @staticmethod
     def from_dict(raw: dict[str, Any]) -> PolicyDefinition:
+        raw_conditions = raw.get("conditions")
         return PolicyDefinition(
             action=str(raw.get("action", "")),
             effect="allow" if str(raw.get("effect", "deny")) == "allow" else "deny",
-            conditions=raw.get("conditions") if isinstance(raw.get("conditions"), dict) else {},
+            conditions=raw_conditions if isinstance(raw_conditions, dict) else {},
             priority=int(raw.get("priority", 100)),
             policy_id=str(raw.get("policy_id")) if raw.get("policy_id") is not None else None,
         )
@@ -154,7 +155,7 @@ class ConditionEvaluator:
         return ok, None if ok else "owner mismatch"
 
     def handle_time_range(
-        self, value: dict[str, Any], authorization_input: AuthorizationInput
+        self, value: Any, authorization_input: AuthorizationInput
     ) -> tuple[bool, str | None]:
         if not isinstance(value, dict):
             return False, "invalid time_range"
@@ -178,9 +179,8 @@ class ConditionEvaluator:
         return ok, None if ok else "time_range mismatch"
 
     def handle_geo_match(
-        self, value: dict[str, Any], authorization_input: AuthorizationInput
+        self, value: Any, authorization_input: AuthorizationInput
     ) -> tuple[bool, str | None]:
-
         if not isinstance(value, dict):
             return False, "invalid geo_match"
         user_field = value.get("user_field", "country")
@@ -193,7 +193,7 @@ class ConditionEvaluator:
         return ok, None if ok else "geo mismatch"
 
     def handle_has_relation(
-        self, value: dict[str, Any], authorization_input: AuthorizationInput
+        self, value: Any, authorization_input: AuthorizationInput
     ) -> tuple[bool, str | None]:
         if not isinstance(value, dict):
             return False, "invalid has_relation"
@@ -229,7 +229,7 @@ class KeyNetraEngine:
 
     def __init__(
         self,
-        policies: list[PolicyDefinition | dict[str, Any]],
+        policies: Sequence[PolicyDefinition | dict[str, Any]],
         strategy: str = "first_match",
         compiled_graph: DecisionGraph | None = None,
     ) -> None:
@@ -506,9 +506,10 @@ class KeyNetraEngine:
             tenant=authorization_input.tenant_key,
             decision="allow" if outcome == "allow" else "deny",
         )
+        decision_value: DecisionValue = "allow" if outcome == "allow" else "deny"
         return AuthorizationDecision(
             allowed=outcome == "allow",
-            decision="allow" if outcome == "allow" else "deny",
+            decision=decision_value,
             reason=reason,
             policy_id=final_policy_id,
             explain_trace=tuple(trace),
@@ -579,8 +580,9 @@ class KeyNetraEngine:
                     )
                 )
                 if effect in {"allow", "deny"}:
+                    final_effect: StageOutcome = "allow" if effect == "allow" else "deny"
                     return (
-                        effect,
+                        final_effect,
                         f"matched ACL entry {subject} {authorization_input.action} {resource_type}:{resource_id}",
                         f"acl:{entry.get('id')}",
                     )
@@ -678,7 +680,11 @@ class KeyNetraEngine:
                 policy_id=graph_decision.policy_id,
             )
         )
-        return graph_decision.outcome, graph_decision.reason, graph_decision.policy_id
+        return (
+            "allow" if graph_decision.outcome == "allow" else "deny",
+            graph_decision.reason,
+            graph_decision.policy_id,
+        )
 
     def _evaluate_permission_graph(
         self, authorization_input: AuthorizationInput, *, trace: list[ExplainTraceStep]
@@ -709,7 +715,11 @@ class KeyNetraEngine:
                 policy_id=graph_decision.policy_id,
             )
         )
-        return graph_decision.outcome, graph_decision.reason, graph_decision.policy_id
+        return (
+            "allow" if graph_decision.outcome == "allow" else "deny",
+            graph_decision.reason,
+            graph_decision.policy_id,
+        )
 
     def _subject_descriptors(self, authorization_input: AuthorizationInput) -> set[str]:
         descriptors: set[str] = set()

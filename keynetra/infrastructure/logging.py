@@ -44,7 +44,12 @@ def configure_json_logging() -> None:
         return
     handler = logging.StreamHandler()
     handler.setFormatter(JsonLogFormatter())
-    root.handlers = [handler]
+    preserved = [
+        existing
+        for existing in root.handlers
+        if existing.__class__.__module__.startswith("_pytest.")
+    ]
+    root.handlers = [*preserved, handler]
     root.setLevel(logging.INFO)
     root._keynetra_json_logging = True  # type: ignore[attr-defined]
 
@@ -57,9 +62,14 @@ def configure_rich_logging() -> None:
         from rich.console import Console
         from rich.logging import RichHandler
     except ModuleNotFoundError:
-        handler = logging.StreamHandler()
-        handler.setFormatter(JsonLogFormatter())
-        root.handlers = [handler]
+        fallback_handler = logging.StreamHandler()
+        fallback_handler.setFormatter(JsonLogFormatter())
+        preserved = [
+            existing
+            for existing in root.handlers
+            if existing.__class__.__module__.startswith("_pytest.")
+        ]
+        root.handlers = [*preserved, fallback_handler]
         root.setLevel(logging.INFO)
         root._keynetra_json_logging = True  # type: ignore[attr-defined]
         return
@@ -68,7 +78,7 @@ def configure_rich_logging() -> None:
     console = Console(
         force_terminal=force_color, color_system="truecolor" if force_color else "auto"
     )
-    handler = RichHandler(
+    handler: logging.Handler = RichHandler(
         rich_tracebacks=True,
         markup=True,
         show_path=False,
@@ -76,7 +86,12 @@ def configure_rich_logging() -> None:
     )
     formatter = logging.Formatter("%(message)s")
     handler.setFormatter(formatter)
-    root.handlers = [handler]
+    preserved = [
+        existing
+        for existing in root.handlers
+        if existing.__class__.__module__.startswith("_pytest.")
+    ]
+    root.handlers = [*preserved, handler]
     root.setLevel(logging.INFO)
     root._keynetra_rich_logging = True  # type: ignore[attr-defined]
 

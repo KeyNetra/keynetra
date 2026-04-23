@@ -1,7 +1,8 @@
 """Tenant resolution middleware."""
 
 from __future__ import annotations
-from collections.abc import Callable
+
+from collections.abc import Awaitable, Callable
 
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
@@ -18,7 +19,7 @@ class TenantResolverMiddleware(BaseHTTPMiddleware):
     _PREFIXES = ("/policies", "/roles", "/permissions", "/relationships", "/playground", "/audit")
 
     async def dispatch(
-        self, request: Request, call_next: Callable[[Request], Response]
+        self, request: Request, call_next: Callable[[Request], Awaitable[Response]]
     ) -> Response:
         request_id = ensure_request_id(request)
         request.state.is_management_api = any(

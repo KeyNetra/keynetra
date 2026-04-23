@@ -4,8 +4,8 @@ from copy import deepcopy
 from typing import Any
 
 from fastapi import FastAPI
-from fastapi.routing import APIRoute
 from fastapi.openapi.utils import get_openapi
+from fastapi.routing import APIRoute
 
 from keynetra.api.errors import ApiErrorCode
 
@@ -14,11 +14,16 @@ def build_openapi_schema(app: FastAPI) -> dict[str, Any]:
     if app.openapi_schema:
         return app.openapi_schema
 
+    public_routes = [
+        route
+        for route in app.routes
+        if not (isinstance(route, APIRoute) and route.path.startswith("/dev"))
+    ]
     schema = get_openapi(
         title=app.title,
         version=app.version,
         description=app.description,
-        routes=app.routes,
+        routes=public_routes,
     )
     _apply_route_metadata(app, schema)
     _normalize_for_sdk_codegen(schema)

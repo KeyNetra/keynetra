@@ -14,6 +14,14 @@ class DummyServices(SimpleNamespace):
     pass
 
 
+class DummyTenantRepo:
+    def __init__(self, known: set[str] | None = None) -> None:
+        self._known = known or {"acme", DEFAULT_TENANT_KEY, "tenant-x"}
+
+    def get_by_key(self, tenant_key: str):
+        return object() if tenant_key in self._known else None
+
+
 def request_with_header(value: str | None) -> Request:
     return SimpleNamespace(
         headers={TENANT_HEADER_NAME: value} if value else {},
@@ -31,7 +39,8 @@ def test_resolve_tenant_from_header():
     request = request_with_header("acme")
     principal = principal_with_tenant(None)
     services = DummyServices(
-        settings=SimpleNamespace(strict_tenancy=False, is_development=lambda: False)
+        settings=SimpleNamespace(strict_tenancy=False, is_development=lambda: False),
+        tenant_repo=DummyTenantRepo(),
     )
     assert _resolve_tenant_key(request=request, principal=principal, services=services) == "acme"
 
@@ -40,7 +49,8 @@ def test_resolve_tenant_falls_back_to_principal():
     request = request_with_header(None)
     principal = principal_with_tenant("tenant-x")
     services = DummyServices(
-        settings=SimpleNamespace(strict_tenancy=False, is_development=lambda: False)
+        settings=SimpleNamespace(strict_tenancy=False, is_development=lambda: False),
+        tenant_repo=DummyTenantRepo(),
     )
     assert (
         _resolve_tenant_key(request=request, principal=principal, services=services) == "tenant-x"
@@ -51,7 +61,8 @@ def test_resolve_tenant_development_default():
     request = request_with_header(None)
     principal = {}
     services = DummyServices(
-        settings=SimpleNamespace(strict_tenancy=False, is_development=lambda: True)
+        settings=SimpleNamespace(strict_tenancy=False, is_development=lambda: True),
+        tenant_repo=DummyTenantRepo(),
     )
     assert (
         _resolve_tenant_key(request=request, principal=principal, services=services)
@@ -63,7 +74,20 @@ def test_resolve_tenant_strict_without_tenant_raises():
     request = request_with_header(None)
     principal = {}
     settings = SimpleNamespace(strict_tenancy=True, is_development=lambda: False)
-    services = DummyServices(settings=settings)
+    services = DummyServices(settings=settings, tenant_repo=DummyTenantRepo())
     with pytest.raises(ApiError) as exc:
         _resolve_tenant_key(request=request, principal=principal, services=services)
     assert exc.value.code == ApiErrorCode.VALIDATION_ERROR
+
+
+def test_resolve_tenant_rejects_unknown_tenant() -> None:
+    request = request_with_header("missing")
+    services = DummyServices(
+        settings=SimpleNamespace(strict_tenancy=False, is_development=lambda: False),
+        tenant_repo=DummyTenantRepo({"acme"}),
+    )
+
+    with pytest.raises(ApiError) as exc:
+        _resolve_tenant_key(request=request, principal={}, services=services)
+
+    assert exc.value.code == ApiErrorCode.NOT_FOUND

@@ -1,6 +1,6 @@
 # Changelog
 
-## v0.1.1
+## v0.1.2
 
 Initial public release of the KeyNetra authorization engine.
 

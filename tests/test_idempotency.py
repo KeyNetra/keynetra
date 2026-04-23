@@ -10,6 +10,7 @@ from keynetra.config.settings import reset_settings_cache
 from keynetra.domain.models.idempotency import IdempotencyRecord
 from keynetra.domain.models.policy_versioning import PolicyVersion
 from keynetra.domain.models.relationship import Relationship
+from keynetra.infrastructure.repositories.tenants import SqlTenantRepository
 from keynetra.infrastructure.storage.session import initialize_database
 from keynetra.main import create_app
 
@@ -22,6 +23,11 @@ def _build_client(database_url: str) -> TestClient:
     )
     reset_settings_cache()
     initialize_database(database_url)
+    session = Session(create_engine(database_url, future=True))
+    try:
+        SqlTenantRepository(session).create("default")
+    finally:
+        session.close()
     return TestClient(create_app())
 
 
@@ -42,7 +48,9 @@ def test_policy_create_replays_same_response_without_extra_write(tmp_path) -> No
     session = Session(create_engine(database_url, future=True))
     try:
         assert len(session.execute(select(PolicyVersion)).scalars().all()) == 1
-        assert len(session.execute(select(IdempotencyRecord)).scalars().all()) == 1
+        records = session.execute(select(IdempotencyRecord)).scalars().all()
+        assert len(records) == 1
+        assert records[0].expires_at is not None
     finally:
         session.close()
 
@@ -93,3 +101,33 @@ def test_idempotency_key_rejects_payload_mismatch(tmp_path) -> None:
     assert first.status_code == 201
     assert second.status_code == 409
     assert second.json()["error"]["code"] == "conflict"
+
+
+def test_expired_idempotency_records_are_purged(tmp_path) -> None:
+    database_url = f"sqlite+pysqlite:///{tmp_path / 'core-expired.db'}"
+    client = _build_client(database_url)
+    headers = {"X-API-Key": "testkey", "Idempotency-Key": "policy-expired"}
+    payload = {"action": "read", "effect": "allow", "priority": 10, "conditions": {"role": "admin"}}
+
+    response = client.post("/policies", json=payload, headers=headers)
+    assert response.status_code == 201
+
+    session = Session(create_engine(database_url, future=True))
+    try:
+        record = session.execute(select(IdempotencyRecord)).scalars().one()
+        record.expires_at = record.created_at
+        session.commit()
+    finally:
+        session.close()
+
+    from keynetra.infrastructure.repositories.idempotency import SqlIdempotencyRepository
+
+    session = Session(create_engine(database_url, future=True))
+    try:
+        deleted = SqlIdempotencyRepository(session).delete_expired()
+        remaining = session.execute(select(IdempotencyRecord)).scalars().all()
+    finally:
+        session.close()
+
+    assert deleted == 1
+    assert remaining == []
