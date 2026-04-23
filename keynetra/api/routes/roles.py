@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Request, status
+from http import HTTPStatus
+
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy import and_, delete, or_, select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import joinedload
@@ -59,7 +61,7 @@ def list_roles(
     )
 
 
-@router.post("", response_model=SuccessResponse[RoleOut], status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=SuccessResponse[RoleOut], status_code=HTTPStatus.CREATED)
 def create_role(
     payload: RoleCreate,
     request: Request,
@@ -182,7 +184,7 @@ def list_role_permissions(
 @router.post(
     "/{role_id}/permissions/{permission_id}",
     response_model=SuccessResponse[PermissionOut],
-    status_code=status.HTTP_201_CREATED,
+    status_code=HTTPStatus.CREATED,
 )
 def add_permission_to_role(
     role_id: int,

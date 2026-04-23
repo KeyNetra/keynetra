@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Request, status
+from http import HTTPStatus
+
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy import and_, delete, or_, select
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -67,7 +69,7 @@ def list_permissions(
     )
 
 
-@router.post("", response_model=SuccessResponse[PermissionOut], status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=SuccessResponse[PermissionOut], status_code=HTTPStatus.CREATED)
 def create_permission(
     payload: PermissionCreate,
     request: Request,

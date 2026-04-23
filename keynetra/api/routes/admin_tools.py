@@ -3,9 +3,10 @@ from __future__ import annotations
 import hashlib
 import secrets
 from datetime import datetime
+from http import HTTPStatus
 from typing import Any, cast
 
-from fastapi import APIRouter, Depends, Request, status
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import joinedload
@@ -82,9 +83,7 @@ def list_tenants(
     )
 
 
-@router.post(
-    "/tenants", response_model=SuccessResponse[TenantOut], status_code=status.HTTP_201_CREATED
-)
+@router.post("/tenants", response_model=SuccessResponse[TenantOut], status_code=HTTPStatus.CREATED)
 def create_tenant(
     payload: TenantCreate,
     request: Request,
@@ -160,7 +159,7 @@ def list_api_keys(
 @router.post(
     "/tenants/{tenant_key}/api-keys",
     response_model=SuccessResponse[ApiKeyCreatedOut],
-    status_code=status.HTTP_201_CREATED,
+    status_code=HTTPStatus.CREATED,
 )
 def create_api_key(
     tenant_key: str,

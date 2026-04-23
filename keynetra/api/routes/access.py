@@ -7,8 +7,9 @@ service layer. It does not perform policy evaluation or persistence logic.
 from __future__ import annotations
 
 import logging
+from http import HTTPStatus
 
-from fastapi import APIRouter, Depends, Request, status
+from fastapi import APIRouter, Depends, Request
 from fastapi.concurrency import run_in_threadpool
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -162,7 +163,7 @@ async def check_access(
             )
     except AttributeValidationError as error:
         raise ApiError(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
             code=ApiErrorCode.VALIDATION_ERROR,
             message=str(error),
         ) from error
@@ -238,7 +239,7 @@ async def simulate(
             )
     except AttributeValidationError as error:
         raise ApiError(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
             code=ApiErrorCode.VALIDATION_ERROR,
             message=str(error),
         ) from error
@@ -321,7 +322,7 @@ async def check_access_batch(
             )
     except AttributeValidationError as error:
         raise ApiError(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
             code=ApiErrorCode.VALIDATION_ERROR,
             message=str(error),
         ) from error

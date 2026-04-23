@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Request, status
+from http import HTTPStatus
+
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse
 from sqlalchemy import text
 
@@ -36,7 +38,7 @@ def readiness(
         "not_configured",
     }
     return envelope_json_response(
-        status_code=status.HTTP_200_OK if healthy else status.HTTP_503_SERVICE_UNAVAILABLE,
+        status_code=HTTPStatus.OK if healthy else HTTPStatus.SERVICE_UNAVAILABLE,
         data={
             "status": "ok" if healthy else "degraded",
             "checks": {

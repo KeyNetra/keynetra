@@ -3,8 +3,9 @@ from __future__ import annotations
 import hashlib
 import hmac
 from datetime import UTC, datetime, timedelta
+from http import HTTPStatus
 
-from fastapi import APIRouter, Depends, Request, status
+from fastapi import APIRouter, Depends, Request
 from jose import jwt
 
 from keynetra.api.errors import ApiError, ApiErrorCode
@@ -29,7 +30,7 @@ def admin_login(
 
     if not username or (not password and not password_hash):
         raise ApiError(
-            status_code=status.HTTP_403_FORBIDDEN,
+            status_code=HTTPStatus.FORBIDDEN,
             code=ApiErrorCode.FORBIDDEN,
             message="admin login is disabled",
         )
@@ -43,7 +44,7 @@ def admin_login(
         valid_password = hmac.compare_digest(payload.password, password)
     if not (valid_username and valid_password):
         raise ApiError(
-            status_code=status.HTTP_401_UNAUTHORIZED,
+            status_code=HTTPStatus.UNAUTHORIZED,
             code=ApiErrorCode.UNAUTHORIZED,
             message="invalid admin credentials",
         )

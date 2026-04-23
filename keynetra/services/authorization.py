@@ -22,6 +22,7 @@ from keynetra.engine.keynetra_engine import (
     KeyNetraEngine,
 )
 from keynetra.engine.model_graph.permission_graph import MODEL_GRAPH_STORE, CompiledPermissionGraph
+from keynetra.infrastructure.cache.local_ttl import ThreadSafeTTLCache
 from keynetra.infrastructure.logging import log_event
 from keynetra.infrastructure.metrics import (
     observe_decision_latency,
@@ -110,6 +111,22 @@ class AuthorizationService:
             else None
         )
         self._logger = logging.getLogger("keynetra.authorization")
+        local_cache_size = max(
+            128, int(getattr(settings, "authorization_local_cache_max_entries", 10_000))
+        )
+        engine_cache_size = max(
+            16, int(getattr(settings, "authorization_engine_cache_max_entries", 256))
+        )
+        self._local_decision_cache = ThreadSafeTTLCache[str, CachedDecision](
+            max_entries=local_cache_size,
+            default_ttl_seconds=max(1, int(getattr(settings, "decision_cache_ttl_seconds", 5))),
+        )
+        self._engine_cache = ThreadSafeTTLCache[tuple[str, int], KeyNetraEngine](
+            max_entries=engine_cache_size,
+            default_ttl_seconds=max(
+                30, int(getattr(settings, "authorization_engine_cache_ttl_seconds", 300))
+            ),
+        )
 
     def authorize(
         self,
@@ -548,6 +565,10 @@ class AuthorizationService:
         graph_tenant_key = (
             tenant_key if policy_set_key == "active" else f"{tenant_key}:{policy_set_key}"
         )
+        engine_cache_key = (graph_tenant_key, policy_version)
+        memoized_engine = self._engine_cache.get(engine_cache_key)
+        if memoized_engine is not None:
+            return memoized_engine
         cached = (
             self._safe_policy_cache_get(tenant_key, policy_version)
             if policy_set_key == "active"
@@ -573,12 +594,14 @@ class AuthorizationService:
                 policies = self._settings.load_policies()
                 engine = KeyNetraEngine(policies, strategy="first_match")
                 COMPILED_POLICY_STORE.set(graph_tenant_key, policy_version, engine._compiled_graph)
+                self._engine_cache.set(engine_cache_key, engine)
                 return engine
             if policy_set_key == "active":
                 self._safe_policy_cache_set(tenant_key, policy_version, cached)
         policies = [policy.definition for policy in cached]
         engine = KeyNetraEngine(policies, strategy="first_match")
         COMPILED_POLICY_STORE.set(graph_tenant_key, policy_version, engine._compiled_graph)
+        self._engine_cache.set(engine_cache_key, engine)
         return engine
 
     def _decision_from_cache(self, cached: CachedDecision) -> AuthorizationDecision:
@@ -674,6 +697,11 @@ class AuthorizationService:
         return self._safe_deny(reason=reason)
 
     def _safe_cache_get(self, key: str) -> CachedDecision | None:
+        local = self._local_decision_cache.get(key)
+        if local is not None:
+            record_cache_event(cache_name="decision_local", outcome="hit")
+            return local
+        record_cache_event(cache_name="decision_local", outcome="miss")
         try:
             cached = with_timeout(
                 lambda: self._decision_cache.get(key),
@@ -693,9 +721,12 @@ class AuthorizationService:
             )
             return None
         record_cache_event(cache_name="decision", outcome="hit" if cached is not None else "miss")
+        if cached is not None:
+            self._local_decision_cache.set(key, cached)
         return cached
 
     def _safe_cache_set(self, key: str, value: CachedDecision) -> None:
+        self._local_decision_cache.set(key, value)
         try:
             retry(
                 lambda: with_timeout(

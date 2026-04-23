@@ -183,6 +183,7 @@ jobs:
           tags: |
             type=ref,event=tag
             type=sha
+            type=raw,value=latest
 
       - name: 🐳 Build & Push Multi-Platform
         uses: docker/build-push-action@v6

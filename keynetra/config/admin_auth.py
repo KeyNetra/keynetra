@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from http import HTTPStatus
 from typing import Any
 
-from fastapi import Depends, Request, status
+from fastapi import Depends, Request
 from sqlalchemy.orm import Session
 
 from keynetra.api.errors import ApiError, ApiErrorCode
@@ -45,7 +46,7 @@ def require_management_role(minimum_role: str):
             if tenant is None:
                 if settings.strict_tenancy or explicit_tenant is not None:
                     raise ApiError(
-                        status_code=status.HTTP_404_NOT_FOUND,
+                        status_code=HTTPStatus.NOT_FOUND,
                         code=ApiErrorCode.NOT_FOUND,
                         message="tenant not found",
                         details={"tenant_key": tenant_key},
@@ -54,14 +55,14 @@ def require_management_role(minimum_role: str):
         role = _resolve_tenant_role(principal, tenant_key=tenant_key)
         if role is None:
             raise ApiError(
-                status_code=status.HTTP_403_FORBIDDEN,
+                status_code=HTTPStatus.FORBIDDEN,
                 code=ApiErrorCode.FORBIDDEN,
                 message="tenant access denied",
                 details={"tenant_key": tenant_key},
             )
         if _ROLE_ORDER[role] < _ROLE_ORDER[minimum_role]:
             raise ApiError(
-                status_code=status.HTTP_403_FORBIDDEN,
+                status_code=HTTPStatus.FORBIDDEN,
                 code=ApiErrorCode.FORBIDDEN,
                 message="insufficient management role",
                 details={
@@ -147,7 +148,7 @@ def _resolve_request_tenant_key(
 
     if settings.strict_tenancy:
         raise ApiError(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
             code=ApiErrorCode.VALIDATION_ERROR,
             message="tenant is required",
             details={"header": "X-Tenant-Id"},
@@ -157,7 +158,7 @@ def _resolve_request_tenant_key(
         return DEFAULT_TENANT_KEY
 
     raise ApiError(
-        status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+        status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
         code=ApiErrorCode.VALIDATION_ERROR,
         message="tenant is required",
         details={"header": "X-Tenant-Id"},

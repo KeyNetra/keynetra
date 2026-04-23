@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Request, status
+from http import HTTPStatus
+
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from keynetra.api.dependencies import ServiceContainer, build_services
@@ -64,9 +66,7 @@ def list_relationships(
     )
 
 
-@router.post(
-    "", response_model=SuccessResponse[RelationshipOut], status_code=status.HTTP_201_CREATED
-)
+@router.post("", response_model=SuccessResponse[RelationshipOut], status_code=HTTPStatus.CREATED)
 def create_relationship(
     payload: RelationshipCreate,
     request: Request,

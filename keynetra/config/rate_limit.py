@@ -8,10 +8,10 @@ import math
 import time
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
-from threading import Lock
+from http import HTTPStatus
 from typing import Any
 
-from fastapi import Request, status
+from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
 
@@ -19,6 +19,7 @@ from keynetra.api.errors import ApiErrorCode
 from keynetra.api.responses import error_json_response, request_id_from_state
 from keynetra.config.redis_client import get_redis
 from keynetra.config.settings import Settings
+from keynetra.infrastructure.cache.local_ttl import ThreadSafeTTLCache
 from keynetra.infrastructure.logging import log_event
 
 _logger = logging.getLogger("keynetra.rate_limit")
@@ -30,8 +31,7 @@ class _LocalBucket:
     updated_at: float
 
 
-_local_limits: dict[str, _LocalBucket] = {}
-_local_limits_lock = Lock()
+_local_limits = ThreadSafeTTLCache[str, _LocalBucket](max_entries=10000)
 _EXEMPT_PATHS = {"/health", "/metrics", "/docs", "/redoc", "/openapi.json"}
 _REDIS_BUCKET_SCRIPT = """
 local key = KEYS[1]
@@ -77,8 +77,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
     def __init__(self, app: Any, settings: Settings) -> None:
         super().__init__(app)
         self._settings = settings
-        with _local_limits_lock:
-            _local_limits.clear()
+        _local_limits.clear()
 
     async def dispatch(
         self, request: Request, call_next: Callable[[Request], Awaitable[Response]]
@@ -146,33 +145,31 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                 )
                 if mode == "fail_closed":
                     return error_json_response(
-                        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                        status_code=HTTPStatus.SERVICE_UNAVAILABLE,
                         code=ApiErrorCode.INTERNAL_ERROR,
                         message="rate limiter backend unavailable",
                         details={"backend": "redis", "mode": mode},
                         request_id=request_id_from_state(request.state),
                     )
 
-        with _local_limits_lock:
-            bucket = _local_limits.get(key)
-            if bucket is None:
-                bucket = _LocalBucket(tokens=float(capacity), updated_at=now)
-                _local_limits[key] = bucket
-            elapsed = max(0.0, now - bucket.updated_at)
-            bucket.tokens = min(float(capacity), bucket.tokens + (elapsed * refill_rate))
-            bucket.updated_at = now
-            if bucket.tokens < 1.0:
-                retry_after = max(1, math.ceil((1.0 - bucket.tokens) / refill_rate))
-                return self._limited_response(
-                    request=request, limit=capacity, retry_after=retry_after
-                )
-            bucket.tokens -= 1.0
-            remaining = max(0, int(bucket.tokens))
-            return _BucketDecision(limit=capacity, remaining=remaining, retry_after=0)
+        bucket = _local_limits.get(key)
+        if bucket is None:
+            bucket = _LocalBucket(tokens=float(capacity), updated_at=now)
+        elapsed = max(0.0, now - bucket.updated_at)
+        bucket.tokens = min(float(capacity), bucket.tokens + (elapsed * refill_rate))
+        bucket.updated_at = now
+        if bucket.tokens < 1.0:
+            retry_after = max(1, math.ceil((1.0 - bucket.tokens) / refill_rate))
+            _local_limits.set(key, bucket, ttl_seconds=ttl)
+            return self._limited_response(request=request, limit=capacity, retry_after=retry_after)
+        bucket.tokens -= 1.0
+        remaining = max(0, int(bucket.tokens))
+        _local_limits.set(key, bucket, ttl_seconds=ttl)
+        return _BucketDecision(limit=capacity, remaining=remaining, retry_after=0)
 
     def _limited_response(self, *, request: Request, limit: int, retry_after: int) -> Response:
         return error_json_response(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            status_code=HTTPStatus.TOO_MANY_REQUESTS,
             code=ApiErrorCode.TOO_MANY_REQUESTS,
             message="rate limit exceeded",
             details=None,

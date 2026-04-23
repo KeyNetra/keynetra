@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+from http import HTTPStatus
 from typing import Any, cast
 
-from fastapi import APIRouter, Depends, Request, status
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy.exc import SQLAlchemyError
 
 from keynetra.api.dependencies import ServiceContainer, build_services
@@ -64,7 +65,7 @@ def list_policies(
     )
 
 
-@router.post("", response_model=SuccessResponse[PolicyOut], status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=SuccessResponse[PolicyOut], status_code=HTTPStatus.CREATED)
 def create_policy(
     payload: PolicyCreate,
     request: Request,
@@ -170,7 +171,7 @@ def update_policy(
     )
 
 
-@router.post("/dsl", response_model=SuccessResponse[PolicyOut], status_code=status.HTTP_201_CREATED)
+@router.post("/dsl", response_model=SuccessResponse[PolicyOut], status_code=HTTPStatus.CREATED)
 def create_policy_from_dsl(
     payload: PolicyDslCreate,
     request: Request,

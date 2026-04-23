@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Request, status
+from http import HTTPStatus
+
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy.exc import SQLAlchemyError
 
 from keynetra.api.dependencies import ServiceContainer, build_services
@@ -15,7 +17,7 @@ from keynetra.services.revisions import RevisionService
 router = APIRouter(prefix="/acl", dependencies=[Depends(get_principal)])
 
 
-@router.post("", response_model=SuccessResponse[ACLOut], status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=SuccessResponse[ACLOut], status_code=HTTPStatus.CREATED)
 def create_acl_entry(
     payload: ACLCreate,
     request: Request,

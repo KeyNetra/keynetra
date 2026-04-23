@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Request, status
+from http import HTTPStatus
+
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy.exc import SQLAlchemyError
 
 from keynetra.api.dependencies import ServiceContainer, build_services
@@ -21,7 +23,7 @@ from keynetra.services.revisions import RevisionService
 router = APIRouter(prefix="/auth-model", dependencies=[Depends(get_principal)])
 
 
-@router.post("", response_model=SuccessResponse[AuthModelOut], status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=SuccessResponse[AuthModelOut], status_code=HTTPStatus.CREATED)
 def create_auth_model(
     payload: AuthModelCreate,
     request: Request,
