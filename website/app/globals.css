@@ -1,0 +1,112 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-sans: "Avenir Next", "Segoe UI", "Helvetica Neue", sans-serif;
+  --font-mono: "JetBrains Mono", "SFMono-Regular", "Menlo", monospace;
+  --background: 210 25% 97%;
+  --foreground: 217 61% 12%;
+  --card: 0 0% 100%;
+  --card-foreground: 217 61% 12%;
+  --primary: 214 69% 33%;
+  --primary-foreground: 210 40% 98%;
+  --secondary: 216 57% 92%;
+  --secondary-foreground: 217 61% 12%;
+  --muted: 212 43% 95%;
+  --muted-foreground: 216 26% 35%;
+  --accent: 198 88% 53%;
+  --accent-foreground: 217 61% 12%;
+  --border: 214 33% 88%;
+  --input: 214 33% 88%;
+  --ring: 217 91% 60%;
+  --radius: 1.35rem;
+}
+
+.dark {
+  --background: 218 57% 7%;
+  --foreground: 210 33% 96%;
+  --card: 218 53% 10%;
+  --card-foreground: 210 33% 96%;
+  --primary: 218 66% 19%;
+  --primary-foreground: 210 33% 96%;
+  --secondary: 222 45% 16%;
+  --secondary-foreground: 210 33% 96%;
+  --muted: 220 37% 14%;
+  --muted-foreground: 215 20% 74%;
+  --accent: 196 88% 58%;
+  --accent-foreground: 218 57% 7%;
+  --border: 220 30% 18%;
+  --input: 220 30% 18%;
+  --ring: 217 91% 60%;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background:
+    radial-gradient(circle at top, rgba(59, 130, 246, 0.11), transparent 34%),
+    radial-gradient(circle at right, rgba(34, 211, 238, 0.08), transparent 26%),
+    hsl(var(--background));
+  font-family: var(--font-sans);
+}
+
+* {
+  border-color: hsl(var(--border));
+}
+
+::selection {
+  background: rgba(56, 189, 248, 0.25);
+}
+
+.section-shell {
+  position: relative;
+}
+
+.section-shell::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(59, 130, 246, 0.05), transparent 18%, transparent 82%, rgba(34, 211, 238, 0.04)),
+    linear-gradient(90deg, rgba(148, 163, 184, 0.08) 1px, transparent 1px);
+  background-size: auto, 140px 100%;
+  mask-image: linear-gradient(180deg, transparent, black 20%, black 80%, transparent);
+  opacity: 0.45;
+}
+
+.prose {
+  --tw-prose-body: hsl(var(--muted-foreground));
+  --tw-prose-headings: hsl(var(--foreground));
+  --tw-prose-links: hsl(var(--primary));
+  --tw-prose-bold: hsl(var(--foreground));
+  --tw-prose-counters: hsl(var(--muted-foreground));
+  --tw-prose-bullets: hsl(var(--muted-foreground));
+  --tw-prose-hr: hsl(var(--border));
+  --tw-prose-quotes: hsl(var(--foreground));
+  --tw-prose-quote-borders: hsl(var(--primary));
+  --tw-prose-captions: hsl(var(--muted-foreground));
+  --tw-prose-code: hsl(var(--foreground));
+  --tw-prose-th-borders: hsl(var(--border));
+  --tw-prose-td-borders: hsl(var(--border));
+}
+
+.prose h2,
+.prose h3 {
+  scroll-margin-top: 8rem;
+}
+
+.prose h2 a,
+.prose h3 a {
+  opacity: 0;
+  margin-left: 0.5rem;
+  text-decoration: none;
+}
+
+.prose h2:hover a,
+.prose h3:hover a {
+  opacity: 1;
+}

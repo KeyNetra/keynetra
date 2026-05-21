@@ -1,0 +1,33 @@
+---
+title: Why Authorization is Hard
+description: Authentication proves identity. Authorization has to reason about product structure, ownership, context, and change over time.
+publishedAt: 2026-03-12
+author: KeyNetra Team
+category: Architecture
+tags:
+  - authorization
+  - product design
+  - infrastructure
+---
+
+# Why authorization is hard
+
+Authentication answers who a user is. Authorization answers what they can do, on which resource, under what conditions, and why that answer should still hold after the next product change.
+
+## Product structure leaks into authorization
+
+As soon as a product supports organizations, shared resources, delegated ownership, support access, or time-bound exceptions, authorization stops being a simple role lookup.
+
+## Teams underestimate change
+
+The first version of a permission system rarely survives contact with real customers. New features create exceptions. Exceptions create duplicated logic. Duplicated logic creates inconsistency.
+
+## Infrastructure is the right abstraction
+
+Authorization belongs in infrastructure when:
+
+- multiple services need consistent decisions
+- policy changes should not require broad redeploys
+- support, security, and compliance teams need reliable audit trails
+
+That is the gap KeyNetra is designed to close.

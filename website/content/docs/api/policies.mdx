@@ -1,0 +1,22 @@
+---
+title: Policies
+description: Manage policy definitions, validation, simulation, and rollout workflows.
+section: API
+order: 3
+---
+
+# Policies
+
+Policies in KeyNetra are the durable source of truth for authorization behavior outside simple role or relationship resolution.
+
+## Typical lifecycle
+
+1. Author a policy definition.
+2. Validate and lint before rollout.
+3. Simulate impact against representative requests.
+4. Publish a revision.
+5. Audit live decisions after release.
+
+## Why the lifecycle matters
+
+Authorization changes are high leverage. Treating them like deployable artifacts reduces regressions and makes rollbacks practical.

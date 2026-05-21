@@ -1,0 +1,24 @@
+---
+title: RBAC
+description: Build predictable role hierarchies without pushing every permission into app code.
+section: Concepts
+order: 2
+---
+
+# RBAC in KeyNetra
+
+RBAC is the fastest way to centralize broad application permissions. Roles become part of the authorization model instead of becoming switch statements spread across handlers.
+
+## When RBAC fits
+
+- Internal tools with job-function permissions
+- SaaS admin consoles
+- Tenant-level plans or entitlement tiers
+
+## Common failure mode
+
+Role explosion happens when teams use roles to encode every exception. Once that starts, roles stop being durable abstractions and become serialized business logic.
+
+## KeyNetra approach
+
+Use RBAC for stable access tiers and move exceptions to policy or relationship edges. That keeps roles legible and easy to audit.

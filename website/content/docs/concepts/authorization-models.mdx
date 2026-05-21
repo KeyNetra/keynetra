@@ -1,0 +1,35 @@
+---
+title: Authorization Models
+description: Choose the right access model for product structure, collaboration, and scale.
+section: Concepts
+order: 1
+---
+
+# Authorization models
+
+Most real systems use more than one authorization model. KeyNetra is designed around that reality.
+
+## RBAC
+
+Role-Based Access Control maps stable permissions to roles such as `admin`, `support`, or `billing_manager`. It works well when access is shaped by job function.
+
+## ReBAC
+
+Relationship-Based Access Control models graph edges like `owner`, `editor`, `viewer`, or `member_of`. It excels when access depends on who is connected to what.
+
+## ACL
+
+Access Control Lists attach explicit grants to individual resources. They are useful for direct sharing and one-off overrides.
+
+## Policy engine
+
+Policies evaluate runtime context such as tenant, environment, attributes, or request metadata. This handles conditional logic that should not be encoded into roles alone.
+
+## Compose instead of choosing one forever
+
+The strongest pattern is usually:
+
+- RBAC for baseline product permissions
+- ReBAC for collaboration and delegation
+- ACL for direct grants
+- Policy rules for constraints and exceptions

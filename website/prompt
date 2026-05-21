@@ -1,0 +1,241 @@
+You are a senior frontend architect and UX engineer.
+
+You are given an existing KeyNetra website that already includes animations and modern UI.
+
+Your task is to FIX, STANDARDIZE, and UPGRADE it into a production-grade, public-facing website suitable for a company like Okta, Cloudflare, or Google.
+
+This is NOT about adding more animations.
+This is about making everything correct, consistent, and useful.
+
+--------------------------------------------------
+CORE GOAL
+--------------------------------------------------
+
+Transform the website into:
+
+- Stable
+- Consistent
+- Accessible
+- Professional
+- Developer-focused
+
+It must feel like a real product website, not a design experiment.
+
+--------------------------------------------------
+PHASE 1: REMOVE NON-PRODUCTION ELEMENTS
+--------------------------------------------------
+
+Remove anything that feels like internal/demo language:
+
+- "Scene 1", "Immersion", "Storyboard", etc.
+- Experimental UI labels
+- Overly artistic or unclear sections
+
+All text must be:
+- Clear
+- Professional
+- User-facing
+
+--------------------------------------------------
+PHASE 2: FIX DARK MODE (CRITICAL)
+--------------------------------------------------
+
+Implement a proper theme system:
+
+- Use next-themes or equivalent
+- Toggle must work instantly without flicker
+- Persist theme in localStorage
+- Respect system preference (prefers-color-scheme)
+
+Ensure:
+
+- Every component supports both themes
+- No unreadable text
+- No broken backgrounds
+- No mixed colors
+
+Test all pages in:
+- Light mode
+- Dark mode
+
+--------------------------------------------------
+PHASE 3: STANDARDIZE ANIMATION SYSTEM
+--------------------------------------------------
+
+Audit ALL animations and fix:
+
+Remove:
+- Random animations
+- Slow or laggy transitions
+- Overuse of motion
+
+Keep only:
+- Fade + slight translate
+- Subtle hover effects
+- Smooth page transitions
+
+Rules:
+- Duration: 200–300ms
+- Easing: ease-in-out
+- No bounce effects
+
+Ensure:
+- Animations are consistent across ALL pages
+- No animation should block usability
+
+--------------------------------------------------
+PHASE 4: FIX SCROLL & RESPONSIVENESS
+--------------------------------------------------
+
+Ensure scroll behaves correctly:
+
+- No scroll-jank
+- No overlapping sections
+- No cut-off content
+- No sticky elements breaking layout
+
+Test on:
+- Mobile
+- Tablet
+- Large desktop
+
+Fix:
+- Section heights
+- Overflow issues
+- Sticky components
+
+--------------------------------------------------
+PHASE 5: APPLY DESIGN SYSTEM TO ALL PAGES
+--------------------------------------------------
+
+Extend styling beyond homepage to:
+
+- /product
+- /solutions
+- /enterprise
+- /pricing
+- /security
+- /blog
+- /docs
+
+Ensure consistency in:
+- Typography
+- Spacing
+- Colors
+- Buttons
+- Layout
+
+No page should feel “unfinished”.
+
+--------------------------------------------------
+PHASE 6: SIMPLIFY UI (REMOVE USELESS ELEMENTS)
+--------------------------------------------------
+
+Remove anything that:
+
+- Does not help user understand product
+- Is purely decorative but distracting
+- Looks impressive but adds no clarity
+
+Examples:
+- Excessive floating elements
+- Random motion graphics
+- Over-complex visuals
+
+Keep UI:
+- Clean
+- Focused
+- Informative
+
+--------------------------------------------------
+PHASE 7: IMPROVE CONTENT CLARITY
+--------------------------------------------------
+
+Rewrite unclear sections:
+
+- Use precise developer language
+- Avoid buzzwords
+- Explain features clearly
+
+Example:
+
+Bad:
+"Next-gen scalable authorization platform"
+
+Good:
+"Evaluate access decisions in milliseconds across services"
+
+--------------------------------------------------
+PHASE 8: FIX NAVIGATION & UX FLOW
+--------------------------------------------------
+
+Ensure navigation is intuitive:
+
+- Clear navbar structure
+- Highlight active page
+- Sticky but non-intrusive navbar
+- Logical page hierarchy
+
+Improve:
+- CTA placement
+- Page transitions
+- Internal linking
+
+--------------------------------------------------
+PHASE 9: CODE & DOCS EXPERIENCE
+--------------------------------------------------
+
+Improve developer experience:
+
+- Code blocks readable in both themes
+- Copy buttons working
+- Proper syntax highlighting
+
+Docs:
+- Clean sidebar
+- Active section highlighting
+- Good spacing
+
+--------------------------------------------------
+PHASE 10: PERFORMANCE OPTIMIZATION
+--------------------------------------------------
+
+- Remove heavy unnecessary animations
+- Lazy load non-critical components
+- Optimize images and assets
+
+Ensure:
+- Fast load time
+- Smooth interactions
+
+--------------------------------------------------
+PHASE 11: ACCESSIBILITY
+--------------------------------------------------
+
+Ensure:
+
+- Proper contrast ratios
+- Keyboard navigation
+- Focus states visible
+- Semantic HTML
+
+--------------------------------------------------
+FINAL RESULT
+--------------------------------------------------
+
+The website must feel:
+
+- Reliable
+- Clear
+- Fast
+- Professional
+
+Like a real infrastructure company website.
+
+NOT:
+- A design experiment
+- A flashy landing page
+- A UI showcase
+
+BUT:
+A production-ready developer platform website.

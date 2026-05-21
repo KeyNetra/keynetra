@@ -1,0 +1,25 @@
+---
+title: ReBAC
+description: Model relationships directly for shared resources, delegated ownership, and nested teams.
+section: Concepts
+order: 3
+---
+
+# ReBAC in KeyNetra
+
+ReBAC treats authorization as a graph problem. Access derives from relationships between users, teams, and resources rather than only from static roles.
+
+## Where ReBAC shines
+
+- Documents shared between teams
+- Multi-organization marketplaces
+- Nested workspaces and delegated ownership
+- Product features with collaboration and inheritance
+
+## Example relationship chain
+
+If `alice` is an `editor` on `team:payments`, and `team:payments` owns `document:invoice-policy`, KeyNetra can resolve access by following those edges rather than duplicating grants on each resource.
+
+## Why it matters
+
+ReBAC prevents data duplication and keeps permission state aligned with the collaboration model your product already uses.

@@ -1,0 +1,48 @@
+---
+title: API Reference
+description: Core KeyNetra endpoints for authorization checks, policy lifecycle, and role management.
+section: API
+order: 1
+---
+
+# API reference
+
+KeyNetra exposes a REST API for synchronous access checks, simulation, audit retrieval, and administration.
+
+## Core endpoints
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| `POST` | `/check-access` | Evaluate one authorization request |
+| `POST` | `/check-access-batch` | Evaluate multiple actions for a user or subject |
+| `POST` | `/simulate` | Test a request without affecting production state |
+| `GET` | `/health/ready` | Confirm runtime readiness |
+| `GET` | `/metrics` | Export Prometheus metrics |
+
+## Endpoint spotlight
+
+### POST `/check-access`
+
+```json
+{
+  "user": "user_123",
+  "resource": "doc_456",
+  "action": "read"
+}
+```
+
+```json
+{
+  "allowed": true
+}
+```
+
+## Authentication
+
+Use `X-API-Key` or a bearer token. Multi-tenant traffic can also include `X-Tenant-Id`.
+
+## Read next
+
+- [Check Access](/docs/api/check-access)
+- [Policies](/docs/api/policies)
+- [Roles](/docs/api/roles)

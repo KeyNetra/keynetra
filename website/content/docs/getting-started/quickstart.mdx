@@ -1,0 +1,66 @@
+---
+title: Quickstart
+description: Start KeyNetra locally and execute a real access check in minutes.
+section: Getting Started
+order: 2
+---
+
+# Quickstart
+
+This flow starts the KeyNetra API locally, validates readiness, and evaluates one access decision.
+
+## Install and run
+
+```bash
+python3.11 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt -r requirements-dev.txt
+pip install -e .
+
+export KEYNETRA_DATABASE_URL=sqlite+pysqlite:///./keynetra-quickstart.db
+export KEYNETRA_API_KEYS=devkey
+export KEYNETRA_API_KEY_SCOPES_JSON='{"devkey":{"tenant":"default","role":"admin","permissions":["*"]}}'
+export KEYNETRA_RATE_LIMIT_DISABLED=true
+
+keynetra serve --host 127.0.0.1 --port 8080
+```
+
+## Verify readiness
+
+```bash
+curl -i http://127.0.0.1:8080/health/ready
+```
+
+Expect an HTTP `200` response with a status payload showing the service is ready.
+
+## Check access
+
+```bash
+curl -s -X POST http://127.0.0.1:8080/check-access \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: devkey" \
+  -d '{
+    "user": {"id": "u1", "role": "admin"},
+    "action": "read",
+    "resource": {
+      "resource_type": "document",
+      "resource_id": "doc-1",
+      "id": "doc-1"
+    },
+    "context": {}
+  }'
+```
+
+## What the response means
+
+KeyNetra returns a structured decision envelope with:
+
+- `allowed`: the final authorization result
+- `reason`: a human-readable summary of the match
+- `policy_id`: the rule or model path that resolved the decision
+- `explain_trace`: diagnostic details for inspection and testing
+
+## Next steps
+
+- Read [Authorization Models](/docs/concepts/authorization-models) to decide between RBAC, ReBAC, ACL, and mixed strategies.
+- Read [Node SDK](/docs/sdk/node), [Go SDK](/docs/sdk/go), or [Python SDK](/docs/sdk/python) to wire applications into KeyNetra quickly.

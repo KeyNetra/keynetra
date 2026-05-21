@@ -1,0 +1,35 @@
+---
+title: Go SDK
+description: Use the Go SDK in microservices that need deterministic checks with explicit context handling.
+section: SDK
+order: 2
+---
+
+# Go SDK
+
+The Go SDK gives backend teams a typed client for authorization checks inside latency-sensitive services.
+
+## Install
+
+```bash
+go get github.com/keynetra/go-sdk
+```
+
+## Quickstart
+
+```go
+client := keynetra.NewClient(
+  "https://api.keynetra.dev",
+  keynetra.WithAPIKey(os.Getenv("KEYNETRA_API_KEY")),
+)
+
+decision, err := client.CheckAccess(ctx, keynetra.CheckAccessRequest{
+  User: keynetra.User{ID: "user_123", Role: "support"},
+  Resource: keynetra.Resource{Type: "ticket", ID: "ticket_42"},
+  Action: "read",
+})
+```
+
+## Usage guidance
+
+Propagate request-scoped context into every SDK call so retries, tracing, and cancellation stay aligned with upstream behavior.

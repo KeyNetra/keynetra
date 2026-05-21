@@ -1,0 +1,17 @@
+---
+title: Roles
+description: Define durable role structures without embedding permission logic across services.
+section: API
+order: 4
+---
+
+# Roles
+
+Role endpoints manage the stable permission tiers your applications depend on.
+
+## Recommended pattern
+
+- Keep role sets small and durable.
+- Attach coarse grants to roles.
+- Move resource-specific exceptions into ReBAC or ACL data.
+- Use simulation before changing a role with broad blast radius.

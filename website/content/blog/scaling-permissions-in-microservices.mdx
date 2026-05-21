@@ -1,0 +1,27 @@
+---
+title: Scaling Permissions in Microservices
+description: Microservices amplify authorization drift unless the decision model is shared and observable.
+publishedAt: 2026-01-18
+author: KeyNetra Team
+category: Engineering
+tags:
+  - microservices
+  - scaling
+  - platform
+---
+
+# Scaling permissions in microservices
+
+Microservices make access control harder for the same reason they make everything else harder: behavior is distributed.
+
+## Drift happens slowly, then all at once
+
+One service checks a role. Another service checks a role and a feature flag. A third service adds a local override table. The product still appears to work until support has to explain inconsistent denials to customers.
+
+## Centralized decisions reduce ambiguity
+
+A shared authorization layer gives services one place to ask the question, one policy surface to update, and one audit trail to inspect.
+
+## Platform teams need leverage
+
+The goal is not to hide authorization from application engineers. The goal is to give them an interface that is consistent enough to scale.

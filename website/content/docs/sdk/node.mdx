@@ -1,0 +1,39 @@
+---
+title: Node SDK
+description: Install the Node.js SDK and send low-latency authorization checks from services and edge handlers.
+section: SDK
+order: 1
+---
+
+# Node SDK
+
+The Node SDK is designed for API services, BFFs, jobs, and edge runtimes that need fast authorization decisions.
+
+## Install
+
+```bash
+npm install @keynetra/node
+```
+
+## Quickstart
+
+```ts
+import { KeyNetraClient } from "@keynetra/node";
+
+const client = new KeyNetraClient({
+  baseUrl: process.env.KEYNETRA_URL!,
+  apiKey: process.env.KEYNETRA_API_KEY!,
+});
+
+const decision = await client.checkAccess({
+  user: { id: "user_123", role: "admin" },
+  resource: { type: "document", id: "doc_456" },
+  action: "read",
+});
+```
+
+## Usage guidance
+
+- Instantiate the client once per process.
+- Set aggressive timeouts for synchronous checks.
+- Prefer batch checks when multiple decisions are needed in one request path.

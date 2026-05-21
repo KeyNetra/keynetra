@@ -1,0 +1,41 @@
+---
+title: Introduction
+description: Understand what KeyNetra is, where it fits, and why teams adopt it.
+section: Getting Started
+order: 1
+---
+
+# Authorization infrastructure for application teams
+
+KeyNetra externalizes authorization so product teams stop rebuilding permission logic in every API, service, and background worker. It gives you one decision plane for role-based, relationship-based, and ACL-driven access checks.
+
+## Why teams adopt KeyNetra
+
+- Hardcoded permission checks drift as services multiply.
+- Role hierarchies become brittle once every product workflow introduces exceptions.
+- Auditing access decisions is difficult when logic lives across several codebases.
+- Authorization changes should not require redeploying every service that consumes them.
+
+## What KeyNetra centralizes
+
+KeyNetra packages policy evaluation, relationship lookups, role resolution, audit events, and decision tracing behind an API-first control plane. Applications ask for a decision. KeyNetra applies the active authorization model and returns a deterministic result.
+
+## Core models
+
+| Model | Best for |
+| --- | --- |
+| RBAC | Team roles, admin permissions, coarse access tiers |
+| ReBAC | Shared documents, organizations, delegated ownership |
+| ACL | Explicit grants on individual resources |
+| Policy engine | Conditional rules, tenant-specific controls, runtime context |
+
+## Operating model
+
+1. Define permissions centrally.
+2. Integrate an SDK or call the API from every service.
+3. Log and inspect every authorization decision.
+4. Update policy without rewriting product code.
+
+## Start next
+
+Go to [Quickstart](/docs/getting-started/quickstart) to stand up a local KeyNetra instance and send a real `check-access` request.

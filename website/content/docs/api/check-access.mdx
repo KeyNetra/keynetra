@@ -1,0 +1,53 @@
+---
+title: Check Access
+description: Evaluate a single authorization request with explainable, deterministic output.
+section: API
+order: 2
+---
+
+# `POST /check-access`
+
+This endpoint returns the authorization decision for one request.
+
+## Request body
+
+```json
+{
+  "user": {
+    "id": "user_123",
+    "role": "editor"
+  },
+  "action": "read",
+  "resource": {
+    "resource_type": "document",
+    "resource_id": "doc_456"
+  },
+  "context": {
+    "tenant": "acme"
+  }
+}
+```
+
+## Response body
+
+```json
+{
+  "data": {
+    "allowed": true,
+    "decision": "allow",
+    "reason": "explicit permission grant",
+    "policy_id": "rbac:permissions",
+    "revision": 1
+  },
+  "meta": {
+    "request_id": "req_01H..."
+  },
+  "error": null
+}
+```
+
+## Implementation notes
+
+- Use this endpoint on the critical path for API and service authorization.
+- Cache aggressively at the application edge when decisions have short TTLs.
+- Preserve `request_id` in logs so denied requests are easy to trace.

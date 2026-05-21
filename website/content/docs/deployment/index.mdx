@@ -1,0 +1,22 @@
+---
+title: Deployment
+description: Run KeyNetra in self-hosted production environments with clear scaling and rollout strategies.
+section: Deployment
+order: 1
+---
+
+# Deployment
+
+KeyNetra supports local development, Docker-based self-hosting, Kubernetes, and Helm-driven production deployment.
+
+## Production checklist
+
+- Configure a durable database for policy, audit, and relationship state.
+- Turn on structured logs, metrics, and request correlation.
+- Size caches to reduce repeated permission graph and relationship lookups.
+- Use revisioned policy rollout workflows instead of editing live rules ad hoc.
+- Protect administrative endpoints with stronger authentication than application traffic.
+
+## Recommended topology
+
+Run KeyNetra as a horizontally scalable API layer with shared policy state, external cache, and strong observability around denial rates and latency distribution.

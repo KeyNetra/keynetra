@@ -1,0 +1,37 @@
+---
+title: Python SDK
+description: Integrate KeyNetra into Python APIs, workers, and internal tooling with minimal boilerplate.
+section: SDK
+order: 3
+---
+
+# Python SDK
+
+The Python SDK works well for Django or FastAPI services, workers, and internal automation.
+
+## Install
+
+```bash
+pip install keynetra-client
+```
+
+## Quickstart
+
+```python
+from keynetra_client import KeyNetraClient
+
+client = KeyNetraClient(
+    base_url="https://api.keynetra.dev",
+    api_key="devkey",
+)
+
+decision = client.check_access(
+    user={"id": "user_123", "role": "analyst"},
+    resource={"type": "report", "id": "report_12"},
+    action="read",
+)
+```
+
+## Usage guidance
+
+Keep transport configuration explicit. Authorization traffic should inherit your service standards for timeout, retries, and observability.
